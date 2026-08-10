@@ -1,0 +1,28 @@
+# Access Database files (sensitive data)
+*.accdb
+*.laccdb
+
+# Node modules
+node_modules/
+
+# Backups
+backups/
+
+# opencode agents config
+.agents/
+
+# Web config (may contain credentials)
+web.config
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.log

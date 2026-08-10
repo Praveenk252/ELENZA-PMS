@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elenza PMS — Machine QR Scanner</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#046BD2;--navy:#1E293B;--slate:#334155;--bg:#F0F5FA;--white:#FFFFFF;--border:#D1D5DB;--red:#DC2626;--green:#16A34A;--orange:#EA580C;--yellow:#CA8A04}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--slate);min-height:100vh}
+
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:var(--white);border-radius:12px;padding:40px;width:100%;max-width:400px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.login-box h1{text-align:center;color:var(--navy);font-size:22px;margin-bottom:8px}
+.login-box p{text-align:center;color:var(--slate);font-size:13px;margin-bottom:24px;opacity:.7}
+.login-box label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--navy)}
+.login-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;margin-bottom:16px;outline:none}
+.login-box input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(4,107,210,.15)}
+.login-box .error{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
+.login-box button{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer}
+.login-box button:hover{background:#045CB4}
+.login-box button:disabled{opacity:.5;cursor:not-allowed}
+
+.app{display:none;min-height:100vh;flex-direction:column}
+.top-bar{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.top-bar h1{font-size:16px;font-weight:600}
+.top-bar .user-info{font-size:12px;opacity:.7}
+.top-bar .logout-btn{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer}
+.top-bar .logout-btn:hover{background:rgba(255,255,255,.1)}
+
+.tabs{display:flex;background:var(--white);border-bottom:2px solid var(--border);overflow-x:auto}
+.tab{padding:12px 16px;font-size:13px;font-weight:600;color:var(--slate);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--blue);background:rgba(4,107,210,.04)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+.main{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px}
+
+.scan-zone{background:var(--white);border-radius:12px;padding:24px;text-align:center;border:2px dashed var(--border);position:relative}
+.scan-zone.active{border-color:var(--blue);background:rgba(4,107,210,.02)}
+.scan-zone .icon{font-size:40px;margin-bottom:8px}
+.scan-zone h2{font-size:16px;color:var(--navy);margin-bottom:4px}
+.scan-zone p{font-size:13px;color:var(--slate);opacity:.7}
+.scan-zone .scanner-input{position:absolute;opacity:0;width:0;height:0}
+.scan-zone .last-scanned{margin-top:12px;padding:8px 16px;background:var(--bg);border-radius:6px;font-size:13px;color:var(--slate);display:none}
+.scan-zone .last-scanned.show{display:inline-block}
+.scan-zone .last-scanned .order-num{font-weight:700;color:var(--navy)}
+
+.action-panel{display:none;background:var(--white);border-radius:12px;padding:20px;border:2px solid var(--blue)}
+.action-panel.show{display:block}
+.action-panel .order-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.action-panel .order-num{font-size:20px;font-weight:700;color:var(--navy)}
+.action-panel .order-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--bg);color:var(--slate)}
+.action-panel .order-details{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:20px}
+.action-panel .detail{font-size:13px}
+.action-panel .detail .label{color:var(--slate);opacity:.6;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.action-panel .detail .value{color:var(--navy);font-weight:600}
+.action-panel .actions{display:flex;gap:12px;flex-wrap:wrap}
+.action-panel .actions button{flex:1;min-width:120px;padding:14px 16px;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px}
+.action-panel .btn-complete{background:var(--green);color:#fff}
+.action-panel .btn-complete:hover{background:#15803D}
+.action-panel .btn-partial{background:var(--orange);color:#fff}
+.action-panel .btn-partial:hover{background:#C2410C}
+.action-panel .btn-reject{background:var(--red);color:#fff}
+.action-panel .btn-reject:hover{background:#B91C1C}
+.action-panel .btn-back{background:var(--bg);color:var(--slate);border:1px solid var(--border)}
+.action-panel .btn-back:hover{background:var(--border)}
+.action-panel .remarks-row{margin-top:12px;display:none}
+.action-panel .remarks-row.show{display:flex;gap:12px;align-items:flex-end}
+.action-panel .remarks-row textarea{flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:13px;resize:none;height:60px;outline:none;font-family:inherit}
+.action-panel .remarks-row textarea:focus{border-color:var(--blue)}
+.action-panel .remarks-row button{padding:10px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:var(--blue);color:#fff}
+.action-panel .remarks-row button:hover{background:#045CB4}
+
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;color:#fff;z-index:1000;transform:translateX(120%);transition:transform .3s}
+.toast.show{transform:translateX(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.info{background:var(--blue)}
+
+.order-count{background:var(--white);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.order-count .count{font-size:13px;color:var(--slate)}
+.order-count .count strong{color:var(--navy)}
+.order-count .refresh-btn{background:none;border:1px solid var(--border);padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer;color:var(--slate)}
+.order-count .refresh-btn:hover{background:var(--bg)}
+
+.pending-list{background:var(--white);border-radius:12px;overflow:hidden}
+.pending-list h3{padding:12px 16px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);font-weight:600}
+.pending-list .list{max-height:300px;overflow-y:auto}
+.pending-list .item{padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .1s}
+.pending-list .item:last-child{border-bottom:none}
+.pending-list .item:hover{background:rgba(4,107,210,.04)}
+.pending-list .item .order{font-weight:700;color:var(--navy)}
+.pending-list .item .dealer{color:var(--slate);opacity:.7}
+.pending-list .empty{padding:24px;text-align:center;color:var(--slate);opacity:.5;font-size:13px}
+
+@media(max-width:600px){
+.action-panel .order-details{grid-template-columns:1fr}
+.action-panel .actions{flex-direction:column}
+.action-panel .actions button{min-width:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+<div class="login-box">
+<h1>Machine QR Scanner</h1>
+<p>Sign in to scan and update orders</p>
+<div class="error" id="loginError"></div>
+<label>Username</label>
+<input type="text" id="loginUser" autocomplete="username" placeholder="Enter username">
+<label>Password</label>
+<input type="password" id="loginPass" autocomplete="current-password" placeholder="Enter password">
+<button id="loginBtn" onclick="doLogin()">Sign In</button>
+</div>
+</div>
+
+<div class="app" id="app">
+<div class="top-bar">
+<h1>QR Scanner</h1>
+<span class="user-info" id="userInfo"></span>
+<button class="logout-btn" onclick="doLogout()">Logout</button>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="main">
+<div class="scan-zone active" id="scanZone" onclick="focusScanner()">
+<div class="icon">📸</div>
+<h2>Scan Order QR Code</h2>
+<p>Point your QR scanner at the order sticker</p>
+<input type="text" class="scanner-input" id="scannerInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+<div class="last-scanned" id="lastScanned">Last scanned: <span class="order-num" id="lastOrderNum"></span></div>
+</div>
+
+<div class="action-panel" id="actionPanel">
+<div class="order-header">
+<span class="order-num" id="actionOrderNum"></span>
+<span class="order-badge" id="actionBadge"></span>
+</div>
+<div class="order-details" id="actionDetails"></div>
+<div class="actions">
+<button class="btn-complete" onclick="submitAction('COMPLETED')">Completed</button>
+<button class="btn-partial" onclick="promptRemarks('PARTIAL_COMPLETED')">Partial</button>
+<button class="btn-reject" onclick="promptRemarks('REJECTED')">Rejected</button>
+<button class="btn-back" onclick="backToScan()">Back</button>
+</div>
+<div class="remarks-row" id="remarksRow">
+<textarea id="remarksInput" placeholder="Enter reason..."></textarea>
+<button onclick="submitWithRemarks()">Submit</button>
+</div>
+</div>
+
+<div class="order-count">
+<span class="count">Pending at <strong id="stationLabel">—</strong>: <strong id="pendingCount">0</strong></span>
+<button class="refresh-btn" onclick="refreshOrders()">Refresh</button>
+</div>
+
+<div class="pending-list">
+<h3>Orders at this station</h3>
+<div class="list" id="pendingList"><div class="empty">No orders pending</div></div>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API='api.ashx';
+var MACHINES=['Hot Press','Cutting','Edgebanding','Drilling','QC'];
+var currentStation=MACHINES[0];
+var allOrders=[];
+var currentUser=null;
+var pendingAction=null;
+
+function init(){
+var s=sessionStorage.getItem('scanner_session');
+if(s){
+try{currentUser=JSON.parse(s);showApp();}catch(e){showLogin();}
+}else{showLogin();}
+}
+
+function showLogin(){
+document.getElementById('loginScreen').style.display='flex';
+document.getElementById('app').style.display='none';
+setTimeout(function(){document.getElementById('loginUser').focus();},100);
+}
+
+function showApp(){
+document.getElementById('loginScreen').style.display='none';
+document.getElementById('app').style.display='flex';
+document.getElementById('userInfo').textContent=currentUser.username+' ('+currentUser.role+')';
+buildTabs();
+selectTab(0);
+startAutoRefresh();
+}
+
+function buildTabs(){
+var c=document.getElementById('tabs');c.innerHTML='';
+MACHINES.forEach(function(m,i){
+var b=document.createElement('button');
+b.className='tab'+(i===0?' active':'');
+b.textContent=m;
+b.onclick=function(){selectTab(i);};
+c.appendChild(b);
+});
+}
+
+function selectTab(idx){
+currentStation=MACHINES[idx];
+var tabs=document.querySelectorAll('.tab');
+tabs.forEach(function(t,i){t.className='tab'+(i===idx?' active':'');});
+document.getElementById('stationLabel').textContent=currentStation;
+backToScan();
+refreshOrders();
+focusScanner();
+}
+
+function focusScanner(){
+var inp=document.getElementById('scannerInput');
+inp.value='';
+inp.focus();
+document.getElementById('scanZone').classList.add('active');
+}
+
+function doLogin(){
+var u=document.getElementById('loginUser').value.trim();
+var p=document.getElementById('loginPass').value.trim();
+var err=document.getElementById('loginError');
+if(!u||!p){err.textContent='Enter username and password';err.style.display='block';return;}
+err.style.display='none';
+document.getElementById('loginBtn').disabled=true;
+document.getElementById('loginBtn').textContent='Signing in...';
+
+var fd=new URLSearchParams();
+fd.append('action','login');
+fd.append('username',u);
+fd.append('password',p);
+
+fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+document.getElementById('loginBtn').disabled=false;
+document.getElementById('loginBtn').textContent='Sign In';
+if(d.error){err.textContent=d.error;err.style.display='block';return;}
+currentUser={user_id:d.user_id,username:d.username||u,role:d.role_name,station:d.station_name};
+sessionStorage.setItem('scanner_session',JSON.stringify(currentUser));
+showApp();
+})
+.catch(function(e){
+document.getElementById('loginBtn').disabled=false;
+document.getElementById('loginBtn').textContent='Sign In';
+err.textContent='Login failed. Try again.';err.style.display='block';
+});
+}
+
+function doLogout(){
+sessionStorage.removeItem('scanner_session');
+currentUser=null;
+allOrders=[];
+showLogin();
+}
+
+function loadAppState(){
+return fetch(API+'?action=app-state',{credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+allOrders=[];
+if(d.planning_rows){
+d.planning_rows.forEach(function(o){
+allOrders.push(o);
+});
+}
+if(d.production_rows){
+d.production_rows.forEach(function(o){
+if(!allOrders.find(function(x){return x.order_id===o.order_id;})){
+allOrders.push(o);
+}
+});
+}
+return allOrders;
+})
+.catch(function(e){return [];});
+}
+
+function refreshOrders(){
+loadAppState().then(function(){renderPendingList();});
+}
+
+function getStationOrders(){
+return allOrders.filter(function(o){
+var stage=(o.current_stage||'').toLowerCase();
+var station=(o.current_station||'').toLowerCase();
+var cs=currentStation.toLowerCase();
+if(stage==='dispatched'||stage==='hold')return false;
+return station===cs||stage===cs;
+}).sort(function(a,b){
+return (b.confirmation_date||'').localeCompare(a.confirmation_date||'');
+});
+}
+
+function renderPendingList(){
+var orders=getStationOrders();
+var list=document.getElementById('pendingList');
+document.getElementById('pendingCount').textContent=orders.length;
+if(orders.length===0){
+list.innerHTML='<div class="empty">No orders pending at '+currentStation+'</div>';
+return;
+}
+var h='';
+orders.forEach(function(o){
+var num=o.order_number||('Order #'+o.order_id);
+var dealer=o.dealer_name||'—';
+var customer=o.customer_name||'';
+h+='<div class="item" onclick="selectOrder(\''+escHtml(num)+'\')">';
+h+='<span class="order">'+escHtml(num)+'</span>';
+h+='<span class="dealer">'+escHtml(dealer)+(customer?' · '+escHtml(customer):'')+'</span>';
+h+='</div>';
+});
+list.innerHTML=h;
+}
+
+function findOrderByNumber(num){
+var n=(num||'').trim().toLowerCase();
+return allOrders.find(function(o){
+return (o.order_number||'').toLowerCase()===n;
+});
+}
+
+function findOrderInStation(order){
+var stage=(order.current_stage||'').toLowerCase();
+var station=(order.current_station||'').toLowerCase();
+var cs=currentStation.toLowerCase();
+if(stage==='dispatched'||stage==='hold')return null;
+return station===cs||stage===cs;
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+var inp=document.getElementById('scannerInput');
+var buffer='';
+var timeout=null;
+
+inp.addEventListener('input',function(e){
+var val=inp.value;
+if(val.length>0){
+clearTimeout(timeout);
+timeout=setTimeout(function(){
+processScan(val.trim());
+inp.value='';
+},150);
+}
+});
+
+inp.addEventListener('keydown',function(e){
+if(e.key==='Enter'){
+e.preventDefault();
+var val=inp.value.trim();
+if(val){processScan(val);inp.value='';}
+}
+});
+
+init();
+setTimeout(focusScanner,200);
+});
+
+function processScan(code){
+if(!code)return;
+var order=findOrderByNumber(code);
+if(!order){
+showToast('Order not found: '+code,'error');
+backToScan();
+return;
+}
+if(!findOrderInStation(order)){
+showToast('Order not at '+currentStation,'error');
+backToScan();
+return;
+}
+showActionPanel(order);
+}
+
+function showActionPanel(order){
+document.getElementById('scanZone').classList.remove('active');
+document.getElementById('actionPanel').classList.add('show');
+document.getElementById('actionOrderNum').textContent=order.order_number||('Order #'+order.order_id);
+document.getElementById('actionBadge').textContent=order.current_stage||order.current_station||'—';
+
+var dets=document.getElementById('actionDetails');
+var fields=[
+{label:'Dealer',value:order.dealer_name},
+{label:'Customer',value:order.customer_name},
+{label:'Order Type',value:order.order_type},
+{label:'Current Stage',value:order.current_stage},
+{label:'Main Order',value:order.main_order},
+{label:'Sub Order',value:order.sub_order}
+];
+var h='';
+fields.forEach(function(f){
+h+='<div class="detail"><div class="label">'+f.label+'</div><div class="value">'+escHtml(f.value||'—')+'</div></div>';
+});
+dets.innerHTML=h;
+
+pendingAction={order_id:order.order_id,order_number:order.order_number,station_name:currentStation};
+document.getElementById('remarksRow').classList.remove('show');
+document.getElementById('remarksInput').value='';
+}
+
+function backToScan(){
+document.getElementById('actionPanel').classList.remove('show');
+document.getElementById('scanZone').classList.add('active');
+pendingAction=null;
+document.getElementById('remarksRow').classList.remove('show');
+focusScanner();
+}
+
+function promptRemarks(actionCode){
+if(!pendingAction)return;
+pendingAction.action_code=actionCode;
+document.getElementById('remarksRow').classList.add('show');
+document.getElementById('remarksInput').focus();
+}
+
+function submitWithRemarks(){
+if(!pendingAction)return;
+var remarks=document.getElementById('remarksInput').value.trim();
+if(!remarks){
+showToast('Remarks are required','error');
+return;
+}
+submitAction(pendingAction.action_code,remarks);
+}
+
+function submitAction(actionCode,remarks){
+if(!pendingAction)return;
+pendingAction.action_code=actionCode;
+pendingAction.remarks=remarks||'';
+
+var fd=new URLSearchParams();
+fd.append('action','production-action');
+fd.append('order_id',pendingAction.order_id);
+fd.append('station_name',pendingAction.station_name);
+fd.append('action_code',pendingAction.action_code);
+fd.append('remarks',pendingAction.remarks);
+
+fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+if(d.error){showToast(d.error,'error');return;}
+var label=actionCode==='COMPLETED'?'Completed':actionCode==='PARTIAL_COMPLETED'?'Partial Completed':'Rejected';
+showToast(pendingAction.order_number+' → '+label,'success');
+document.getElementById('lastScanned').classList.add('show');
+document.getElementById('lastOrderNum').textContent=pendingAction.order_number;
+backToScan();
+refreshOrders();
+})
+.catch(function(e){
+showToast('Save failed. Try again.','error');
+});
+}
+
+function showToast(msg,type){
+var t=document.getElementById('toast');
+t.textContent=msg;
+t.className='toast '+type+' show';
+setTimeout(function(){t.classList.remove('show');},3000);
+}
+
+function escHtml(s){
+if(!s)return '';
+return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function startAutoRefresh(){
+setInterval(function(){
+if(document.getElementById('app').style.display!=='none'){
+refreshOrders();
+}
+},30000);
+}
+</script>
+</body>
+</html>

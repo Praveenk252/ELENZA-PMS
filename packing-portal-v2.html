@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elenza Packing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f8fc;
+      --card:#ffffff;
+      --line:#d7e2ef;
+      --text:#1f2b3d;
+      --muted:#66768f;
+      --blue:#0f6cbd;
+      --blue-soft:#e8f1fb;
+      --green:#15803d;
+      --green-soft:#e9f8ef;
+      --danger:#b42318;
+      --danger-soft:#fdeaea;
+      --shadow:0 14px 40px rgba(34,60,110,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Plus Jakarta Sans",sans-serif;
+      background:linear-gradient(180deg,#eef6ff 0,#f7fbff 160px,var(--bg) 160px);
+      color:var(--text);
+    }
+    .shell{max-width:1180px;margin:0 auto;padding:24px}
+    .auth,.app{
+      background:rgba(255,255,255,.78);
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(215,226,239,.9);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+    }
+    .auth{max-width:460px;margin:48px auto;padding:28px}
+    .app{padding:24px}
+    .brand{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+    .brand img{width:84px;height:auto}
+    .brand small{display:block;color:var(--blue);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .brand h1{margin:4px 0 0;font-size:34px;line-height:1}
+    .brand p{margin:0;color:var(--muted)}
+    .stack{display:grid;gap:14px}
+    label{display:grid;gap:7px;font-size:14px;font-weight:600}
+    input,button{font:inherit}
+    input{
+      width:100%;
+      padding:14px 16px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+    }
+    button{
+      border:0;
+      border-radius:16px;
+      padding:14px 18px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .primary{background:var(--blue);color:#fff}
+    .ghost{background:var(--blue-soft);color:var(--text)}
+    .hidden{display:none!important}
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .topbar-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .banner{
+      margin-bottom:18px;
+      padding:14px 16px;
+      border-radius:16px;
+      font-weight:700;
+    }
+    .layout{
+      display:grid;
+      gap:18px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+    .card-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .card-head h2,.card-head h3{margin:0}
+    .tag{
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--blue-soft);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .form-grid{
+      display:grid;
+      grid-template-columns:190px minmax(320px, 1fr);
+      gap:14px 18px;
+      align-items:center;
+      max-width:760px;
+    }
+    .form-grid .action-row{
+      grid-column:1 / -1;
+      padding-top:8px;
+      display:flex;
+      justify-content:center;
+    }
+    .form-grid .action-row button{min-width:260px}
+    .helper{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:8px;
+    }
+    .table-wrap{
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:auto;
+      background:#fff;
+      max-height:60vh;
+      -webkit-overflow-scrolling:touch;
+    }
+    table{
+      width:100%;
+      min-width:920px;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+    th,td{
+      padding:8px 10px;
+      border-bottom:1px solid #e8eef6;
+      text-align:left;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background:#eff5fb;
+      z-index:1;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    td.wrap{white-space:normal}
+    .empty{padding:20px;color:var(--muted)}
+    @media (max-width: 900px){
+      .shell{padding:14px}
+      .topbar{display:grid;grid-template-columns:1fr}
+      .topbar-actions{justify-content:stretch}
+      .topbar-actions button{flex:1}
+      .form-grid{grid-template-columns:1fr}
+      .brand h1{font-size:28px}
+      .form-grid .action-row button{width:100%}
+    }
+    @media (max-width: 640px){
+      .shell{padding:10px}
+      .auth{margin:18px auto;padding:18px}
+      .app{padding:14px}
+      .brand{align-items:flex-start;gap:10px}
+      .brand img{width:58px}
+      .brand h1{font-size:24px}
+      .brand p{font-size:13px}
+      .topbar{gap:12px;margin-bottom:14px}
+      .topbar-actions{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+      }
+      .topbar-actions button{
+        width:100%;
+        padding:12px 10px;
+      }
+      .banner{padding:12px 14px;font-size:14px}
+      .card{
+        padding:14px;
+        border-radius:18px;
+      }
+      .card-head{
+        display:grid;
+        grid-template-columns:1fr;
+        align-items:start;
+      }
+      .card-head h2,.card-head h3{font-size:20px}
+      .tag{justify-self:start}
+      .form-grid{
+        grid-template-columns:1fr;
+        gap:10px;
+        max-width:none;
+      }
+      .form-grid label{
+        font-size:15px;
+        margin-top:2px;
+      }
+      .form-grid input{
+        min-height:48px;
+      }
+      .form-grid .action-row{
+        padding-top:4px;
+      }
+      .helper{
+        font-size:12px;
+        line-height:1.45;
+      }
+      table{
+        min-width:760px;
+        font-size:11px;
+      }
+      th,td{
+        padding:7px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="auth" id="auth-shell">
+      <div class="brand">
+        <img src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+        <div>
+          <small>ElenzaIndia.com</small>
+          <h1>Packing Login</h1>
+          <p>Dedicated packing workspace</p>
+        </div>
+      </div>
+      <div id="auth-message" class="banner hidden"></div>
+      <form id="login-form" class="stack">
+        <label>
+          <span>Username</span>
+          <input id="login-username" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="primary" type="submit">Sign In</button>
+      </form>
+    </section>
+
+    <section class="app hidden" id="app-shell">
+      <div class="topbar">
+        <div class="brand" style="margin:0">
+          <img src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+          <div>
+            <small>ElenzaIndia.com</small>
+            <h1>Packing</h1>
+            <p id="session-meta">Packing workspace</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost" id="refresh-button" type="button">Refresh Data</button>
+          <button class="ghost" id="logout-button" type="button">Logout</button>
+        </div>
+      </div>
+
+      <div id="app-message" class="banner hidden"></div>
+
+      <div class="layout">
+        <div class="card">
+          <div class="card-head">
+            <h2>For packing.user</h2>
+            <span class="tag" id="queue-count">0 Orders</span>
+          </div>
+          <form id="packing-form" class="form-grid">
+            <label>Order Number</label>
+            <div>
+              <input id="order-input" list="packing-order-options" placeholder="Searchable dropdown" required>
+              <datalist id="packing-order-options"></datalist>
+            </div>
+
+            <label>Box Packed</label>
+            <div>
+              <input id="box-packed-input" type="number" min="0" step="1" placeholder="Text Box" required>
+            </div>
+
+            <label>Balance</label>
+            <div>
+              <input id="balance-input" type="number" min="0" step="1" placeholder="Text Box" required>
+            </div>
+
+            <div class="action-row">
+              <button class="primary" type="submit">Update Status</button>
+            </div>
+          </form>
+          <div class="helper" id="selection-helper">Choose a packing order to load current packed and balance boxes.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>History</h3>
+            <span class="tag" id="history-count">0 Rows</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Confirmation Date</th>
+                  <th>Order Number</th>
+                  <th>Packed Boxes</th>
+                  <th>Balance Boxes</th>
+                  <th>Order Packed on Date</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      session: null,
+      planningRows: [],
+      productionRows: [],
+      packingRows: [],
+      historyRows: []
+    };
+
+    const refs = {
+      authShell: document.querySelector("#auth-shell"),
+      appShell: document.querySelector("#app-shell"),
+      authMessage: document.querySelector("#auth-message"),
+      appMessage: document.querySelector("#app-message"),
+      loginForm: document.querySelector("#login-form"),
+      loginUsername: document.querySelector("#login-username"),
+      loginPassword: document.querySelector("#login-password"),
+      sessionMeta: document.querySelector("#session-meta"),
+      refreshButton: document.querySelector("#refresh-button"),
+      logoutButton: document.querySelector("#logout-button"),
+      packingForm: document.querySelector("#packing-form"),
+      orderInput: document.querySelector("#order-input"),
+      orderOptions: document.querySelector("#packing-order-options"),
+      boxPackedInput: document.querySelector("#box-packed-input"),
+      balanceInput: document.querySelector("#balance-input"),
+      submitButton: document.querySelector("#packing-form button[type='submit']"),
+      queueCount: document.querySelector("#queue-count"),
+      selectionHelper: document.querySelector("#selection-helper"),
+      historyBody: document.querySelector("#history-body"),
+      historyCount: document.querySelector("#history-count")
+    };
+
+    init();
+
+    async function init() {
+      bindEvents();
+      await restoreSession();
+    }
+
+    function bindEvents() {
+      refs.loginForm.addEventListener("submit", onLogin);
+      refs.refreshButton.addEventListener("click", loadPackingState);
+      refs.logoutButton.addEventListener("click", onLogout);
+      refs.packingForm.addEventListener("submit", onPackingSave);
+      refs.orderInput.addEventListener("input", syncSelectedOrder);
+    }
+
+    async function restoreSession() {
+      try {
+        const session = await apiGet("session");
+        if (session.authenticated && session.user) {
+          state.session = session.user;
+          await loadPackingState();
+          return;
+        }
+      } catch {}
+      renderLoggedOut();
+    }
+
+    async function onLogin(event) {
+      event.preventDefault();
+      try {
+        const result = await apiPost("login", {
+          username: refs.loginUsername.value.trim().toLowerCase(),
+          password: refs.loginPassword.value
+        });
+        state.session = result.user;
+        refs.loginPassword.value = "";
+        await loadPackingState();
+        showMessage("Packing session ready.", "success");
+      } catch (error) {
+        showMessage(error.message, "error", true);
+      }
+    }
+
+    async function onLogout() {
+      try { await apiPost("logout", {}); } catch {}
+      state.session = null;
+      state.productionRows = [];
+      state.historyRows = [];
+      renderLoggedOut();
+    }
+
+    async function loadPackingState() {
+      if (!state.session) return;
+      const role = String(state.session.role_name || "");
+      const station = String(state.session.station_name || "");
+      if (!(role === "Admin" || (role === "Machine User" && station === "Packing"))) {
+        renderLoggedOut();
+        showMessage("This page is only for packing.user or admin.", "error", true);
+        return;
+      }
+      try {
+        const appState = await apiGet("app-state");
+        state.session = appState.session || state.session;
+        state.planningRows = (appState.planning?.rows || []).filter((row) => {
+          const stage = String(row.planner_stage_label || "").toLowerCase();
+          const currentHint = String(row.current_stage_hint || "").toLowerCase();
+          const workflow = String(row.workflow_stage_code || "").toLowerCase();
+          return workflow !== "dispatched"
+            && workflow !== "dispatch_ready"
+            && stage !== "packed"
+            && stage !== "dispatch"
+            && stage !== "dispatched"
+            && currentHint !== "packed"
+            && currentHint !== "dispatch"
+            && currentHint !== "dispatched";
+        });
+        state.productionRows = appState.production?.rows || [];
+        state.packingRows = state.productionRows.filter((row) => String(row.current_station || "") === "Packing");
+        const historyState = await apiGet("history-state");
+        state.historyRows = (historyState.rows || []).filter((row) => String(row.station_name || "") === "Packing");
+        renderLoggedIn();
+      } catch (error) {
+        showMessage(error.message, "error", true);
+      }
+    }
+
+    function renderLoggedOut() {
+      refs.authShell.classList.remove("hidden");
+      refs.appShell.classList.add("hidden");
+      refs.orderOptions.innerHTML = "";
+      refs.historyBody.innerHTML = "";
+      refs.queueCount.textContent = "0 Orders";
+      refs.historyCount.textContent = "0 Rows";
+      refs.selectionHelper.textContent = "Choose a packing order to load current packed and balance boxes.";
+    }
+
+    function renderLoggedIn() {
+      refs.authShell.classList.add("hidden");
+      refs.appShell.classList.remove("hidden");
+      refs.sessionMeta.textContent = `${state.session.full_name} | ${state.session.role_name}`;
+      refs.queueCount.textContent = `${state.planningRows.length} Orders`;
+      fillDatalist(refs.orderOptions, state.planningRows.map(orderLabel));
+      refs.orderInput.value = "";
+      syncSelectedOrder();
+      renderHistory();
+    }
+
+    function setPackingFormMode(enabled, buttonLabel) {
+      refs.boxPackedInput.disabled = !enabled;
+      refs.balanceInput.disabled = !enabled;
+      refs.submitButton.disabled = !enabled;
+      refs.submitButton.textContent = buttonLabel || "Update Status";
+    }
+
+    function syncSelectedOrder() {
+      const row = findSelectedOrder();
+      if (!row) {
+        refs.boxPackedInput.value = "";
+        refs.balanceInput.value = "";
+        refs.selectionHelper.textContent = state.planningRows.length ? "Select a valid order from the dropdown." : "No orders are visible from confirmation to packing.";
+        setPackingFormMode(false, "Update Status");
+        return;
+      }
+      const packingRow = state.packingRows.find((item) => String(item.order_id) === String(row.order_id));
+      refs.boxPackedInput.value = String(Number((packingRow && packingRow.box_count) || 0));
+      refs.balanceInput.value = String(Number((packingRow && packingRow.packing_balance_box_qty) || 0));
+      const stage = row.current_station || row.planner_stage_label || row.current_stage_hint || "-";
+      setPackingFormMode(true, "Update Status");
+      refs.selectionHelper.textContent = `Current stage: ${stage} | Dealer: ${row.dealer_name || "-"} | Customer: ${customerLabel(row.customer_name)} | Packing screen can update any order from confirmation till packing.`;
+    }
+
+    async function onPackingSave(event) {
+      event.preventDefault();
+      const row = findSelectedOrder();
+      if (!row) {
+        syncSelectedOrder();
+        return;
+      }
+      const boxQty = Number(refs.boxPackedInput.value || "0");
+      const balanceQty = Number(refs.balanceInput.value || "0");
+      if (!Number.isFinite(boxQty) || boxQty < 0) {
+        showMessage("Packed boxes must be 0 or more.", "error");
+        return;
+      }
+      if (!Number.isFinite(balanceQty) || balanceQty < 0) {
+        showMessage("Balance boxes must be 0 or more.", "error");
+        return;
+      }
+      try {
+        await apiPost("packing-boxes-set", {
+          order_id: Number(row.order_id),
+          station_name: "Packing",
+          box_qty: String(boxQty)
+        });
+        await apiPost("production-balance-save", {
+          order_id: Number(row.order_id),
+          station_name: "Packing",
+          balance_box_qty: String(balanceQty)
+        });
+        if (balanceQty === 0) {
+          await apiPost("production-action", {
+            order_id: Number(row.order_id),
+            station_name: "Packing",
+            action_code: "COMPLETED",
+            remarks: "",
+            balance_box_qty: "0"
+          });
+        }
+        await loadPackingState();
+        if (balanceQty === 0) {
+          refs.orderInput.value = "";
+          refs.boxPackedInput.value = "";
+          refs.balanceInput.value = "";
+          refs.selectionHelper.textContent = "Packing completed. Order moved to Dispatch.";
+          showMessage("Packing completed and moved to Dispatch.", "success");
+        } else {
+          refs.orderInput.value = orderLabel(row);
+          syncSelectedOrder();
+          showMessage("Packing counts saved. Order remains in Packing.", "success");
+        }
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    function renderHistory() {
+      const rows = state.packingRows.map((row) => {
+        const packingHistory = state.historyRows.filter((item) => String(item.order_id) === String(row.order_id));
+        const packedDate = packingHistory.length ? packingHistory[0].acted_at : "-";
+        return {
+          confirmation_date: shortDate(row.confirmation_date || row.created_at || ""),
+          order_number: row.order_number || "-",
+          packed_boxes: Number(row.box_count || 0),
+          balance_boxes: Number(row.packing_balance_box_qty || 0),
+          packed_date: packedDate
+        };
+      }).sort((a, b) => String(b.packed_date).localeCompare(String(a.packed_date)));
+
+      refs.historyCount.textContent = `${rows.length} Rows`;
+      refs.historyBody.innerHTML = rows.length ? rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.confirmation_date || "-")}</td>
+          <td class="wrap">${escapeHtml(row.order_number)}</td>
+          <td>${escapeHtml(String(row.packed_boxes))}</td>
+          <td>${escapeHtml(String(row.balance_boxes))}</td>
+          <td>${escapeHtml(row.packed_date || "-")}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="5" class="empty">No packing rows available.</td></tr>`;
+    }
+
+    function orderLabel(row) {
+      return [row.order_number || "", customerLabel(row.customer_name)].filter(Boolean).join(" ");
+    }
+
+    function findSelectedOrder() {
+      const value = refs.orderInput.value.trim().toLowerCase();
+      if (!value) return null;
+      return state.planningRows.find((row) => orderLabel(row).trim().toLowerCase() === value)
+        || state.planningRows.find((row) => String(row.order_number || "").trim().toLowerCase() === value)
+        || state.planningRows.find((row) => orderLabel(row).toLowerCase().includes(value))
+        || null;
+    }
+
+    function findSelectedPackingOrder() {
+      const base = findSelectedOrder();
+      if (!base) return null;
+      return state.packingRows.find((row) => String(row.order_id) === String(base.order_id)) || null;
+    }
+
+    async function apiGet(action) {
+      const response = await fetch(`/api.ashx?action=${action}`, { credentials: "same-origin" });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.message || "Request failed.");
+      return result;
+    }
+
+    async function apiPost(action, payload) {
+      const params = new URLSearchParams();
+      Object.entries(payload).forEach(([key, value]) => params.append(key, value == null ? "" : value));
+      const response = await fetch(`/api.ashx?action=${action}`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+        body: params.toString()
+      });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.message || "Request failed.");
+      return result;
+    }
+
+    function fillDatalist(node, values) {
+      node.innerHTML = [...new Set(values.filter(Boolean))].map((value) => `<option value="${escapeAttribute(value)}"></option>`).join("");
+    }
+
+    function customerLabel(value) {
+      return value ? `(${value})` : "";
+    }
+
+    function shortDate(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "-";
+      const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${match[3]}-${match[2]}-${match[1].slice(-2)}`;
+      return raw;
+    }
+
+    function showMessage(message, tone, auth = false) {
+      const node = auth ? refs.authMessage : refs.appMessage;
+      node.textContent = message;
+      node.classList.remove("hidden");
+      node.style.background = tone === "error" ? "var(--danger-soft)" : "var(--green-soft)";
+      node.style.color = tone === "error" ? "var(--danger)" : "var(--green)";
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+  </script>
+</body>
+</html>

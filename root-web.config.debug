@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.web>
+    <customErrors mode="Off" />
+    <compilation debug="true" />
+  </system.web>
+  <system.webServer>
+    <httpErrors errorMode="Detailed" existingResponse="PassThrough" />
+    <rewrite>
+      <rules>
+        <rule name="DynamicCompatScript" stopProcessing="true">
+          <match url="^script\.js$" />
+          <action type="Rewrite" url="api.ashx?action=script" appendQueryString="false" />
+        </rule>
+      </rules>
+    </rewrite>
+    <httpProtocol>
+      <customHeaders>
+        <remove name="Pragma" />
+        <remove name="Expires" />
+        <add name="Pragma" value="no-cache" />
+        <add name="Expires" value="0" />
+      </customHeaders>
+    </httpProtocol>
+  </system.webServer>
+</configuration>

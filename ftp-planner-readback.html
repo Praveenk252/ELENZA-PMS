@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elenza Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f8fc;
+      --card:#ffffff;
+      --line:#d7e2ef;
+      --text:#1f2b3d;
+      --muted:#66768f;
+      --blue:#0f6cbd;
+      --blue-soft:#e8f1fb;
+      --green:#15803d;
+      --green-soft:#e9f8ef;
+      --high:#ffe7e7;
+      --medium:#fff4db;
+      --low:#edf8ff;
+      --shadow:0 14px 40px rgba(34,60,110,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Plus Jakarta Sans",sans-serif;
+      background:linear-gradient(180deg,#eef6ff 0,#f7fbff 160px,var(--bg) 160px);
+      color:var(--text);
+    }
+    .shell{max-width:1440px;margin:0 auto;padding:24px}
+    .auth,.app{
+      background:rgba(255,255,255,.75);
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(215,226,239,.9);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+    }
+    .auth{max-width:460px;margin:48px auto;padding:28px}
+    .brand{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+    .brand img{width:84px;height:auto}
+    .brand small{display:block;color:var(--blue);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .brand h1,.topbar h1{margin:4px 0 0;font-size:34px;line-height:1}
+    .brand p,.topbar p{margin:0;color:var(--muted)}
+    .stack{display:grid;gap:14px}
+    label{display:grid;gap:7px;font-size:14px;font-weight:600}
+    input,select,button{
+      font:inherit;
+    }
+    input,select{
+      width:100%;
+      padding:14px 16px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+    }
+    button{
+      border:0;
+      border-radius:16px;
+      padding:14px 18px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .primary{background:var(--blue);color:#fff}
+    .ghost{background:var(--blue-soft);color:var(--text)}
+    .app{padding:22px}
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .topbar-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .banner{
+      margin-bottom:18px;
+      padding:14px 16px;
+      border-radius:16px;
+      background:var(--green-soft);
+      color:var(--green);
+      font-weight:700;
+    }
+    .toolbar{
+      display:grid;
+      grid-template-columns:1.3fr .9fr .9fr;
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .tabs{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
+    }
+    .tab-btn.active{background:var(--blue);color:#fff}
+    .panel{display:none}
+    .panel.active{display:block}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:16px;
+      box-shadow:var(--shadow);
+    }
+    .card-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .card-head h2{margin:0;font-size:22px}
+    .tag{
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--blue-soft);
+      color:var(--muted);
+      font-size:13px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .table-wrap{
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:auto;
+      background:#fff;
+      max-height:70vh;
+    }
+    table{
+      width:100%;
+      min-width:980px;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th,td{
+      padding:10px 12px;
+      border-bottom:1px solid #e8eef6;
+      text-align:left;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background:#eff5fb;
+      z-index:1;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    tbody tr.priority-high{background:var(--high)}
+    tbody tr.priority-medium{background:var(--medium)}
+    tbody tr.priority-low{background:var(--low)}
+    .machine-group{margin-bottom:16px}
+    .machine-group h3{margin:0 0 10px;font-size:18px}
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      background:var(--blue-soft);
+      color:var(--blue);
+      font-weight:700;
+      font-size:12px;
+    }
+    .priority-cell{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .mini-select{min-width:120px;padding:10px 12px;border-radius:12px}
+    .mini-btn{padding:10px 12px;border-radius:12px;background:var(--blue-soft)}
+    .empty{padding:20px;color:var(--muted)}
+    .hidden{display:none!important}
+    @media (max-width: 900px){
+      .shell{padding:14px}
+      .topbar,.toolbar{grid-template-columns:1fr;display:grid}
+      .topbar-actions{justify-content:stretch}
+      .topbar-actions button{flex:1}
+      .brand h1,.topbar h1{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="auth" id="auth-shell">
+      <div class="brand">
+        <img src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+        <div>
+          <small>ElenzaIndia.com</small>
+          <h1>Planner Login</h1>
+          <p>Dedicated production planning workspace</p>
+        </div>
+      </div>
+      <div id="auth-message" class="banner hidden"></div>
+      <form id="login-form" class="stack">
+        <label>
+          <span>Username</span>
+          <input id="login-username" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="primary" type="submit">Sign In</button>
+      </form>
+    </section>
+
+    <section class="app hidden" id="app-shell">
+      <div class="topbar">
+        <div class="brand" style="margin:0">
+          <img src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+          <div>
+            <small>ElenzaIndia.com</small>
+            <h1>Production Planner</h1>
+            <p id="session-meta">Planner workspace</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost" id="refresh-button" type="button">Refresh Data</button>
+          <button class="ghost" id="logout-button" type="button">Logout</button>
+        </div>
+      </div>
+
+      <div id="app-message" class="banner hidden"></div>
+
+      <div class="toolbar">
+        <label>
+          <span>Search</span>
+          <input id="search-input" type="search" placeholder="Order / Dealer / Customer / Station">
+        </label>
+        <label>
+          <span>Status</span>
+          <select id="status-filter">
+            <option value="all">All</option>
+          </select>
+        </label>
+        <label>
+          <span>Priority</span>
+          <select id="priority-filter">
+            <option value="all">All</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+            <option value="blank">Blank</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="tabs">
+        <button class="ghost tab-btn active" data-tab="consolidated" type="button">All Orders</button>
+        <button class="ghost tab-btn" data-tab="machine" type="button">Machine Wise</button>
+        <button class="ghost tab-btn" data-tab="priority" type="button">Priority Desk</button>
+      </div>
+
+      <section class="panel active" data-panel="consolidated">
+        <div class="card">
+          <div class="card-head">
+            <h2>Consolidated Planner List</h2>
+            <span class="tag" id="consolidated-count">0 Orders</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order Number</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Order Type</th>
+                  <th>Stage</th>
+                  <th>Visible Stations</th>
+                  <th>Priority</th>
+                  <th>EDD</th>
+                </tr>
+              </thead>
+              <tbody id="consolidated-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="machine">
+        <div class="card">
+          <div class="card-head">
+            <h2>Machine Wise Visibility</h2>
+            <span class="tag" id="machine-count">0 Machines</span>
+          </div>
+          <div id="machine-groups"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="priority">
+        <div class="card">
+          <div class="card-head">
+            <h2>Priority Desk</h2>
+            <span class="tag" id="priority-count">0 Orders</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order Number</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Stage</th>
+                  <th>Visible Stations</th>
+                  <th>Priority</th>
+                </tr>
+              </thead>
+              <tbody id="priority-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      session: null,
+      planningRows: [],
+      tab: "consolidated",
+      search: "",
+      status: "all",
+      priority: "all"
+    };
+
+    const refs = {
+      authShell: document.querySelector("#auth-shell"),
+      appShell: document.querySelector("#app-shell"),
+      authMessage: document.querySelector("#auth-message"),
+      appMessage: document.querySelector("#app-message"),
+      loginForm: document.querySelector("#login-form"),
+      loginUsername: document.querySelector("#login-username"),
+      loginPassword: document.querySelector("#login-password"),
+      sessionMeta: document.querySelector("#session-meta"),
+      refreshButton: document.querySelector("#refresh-button"),
+      logoutButton: document.querySelector("#logout-button"),
+      searchInput: document.querySelector("#search-input"),
+      statusFilter: document.querySelector("#status-filter"),
+      priorityFilter: document.querySelector("#priority-filter"),
+      tabButtons: Array.from(document.querySelectorAll("[data-tab]")),
+      consolidatedBody: document.querySelector("#consolidated-body"),
+      consolidatedCount: document.querySelector("#consolidated-count"),
+      machineGroups: document.querySelector("#machine-groups"),
+      machineCount: document.querySelector("#machine-count"),
+      priorityBody: document.querySelector("#priority-body"),
+      priorityCount: document.querySelector("#priority-count")
+    };
+
+    init();
+
+    async function init() {
+      bindEvents();
+      await restoreSession();
+    }
+
+    function bindEvents() {
+      refs.loginForm.addEventListener("submit", onLogin);
+      refs.refreshButton.addEventListener("click", loadPlannerState);
+      refs.logoutButton.addEventListener("click", onLogout);
+      refs.searchInput.addEventListener("input", () => {
+        state.search = refs.searchInput.value.trim().toLowerCase();
+        renderAll();
+      });
+      refs.statusFilter.addEventListener("change", () => {
+        state.status = refs.statusFilter.value;
+        renderAll();
+      });
+      refs.priorityFilter.addEventListener("change", () => {
+        state.priority = refs.priorityFilter.value;
+        renderAll();
+      });
+      refs.tabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.tab = button.dataset.tab;
+          renderTabs();
+        });
+      });
+      refs.consolidatedBody.addEventListener("change", onPriorityChange);
+      refs.consolidatedBody.addEventListener("click", onPrioritySave);
+      refs.machineGroups.addEventListener("change", onPriorityChange);
+      refs.machineGroups.addEventListener("click", onPrioritySave);
+      refs.priorityBody.addEventListener("change", onPriorityChange);
+      refs.priorityBody.addEventListener("click", onPrioritySave);
+    }
+
+    async function restoreSession() {
+      try {
+        const session = await apiGet("session");
+        if (session.authenticated && session.user) {
+          state.session = session.user;
+          await loadPlannerState();
+          return;
+        }
+      } catch {}
+      renderLoggedOut();
+    }
+
+    async function onLogin(event) {
+      event.preventDefault();
+      try {
+        const result = await apiPost("login", {
+          username: refs.loginUsername.value.trim().toLowerCase(),
+          password: refs.loginPassword.value
+        });
+        state.session = result.user;
+        refs.loginPassword.value = "";
+        await loadPlannerState();
+        showMessage("Planner session ready.", "success");
+      } catch (error) {
+        showMessage(error.message, "error", true);
+      }
+    }
+
+    async function onLogout() {
+      try {
+        await apiPost("logout", {});
+      } catch {}
+      state.session = null;
+      state.planningRows = [];
+      renderLoggedOut();
+    }
+
+    async function loadPlannerState() {
+      if (!state.session) return;
+      const role = String(state.session.role_name || "");
+      if (role !== "Production Planner User" && role !== "Admin") {
+        renderLoggedOut();
+        showMessage("This page is only for planner login.", "error", true);
+        return;
+      }
+      try {
+        const result = await apiGet("app-state");
+        state.session = result.session || state.session;
+        state.planningRows = normalizeRows(result.planning?.rows || []);
+        hydrateStatusFilter(state.planningRows);
+        renderLoggedIn();
+      } catch (error) {
+        showMessage(error.message, "error", true);
+      }
+    }
+
+    function normalizeRows(rows) {
+      return rows
+        .filter((row) => row && String(row.dispatch_status || "").toLowerCase() !== "dispatched")
+        .map((row) => ({
+          ...row,
+          priority: String(row.priority || "").trim(),
+          planner_stage_label: row.planner_stage_label || row.workflow_stage || "",
+          visible_stations: row.visible_stations || "-",
+          dealer_name: row.dealer_name || "-",
+          customer_name: row.customer_name || "-",
+          order_type: row.order_type || "-",
+          edd: row.edd || row.sla_date || ""
+        }));
+    }
+
+    function hydrateStatusFilter(rows) {
+      const current = state.status;
+      const values = ["all", ...new Set(rows.map((row) => row.planner_stage_label).filter(Boolean))];
+      refs.statusFilter.innerHTML = values
+        .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value === "all" ? "All" : value)}</option>`)
+        .join("");
+      refs.statusFilter.value = values.includes(current) ? current : "all";
+      state.status = refs.statusFilter.value;
+    }
+
+    function renderLoggedOut() {
+      refs.authShell.classList.remove("hidden");
+      refs.appShell.classList.add("hidden");
+    }
+
+    function renderLoggedIn() {
+      refs.authShell.classList.add("hidden");
+      refs.appShell.classList.remove("hidden");
+      refs.sessionMeta.textContent = `${state.session.full_name} | ${state.session.role_name}`;
+      renderTabs();
+      renderAll();
+    }
+
+    function renderTabs() {
+      refs.tabButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === state.tab));
+      document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === state.tab));
+    }
+
+    function getFilteredRows() {
+      let rows = [...state.planningRows];
+      if (state.search) {
+        rows = rows.filter((row) => [
+          row.order_number,
+          row.dealer_name,
+          row.customer_name,
+          row.visible_stations,
+          row.planner_stage_label
+        ].join(" ").toLowerCase().includes(state.search));
+      }
+      if (state.status !== "all") {
+        rows = rows.filter((row) => row.planner_stage_label === state.status);
+      }
+      if (state.priority !== "all") {
+        rows = rows.filter((row) => {
+          if (state.priority === "blank") return !row.priority;
+          return row.priority === state.priority;
+        });
+      }
+      return rows.sort(comparePriorityThenOrder);
+    }
+
+    function comparePriorityThenOrder(a, b) {
+      const rank = (value) => ({ High: 0, Medium: 1, Low: 2 }[value] ?? 3);
+      const diff = rank(a.priority) - rank(b.priority);
+      if (diff !== 0) return diff;
+      return String(a.order_number || "").localeCompare(String(b.order_number || ""));
+    }
+
+    function renderAll() {
+      const rows = getFilteredRows();
+      renderConsolidated(rows);
+      renderMachineWise(rows);
+      renderPriorityDesk(rows);
+    }
+
+    function renderConsolidated(rows) {
+      refs.consolidatedCount.textContent = `${rows.length} Orders`;
+      refs.consolidatedBody.innerHTML = rows.length ? rows.map((row) => `
+        <tr class="${priorityClass(row.priority)}">
+          <td>${escapeHtml(row.order_number)}</td>
+          <td>${escapeHtml(row.dealer_name)}</td>
+          <td>${escapeHtml(customerLabel(row.customer_name))}</td>
+          <td>${escapeHtml(row.order_type)}</td>
+          <td><span class="pill">${escapeHtml(row.planner_stage_label)}</span></td>
+          <td>${escapeHtml(row.visible_stations)}</td>
+          <td>${renderPriorityEditor(row)}</td>
+          <td>${escapeHtml(row.edd || "-")}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="8" class="empty">No planner rows available.</td></tr>`;
+    }
+
+    function renderMachineWise(rows) {
+      const groups = new Map();
+      rows.forEach((row) => {
+        String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean).forEach((station) => {
+          if (!groups.has(station)) groups.set(station, []);
+          groups.get(station).push(row);
+        });
+      });
+      refs.machineCount.textContent = `${groups.size} Machines`;
+      if (!groups.size) {
+        refs.machineGroups.innerHTML = `<div class="empty">No machine-wise rows available.</div>`;
+        return;
+      }
+      refs.machineGroups.innerHTML = Array.from(groups.entries()).map(([station, stationRows]) => `
+        <div class="machine-group">
+          <h3>${escapeHtml(station)} <span class="tag">${stationRows.length} Orders</span></h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order Number</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Stage</th>
+                  <th>Priority</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${stationRows.sort(comparePriorityThenOrder).map((row) => `
+                  <tr class="${priorityClass(row.priority)}">
+                    <td>${escapeHtml(row.order_number)}</td>
+                    <td>${escapeHtml(row.dealer_name)}</td>
+                    <td>${escapeHtml(customerLabel(row.customer_name))}</td>
+                    <td>${escapeHtml(row.planner_stage_label)}</td>
+                    <td>${renderPriorityEditor(row)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderPriorityDesk(rows) {
+      refs.priorityCount.textContent = `${rows.length} Orders`;
+      refs.priorityBody.innerHTML = rows.length ? rows.map((row) => `
+        <tr class="${priorityClass(row.priority)}" data-order-id="${row.order_id}">
+          <td>${escapeHtml(row.order_number)}</td>
+          <td>${escapeHtml(row.dealer_name)}</td>
+          <td>${escapeHtml(customerLabel(row.customer_name))}</td>
+          <td>${escapeHtml(row.planner_stage_label)}</td>
+          <td>${escapeHtml(row.visible_stations)}</td>
+          <td>${renderPriorityEditor(row)}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="6" class="empty">No planner rows available.</td></tr>`;
+    }
+
+    function renderPriorityEditor(row) {
+      return `
+        <div class="priority-cell">
+          <select class="mini-select" data-priority-edit="${row.order_id}">
+            ${["", "High", "Medium", "Low"].map((value) => `<option value="${escapeHtml(value)}" ${value === row.priority ? "selected" : ""}>${escapeHtml(value || "Blank")}</option>`).join("")}
+          </select>
+          <button class="mini-btn" type="button" data-priority-save="${row.order_id}">Save</button>
+        </div>
+      `;
+    }
+
+    function onPriorityChange(event) {
+      const select = event.target.closest("[data-priority-edit]");
+      if (!select) return;
+      const row = state.planningRows.find((item) => String(item.order_id) === String(select.dataset.priorityEdit));
+      if (row) row.priority = select.value;
+      renderAll();
+    }
+
+    async function onPrioritySave(event) {
+      const button = event.target.closest("[data-priority-save]");
+      if (!button) return;
+      const orderId = Number(button.dataset.prioritySave);
+      const row = state.planningRows.find((item) => item.order_id === orderId);
+      if (!row) return;
+      try {
+        await apiPost("planner-save", {
+          order_id: orderId,
+          sla_date: row.edd || "",
+          urgency: row.urgency || "",
+          priority: row.priority || "",
+          planner_remarks: row.planner_remarks || ""
+        });
+        await loadPlannerState();
+        showMessage(`Priority updated for ${row.order_number}.`, "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    async function apiGet(action) {
+      const response = await fetch(`/api.ashx?action=${action}`, { credentials: "same-origin" });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.message || "Request failed.");
+      return result;
+    }
+
+    async function apiPost(action, payload) {
+      const params = new URLSearchParams();
+      Object.entries(payload).forEach(([key, value]) => params.append(key, value == null ? "" : value));
+      const response = await fetch(`/api.ashx?action=${action}`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+        body: params.toString()
+      });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.message || "Request failed.");
+      return result;
+    }
+
+    function customerLabel(value) {
+      return value ? `(${value})` : "-";
+    }
+
+    function priorityClass(priority) {
+      if (priority === "High") return "priority-high";
+      if (priority === "Medium") return "priority-medium";
+      if (priority === "Low") return "priority-low";
+      return "";
+    }
+
+    function showMessage(message, tone, auth = false) {
+      const node = auth ? refs.authMessage : refs.appMessage;
+      node.textContent = message;
+      node.classList.remove("hidden");
+      node.style.background = tone === "error" ? "#fdeaea" : "var(--green-soft)";
+      node.style.color = tone === "error" ? "#b42318" : "var(--green)";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+  </script>
+</body>
+</html>

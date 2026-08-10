@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elenza PMS</title>
+  <!-- deploy-marker: 20260702-02-root -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="stylesheet" href="styles.css?v=20260622-03">
+</head>
+<body>
+  <div class="app-root">
+    <section class="auth-shell" id="auth-shell">
+      <div class="auth-card">
+        <div class="auth-brand">
+          <img class="brand-logo auth-logo" src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+          <p class="brand-caption">Production Management System</p>
+        </div>
+
+        <div id="auth-message-strip" class="message-strip hidden"></div>
+
+        <form id="login-form" class="stack-form auth-form">
+          <label>
+            <span>Username</span>
+            <input id="login-username" name="username" type="text" autocomplete="username" required>
+          </label>
+
+          <label>
+            <span>Password</span>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          </label>
+
+          <button class="primary-button auth-submit" type="submit">Sign In</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="app-shell hidden" id="app-shell">
+      <div class="sidebar-backdrop hidden" id="sidebar-backdrop"></div>
+
+      <aside class="sidebar-panel" id="sidebar-panel">
+        <div class="sidebar-controls">
+          <div class="sidebar-brand">
+            <img class="brand-logo" src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+            <div class="sidebar-brand-copy">
+              <p class="brand-caption">ElenzaIndia.com</p>
+              <h2 class="sidebar-title">Production Management</h2>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-session-card">
+          <span class="tag" id="session-role-tag">Secure</span>
+          <h3 class="sidebar-session-name" id="session-name">Not Logged In</h3>
+          <p class="session-meta" id="session-meta">Sign in to continue</p>
+        </div>
+
+        <nav class="side-nav">
+          <button class="nav-link active" type="button" data-section="data-entry">Data Entry</button>
+          <button class="nav-link" type="button" data-section="optimisation">Optimisation</button>
+          <button class="nav-link" type="button" data-section="procurement">Procurement</button>
+          <button class="nav-link" type="button" data-section="planner">Production Planner</button>
+          <button class="nav-link" type="button" data-section="production">Production</button>
+          <button class="nav-link" type="button" data-section="dispatch">Dispatch</button>
+          <button class="nav-link" type="button" data-section="reports">Reports</button>
+          <button class="nav-link" type="button" data-section="history">History</button>
+          <button class="nav-link" type="button" data-section="email-log">Email Log</button>
+          <button class="nav-link" type="button" data-section="masters">Masters</button>
+          <button class="nav-link" type="button" data-section="users">Users</button>
+          <button class="nav-link" type="button" data-section="settings">Settings</button>
+        </nav>
+
+        <div class="sidebar-master-card">
+          <div class="card-head">
+            <h4>Customer Types</h4>
+            <span class="tag subtle">Live</span>
+          </div>
+          <div class="chip-wrap" id="customer-type-chip-wrap"></div>
+        </div>
+
+        <button class="ghost-button sidebar-dismiss-button hidden" id="sidebar-dismiss" type="button">Close</button>
+      </aside>
+
+      <main class="workspace-panel">
+        <header class="topbar">
+          <div class="topbar-main">
+            <button class="ghost-button menu-toggle-button" id="sidebar-toggle" type="button" aria-expanded="false" aria-label="Open menu">
+              <span class="burger-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </button>
+
+            <div>
+              <p class="eyebrow">ElenzaIndia.com</p>
+              <h2 id="section-title">Data Entry</h2>
+            </div>
+          </div>
+
+          <div class="topbar-actions">
+            <button class="ghost-button" id="refresh-data" type="button">Refresh Data</button>
+            <button class="ghost-button" id="logout-button" type="button">Logout</button>
+          </div>
+        </header>
+
+        <div id="message-strip" class="message-strip hidden"></div>
+
+        <section class="content-pane">
+          <section class="section-panel active" data-panel="data-entry">
+            <div class="section-head">
+              <div>
+                <h3>Data Entry</h3>
+                <p>Searchable master-driven dropdowns and fast movement into production.</p>
+              </div>
+            </div>
+
+            <div class="card-grid">
+              <article class="panel-card collapsible-card" data-collapsible-card id="dealer-entry-card">
+                <button class="collapse-toggle" type="button" data-collapse-toggle="dealer-entry" aria-expanded="false">
+                  <span class="collapse-title-wrap">
+                    <span class="collapse-arrow" aria-hidden="true">&gt;</span>
+                    <span>Dealer Entry</span>
+                  </span>
+                  <span class="tag subtle">Master-linked</span>
+                </button>
+
+                <div class="collapse-body hidden" data-collapse-body="dealer-entry">
+                  <form id="dealer-form" class="grid-form">
+                    <label>
+                      <span>Dealer Name</span>
+                      <input id="dealer-name" type="text" required>
+                    </label>
+                    <label>
+                      <span>Company Name</span>
+                      <input id="dealer-company" type="text">
+                    </label>
+                    <label>
+                      <span>Dealer Type</span>
+                      <input id="dealer-type" type="text" list="dealer-type-options" autocomplete="off" required>
+                    </label>
+                    <label>
+                      <span>Customer Type</span>
+                      <input id="dealer-customer-type" type="text" list="customer-type-options" autocomplete="off" required>
+                    </label>
+                    <label>
+                      <span>Dealer ID No.</span>
+                      <input id="dealer-code" type="text" readonly placeholder="Auto-generated from dealer type">
+                    </label>
+                    <label>
+                      <span>City</span>
+                      <input id="dealer-city" type="text">
+                    </label>
+                    <label>
+                      <span>Pin Code</span>
+                      <input id="dealer-pin-code" type="text" inputmode="numeric">
+                    </label>
+                    <label>
+                      <span>GST Number</span>
+                      <input id="dealer-gst" type="text">
+                    </label>
+                    <label>
+                      <span>Contact Person</span>
+                      <input id="dealer-contact" type="text">
+                    </label>
+                    <label>
+                      <span>Phone</span>
+                      <input id="dealer-mobile" type="tel" required>
+                    </label>
+                    <label>
+                      <span>Email</span>
+                      <input id="dealer-email" type="email">
+                    </label>
+                    <label>
+                      <span>Payment Terms</span>
+                      <input id="dealer-payment-terms" type="text" list="payment-terms-options" autocomplete="off">
+                    </label>
+                    <label>
+                      <span>Credit Limit (Lakh)</span>
+                      <input id="dealer-credit-limit" type="number" min="0" step="0.01">
+                    </label>
+                    <label>
+                      <span class="field-label-row">
+                        <span>Marketing Owner</span>
+                        <button class="micro-button inline-add-button" type="button" data-quick-add-master="MARKETING_OWNER" data-quick-add-target="#dealer-marketing-owner">+</button>
+                      </span>
+                      <input id="dealer-marketing-owner" type="text" list="marketing-owner-options" autocomplete="off">
+                    </label>
+                    <label class="form-span-2">
+                      <span>Address</span>
+                      <textarea id="dealer-address" rows="3"></textarea>
+                    </label>
+                    <button class="primary-button form-span-2" type="submit">Create Dealer Master</button>
+                  </form>
+
+                  <div class="import-block">
+                    <div class="card-head">
+                      <h4>Dealer Excel Import</h4>
+                      <button id="download-dealer-template" class="ghost-button" type="button">Download Template</button>
+                    </div>
+                    <form id="dealer-import-form" class="stack-form">
+                      <label>
+                        <span>Excel File</span>
+                        <input id="dealer-import-file" type="file" accept=".xlsx,.xls" required>
+                      </label>
+                      <button class="primary-button" type="submit">Import Dealers</button>
+                    </form>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel-card collapsible-card" data-collapsible-card id="quotation-entry-card">
+                <button class="collapse-toggle" type="button" data-collapse-toggle="quotation-entry" aria-expanded="false">
+                  <span class="collapse-title-wrap">
+                    <span class="collapse-arrow" aria-hidden="true">&gt;</span>
+                    <span>Quotation Entry</span>
+                  </span>
+                  <span class="tag subtle">Unique order number</span>
+                </button>
+
+                <div class="collapse-body hidden" data-collapse-body="quotation-entry">
+                  <form id="quotation-form" class="grid-form">
+                    <label>
+                      <span>Dealer Name</span>
+                      <input id="quotation-dealer" list="dealer-options" required>
+                    </label>
+                    <label>
+                      <span>Customer Name <small class="muted-copy">(optional)</small></span>
+                      <input id="quotation-customer" type="text" placeholder="Leave blank if not needed" autocomplete="off">
+                    </label>
+                    <label>
+                      <span>Customer Type (From Dealer)</span>
+                      <input id="quotation-customer-type" type="text" readonly placeholder="Auto-filled from dealer">
+                    </label>
+                    <label>
+                      <span>Order Type</span>
+                      <input id="quotation-order-type" list="order-type-options" required>
+                    </label>
+                    <label>
+                      <span>Order Class</span>
+                      <input id="quotation-main-order" type="text" list="order-class-options" autocomplete="off" required placeholder="Select order class">
+                    </label>
+                    <label id="quotation-sub-order-wrap" class="hidden">
+                      <span>Main Order Reference</span>
+                      <select id="quotation-sub-order"></select>
+                    </label>
+                    <label>
+                      <span class="field-label-row">
+                        <span>Order Number</span>
+                        <span class="counter-pill" id="quotation-order-number-count">0 / 200</span>
+                      </span>
+                      <textarea id="quotation-order-number" rows="2" data-counter-max="200" required></textarea>
+                    </label>
+                    <label class="form-span-2">
+                      <span>Approx Value</span>
+                      <input id="quotation-approx-value" type="number" step="0.01" min="0">
+                    </label>
+                    <label class="form-span-2">
+                      <span>Remarks</span>
+                      <textarea id="quotation-remarks" rows="3"></textarea>
+                    </label>
+                    <button class="primary-button form-span-2" type="submit">Save Quotation</button>
+                  </form>
+
+                  <div class="import-block">
+                    <div class="card-head">
+                      <h4>Quotation Excel Import</h4>
+                      <button id="download-quotation-template" class="ghost-button" type="button">Download Template</button>
+                    </div>
+                    <form id="quotation-import-form" class="stack-form">
+                      <label>
+                        <span>Excel File</span>
+                        <input id="quotation-import-file" type="file" accept=".xlsx,.xls" required>
+                      </label>
+                      <button class="primary-button" type="submit">Import Quotations</button>
+                    </form>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="card-grid">
+              <article class="panel-card collapsible-card" data-collapsible-card id="confirm-entry-card">
+                <button class="collapse-toggle" type="button" data-collapse-toggle="order-confirmation" aria-expanded="false">
+                  <span class="collapse-title-wrap">
+                    <span class="collapse-arrow" aria-hidden="true">&gt;</span>
+                    <span>Order Confirmation</span>
+                  </span>
+                  <span class="tag subtle">Stage 1</span>
+                </button>
+
+                <div class="collapse-body hidden" data-collapse-body="order-confirmation">
+                  <form id="confirm-form" class="stack-form">
+                    <label>
+                      <span>Order Number</span>
+                      <input id="confirm-order-number" list="confirm-order-options" required>
+                    </label>
+                    <label>
+                      <span>Confirmation Date & Time</span>
+                      <input id="confirm-date-time" type="datetime-local" required>
+                    </label>
+                    <label>
+                      <span>Remarks</span>
+                      <input id="confirm-remarks" type="text">
+                    </label>
+                    <button class="primary-button" type="submit">Confirm Order</button>
+                  </form>
+                </div>
+              </article>
+            </div>
+
+            <article class="panel-card" id="recent-orders-card">
+              <div class="card-head">
+                <h4>Recent Orders</h4>
+                <span class="tag subtle" id="recent-orders-count">0 Orders</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="recent-orders-search" type="search" placeholder="Order / Dealer / Customer / Stage">
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first">
+                  <thead>
+                    <tr>
+                      <th>Order Number</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Workflow Stage</th>
+                      <th>Procurement</th>
+                      <th>Visible Stations</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recent-orders-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Scroll for more columns.</span>
+                <div class="pagination-bar" id="recent-orders-pagination"></div>
+              </div>
+            </article>
+
+            <div class="card-grid">
+              <article class="panel-card" id="dealer-register-card">
+                <div class="card-head">
+                  <h4>Dealer Register</h4>
+                  <span class="tag subtle" id="dealer-count">0 Dealers</span>
+                </div>
+                <div class="toolbar-inline">
+                  <label class="toolbar-field">
+                    <span>Search</span>
+                    <input id="dealer-register-search" type="search" placeholder="Dealer / phone / city / GST">
+                  </label>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="data-table table-sticky-first">
+                    <thead>
+                      <tr>
+                        <th>Dealer ID</th>
+                        <th>Dealer</th>
+                        <th>Company</th>
+                        <th>Dealer Type</th>
+                        <th>Customer Type</th>
+                        <th>Contact</th>
+                        <th>Phone</th>
+                        <th>City</th>
+                        <th>GST</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dealer-register-body"></tbody>
+                  </table>
+                </div>
+                <div class="table-footer">
+                  <span class="table-hint">Scrollable register view.</span>
+                  <div class="pagination-bar" id="dealer-pagination"></div>
+                </div>
+              </article>
+
+              <article class="panel-card" id="quotation-register-card">
+                <div class="card-head">
+                  <h4>Quotation Register</h4>
+                  <span class="tag subtle" id="quotation-count">0 Quotations</span>
+                </div>
+
+                <div class="table-toolbar">
+                  <label class="field compact-field">
+                    <span>Search</span>
+                    <input id="quotation-register-search" type="search" placeholder="Quote / Order / Dealer / Customer" />
+                  </label>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="data-table table-sticky-first">
+                    <thead>
+                      <tr>
+                        <th>Created Date</th>
+                        <th>Quote No.</th>
+                        <th>Order No.</th>
+                        <th>Dealer</th>
+                        <th>Customer</th>
+                        <th>Type</th>
+                        <th>Stage</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="quotation-register-body"></tbody>
+                  </table>
+                </div>
+                <div class="table-footer">
+                  <span class="table-hint">Scrollable register view.</span>
+                  <div class="pagination-bar" id="quotation-pagination"></div>
+                </div>
+              </article>
+            </div>
+
+            <article class="panel-card" id="shared-planning-data-entry-card">
+              <div class="card-head">
+                <h4>Shared Production Planning View</h4>
+                <span class="tag subtle" id="shared-planning-count-data-entry">0 Orders</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="shared-planning-data-entry-search" type="search" placeholder="Order / Dealer / Customer">
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first planning-table">
+                  <thead>
+                    <tr>
+                      <th>Plan Order</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Stage</th>
+                      <th>SLA</th>
+                      <th>Urgency</th>
+                      <th>Priority</th>
+                      <th>Visible Stations</th>
+                      <th>Planner Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shared-planning-data-entry-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Shared planning table visible across production flow.</span>
+                <div class="pagination-bar" id="shared-planning-data-entry-pagination"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="optimisation">
+            <div class="section-head">
+              <div>
+                <h3>Optimisation</h3>
+                <p>Separate optimisation login. Orders disappear after optimisation is saved and only return if the workflow is moved back to this stage.</p>
+              </div>
+            </div>
+
+            <div class="stack-panels">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Optimisation Entry</h4>
+                  <span class="tag subtle">Stage 2</span>
+                </div>
+
+                <form id="optimisation-form" class="stack-form">
+                  <label>
+                    <span>Order Number</span>
+                    <input id="optimisation-order-number" list="optimisation-order-options" required autocomplete="off">
+                  </label>
+                  <label>
+                    <span>Optimisation Date</span>
+                    <input id="optimisation-date-time" type="date" required>
+                  </label>
+                  <label>
+                    <span>Number Of Boards</span>
+                    <input id="optimisation-boards" type="number" min="0" step="0.01" required>
+                  </label>
+                  <label>
+                    <span>Number Of Panels</span>
+                    <input id="optimisation-panels" type="number" min="0" step="1" required>
+                  </label>
+                  <label>
+                    <span>RM Details</span>
+                    <textarea id="optimisation-rm-details" rows="3"></textarea>
+                  </label>
+                  <button class="primary-button" id="optimisation-submit" type="submit">Save Optimisation</button>
+                </form>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Pending Optimisation Orders</h4>
+                  <div class="card-head-actions">
+                    <button class="ghost-button" id="export-optimisation" type="button">Export Excel</button>
+                    <span class="tag subtle" id="optimisation-count">0 Orders</span>
+                  </div>
+                </div>
+
+                <div class="table-toolbar">
+                  <label class="field compact-field">
+                    <span>Search</span>
+                    <input id="optimisation-search" type="search" placeholder="Order / Dealer / Customer / Type">
+                  </label>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="data-table table-sticky-first">
+                    <thead>
+                      <tr>
+                        <th>Order Confirmation Date</th>
+                        <th>Order Number</th>
+                        <th>Dealer</th>
+                        <th>Customer</th>
+                        <th>Type</th>
+                      </tr>
+                    </thead>
+                    <tbody id="optimisation-table-body"></tbody>
+                  </table>
+                </div>
+                <div class="table-footer">
+                  <span class="table-hint">Scroll for more columns.</span>
+                  <div class="pagination-bar" id="optimisation-pagination"></div>
+                </div>
+              </article>
+            </div>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Shared Production Planning View</h4>
+                <span class="tag subtle" id="shared-planning-count-optimisation">0 Orders</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="shared-planning-optimisation-search" type="search" placeholder="Order / Dealer / Customer">
+                </label>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first planning-table">
+                  <thead>
+                    <tr>
+                      <th>Plan Order</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Stage</th>
+                      <th>SLA</th>
+                      <th>Urgency</th>
+                      <th>Priority</th>
+                      <th>Visible Stations</th>
+                      <th>Planner Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shared-planning-optimisation-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Shared planning table for downstream production visibility.</span>
+                <div class="pagination-bar" id="shared-planning-optimisation-pagination"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="procurement">
+            <div class="section-head">
+              <div>
+                <h3>Procurement</h3>
+                <p>Separate procurement login. Orders disappear after the first procurement entry and only return if the workflow is moved back to this stage.</p>
+              </div>
+            </div>
+
+            <div class="stack-panels">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Procurement Entry</h4>
+                  <span class="tag subtle">Stage 3</span>
+                </div>
+
+                <form id="procurement-form" class="stack-form">
+                  <label>
+                    <span>Order Number</span>
+                    <input id="procurement-order-number" list="procurement-order-options" required autocomplete="off">
+                  </label>
+                  <label>
+                    <span>PO Number</span>
+                    <input id="procurement-po-number" type="text">
+                  </label>
+                  <label>
+                    <span>PO Date</span>
+                    <input id="procurement-po-date" type="date">
+                  </label>
+                  <label>
+                    <span>Vendor Name</span>
+                    <input id="procurement-vendor" list="vendor-options" required>
+                  </label>
+                  <label>
+                    <span>MRN Date</span>
+                    <input id="procurement-mrn-date" type="date">
+                  </label>
+                  <label>
+                    <span>Status</span>
+                    <select id="procurement-status" required></select>
+                  </label>
+                  <label>
+                    <span>Item Details</span>
+                    <textarea id="procurement-item-details" rows="3"></textarea>
+                  </label>
+                  <label>
+                    <span>Remarks</span>
+                    <textarea id="procurement-remarks" rows="3"></textarea>
+                  </label>
+                  <button class="primary-button" id="procurement-submit" type="submit">Update Procurement</button>
+                </form>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Open Procurement Orders</h4>
+                  <span class="tag subtle" id="procurement-count">0 Orders</span>
+                </div>
+                <div class="table-toolbar">
+                  <label class="field compact-field">
+                    <span>Search</span>
+                    <input id="procurement-search" type="search" placeholder="Order / Dealer / Customer / Status">
+                  </label>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="data-table table-sticky-first">
+                    <thead>
+                      <tr>
+                        <th>Order Number</th>
+                        <th>Dealer</th>
+                        <th>Customer</th>
+                        <th>Procurement</th>
+                        <th>Updated</th>
+                      </tr>
+                    </thead>
+                    <tbody id="procurement-table-body"></tbody>
+                  </table>
+                </div>
+                <div class="table-footer">
+                  <span class="table-hint">Scroll for more columns.</span>
+                  <div class="pagination-bar" id="procurement-pagination"></div>
+                </div>
+              </article>
+            </div>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Shared Production Planning View</h4>
+                <span class="tag subtle" id="shared-planning-count-procurement">0 Orders</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="shared-planning-procurement-search" type="search" placeholder="Order / Dealer / Customer">
+                </label>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first planning-table">
+                  <thead>
+                    <tr>
+                      <th>Plan Order</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Stage</th>
+                      <th>SLA</th>
+                      <th>Urgency</th>
+                      <th>Priority</th>
+                      <th>Visible Stations</th>
+                      <th>Planner Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shared-planning-procurement-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Shared planning table for downstream production visibility.</span>
+                <div class="pagination-bar" id="shared-planning-procurement-pagination"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="planner">
+            <div class="section-head">
+              <div>
+                <h3>Production Planner</h3>
+                <p>Plan, move, and sequence orders.</p>
+              </div>
+            </div>
+
+            <div class="planner-workspace">
+              <aside class="planner-side-menu">
+                <button class="subtab-button active" type="button" data-planner-subtab="queue">Planner Sheet</button>
+                <button class="subtab-button" type="button" data-planner-subtab="move">Move Orders</button>
+                <button class="subtab-button" type="button" data-planner-subtab="sequence">Sequence Control</button>
+              </aside>
+
+              <div class="planner-main-content">
+            <div class="toolbar-inline planner-field-toolbar" id="planner-field-toolbar">
+              <label class="toolbar-field">
+                <span>Search</span>
+                <input id="planner-search" type="search" placeholder="Order / Customer / Type">
+              </label>
+              <label class="toolbar-field">
+                <span>Status Filter</span>
+                <select id="planner-stage-filter"></select>
+              </label>
+            </div>
+
+            <article class="panel-card" id="planner-queue-panel">
+              <div class="card-head">
+                <h4>Planner Sheet</h4>
+                <div class="card-head-actions">
+                  <button class="ghost-button" id="export-planner" type="button">Export Excel</button>
+                  <button class="ghost-button" id="reset-planner-columns" type="button">Reset Columns</button>
+                  <span class="tag subtle" id="planner-count">0 Orders</span>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first planning-table">
+                  <thead id="planner-head-row"></thead>
+                  <tbody id="planner-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Excel-style planner sheet. Use Drag or Up / Dn to reprioritise production, and click order number for history.</span>
+                <div class="pagination-bar" id="planner-pagination"></div>
+              </div>
+            </article>
+
+            <article class="panel-card hidden" id="planner-move-panel">
+              <div class="card-head">
+                <h4>Move Orders</h4>
+                <div class="card-head-actions">
+                  <button class="ghost-button" id="export-planner-move" type="button">Export Excel</button>
+                  <span class="tag subtle" id="planner-move-count">0 Orders</span>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first planning-table planner-move-table">
+                  <thead>
+                    <tr>
+                      <th>Order Number</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Current Visible Station</th>
+                      <th>Move To Station</th>
+                      <th>Tick</th>
+                    </tr>
+                  </thead>
+                  <tbody id="planner-move-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Move any active order to another station using the tick button.</span>
+                <div class="pagination-bar" id="planner-move-pagination"></div>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>On Demand Mail</h4>
+                <button class="primary-button" id="send-hourly-production-mail" type="button">Send Hourly Production Mail</button>
+              </div>
+            </article>
+
+            <article class="panel-card hidden" id="planner-sequence-panel">
+              <div class="card-head">
+                <h4>Planner Machine Sequence Control</h4>
+                <span class="tag subtle">Add / Edit / Sequence</span>
+              </div>
+
+              <div class="card-grid two-up planner-sequence-grid">
+                <label>
+                  <span>Custom Sequence Name</span>
+                  <input id="planner-profile-name" type="text" placeholder="Example: Carcase Main Custom">
+                </label>
+                <label>
+                  <span>Applies To Order Type</span>
+                  <select id="planner-sequence-order-type"></select>
+                </label>
+                <label>
+                  <span>Applies To Order Class</span>
+                  <select id="planner-sequence-order-class"></select>
+                </label>
+                <form id="planner-profile-form" class="inline-form">
+                  <button class="primary-button" type="submit">Create / Save Custom Sequence</button>
+                </form>
+              </div>
+
+              <label>
+                <span>Working Sequence Profile</span>
+                <select id="planner-profile-select"></select>
+              </label>
+
+              <form id="planner-sequence-form" class="inline-form">
+                <select id="planner-sequence-station"></select>
+                <button class="primary-button" type="submit">Add Station To Profile</button>
+              </form>
+
+              <form id="planner-machine-form" class="inline-form">
+                <input id="planner-machine-name" type="text" placeholder="Add new machine / station like Drilling 1" required>
+                <button class="primary-button" type="submit">Save Station</button>
+              </form>
+
+              <article class="panel-card planner-station-master-card">
+                <div class="card-head">
+                  <h4>Station Master</h4>
+                  <span class="tag subtle">Edit / Reorder</span>
+                </div>
+                <div class="list-stack" id="planner-station-master-list"></div>
+              </article>
+
+              <div class="list-stack" id="planner-machine-sequence-list"></div>
+            </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-panel" data-panel="email-log">
+            <div class="section-head">
+              <div>
+                <h3>Email Sent Log</h3>
+                <p>Admin view of report mails sent from PMS.</p>
+              </div>
+            </div>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Email Sent Log</h4>
+                <span class="tag subtle" id="email-log-count">0 Mails</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="email-log-search" type="search" placeholder="Subject / Recipient / Status">
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first">
+                  <thead>
+                    <tr>
+                      <th>Sent At</th>
+                      <th>Kind</th>
+                      <th>Subject</th>
+                      <th>Recipients</th>
+                      <th>Status</th>
+                      <th>Error</th>
+                    </tr>
+                  </thead>
+                  <tbody id="email-log-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Latest sent/failed report mails.</span>
+                <div class="pagination-bar" id="email-log-pagination"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="production">
+            <div class="section-head">
+              <div>
+                <h3>Production</h3>
+                <p>Completed moves forward. Partial keeps current and next. Rejected moves back or to correction queue.</p>
+              </div>
+
+              <div class="toolbar-inline">
+                <label class="toolbar-field">
+                  <span>Current Station</span>
+                  <select id="production-station-filter"></select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Search</span>
+                  <input id="production-search" type="search" placeholder="Order / Dealer / Customer">
+                </label>
+              </div>
+            </div>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Machine Action Entry</h4>
+                <span class="tag subtle">Separate Entry</span>
+              </div>
+              <form id="production-action-form" class="stack-form">
+                <label>
+                  <span>Order Number</span>
+                  <input id="production-action-order" list="production-action-order-options" autocomplete="off">
+                  <div class="inline-helper-row">
+                    <button class="ghost-button hidden" id="production-qr-launch" type="button">Scan QR</button>
+                    <small class="field-helper hidden" id="production-qr-note">Local QR mode</small>
+                  </div>
+                  <small class="field-helper" id="production-action-order-helper"></small>
+                </label>
+                <label>
+                  <span>Box Qty / Remarks</span>
+                  <input id="production-action-remarks" type="text" placeholder="Packing: enter box qty | Others: remarks">
+                </label>
+                <div class="action-inline">
+                  <button class="status-button success" type="button" data-production-form-action="COMPLETED">Completed</button>
+                  <button class="status-button warn" type="button" data-production-form-action="PARTIAL_COMPLETED">Partial</button>
+                  <button class="status-button danger" type="button" data-production-form-action="REJECTED">Rejected</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Packing Box Qty Entry</h4>
+                <span class="tag subtle" id="packing-box-form-tag">Packing Only</span>
+              </div>
+              <form id="packing-box-form" class="stack-form hidden">
+                <label>
+                  <span>Order Number</span>
+                  <input id="packing-box-order" list="packing-box-order-options" autocomplete="off">
+                </label>
+                <label>
+                  <span>Box Qty</span>
+                  <input id="packing-box-qty-form" type="number" min="0" step="1" value="0">
+                </label>
+                <button class="primary-button" type="submit">Save Box Qty</button>
+              </form>
+              <div id="packing-box-form-empty" class="detail-card hidden">No Packing orders available.</div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Machine Queue</h4>
+                <span class="tag subtle" id="production-count">0 Visible</span>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first queue-table">
+                  <thead>
+                    <tr>
+                      <th>Order / Actions</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Order Type</th>
+                      <th>Main / Sub</th>
+                      <th>Previous</th>
+                      <th>Current</th>
+                      <th>Next</th>
+                    </tr>
+                  </thead>
+                  <tbody id="production-table-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Read-only machine queue. Use separate entry forms above.</span>
+                <div class="pagination-bar" id="production-pagination"></div>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Shared Production Planning View</h4>
+                <span class="tag subtle" id="shared-planning-count-production">0 Orders</span>
+              </div>
+              <div class="toolbar-inline shared-planning-toolbar">
+                <label class="toolbar-field">
+                  <span>Search</span>
+                  <input id="shared-planning-search" type="search" placeholder="Order / Dealer / Customer">
+                </label>
+                <label class="toolbar-field">
+                  <span>Stage</span>
+                  <select id="shared-planning-stage">
+                    <option value="all">All Stages</option>
+                  </select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Sort</span>
+                  <select id="shared-planning-sort">
+                    <option value="rank-asc">Planner Rank</option>
+                    <option value="rank-desc">Planner Rank Desc</option>
+                    <option value="sla-asc">SLA Date</option>
+                    <option value="order-asc">Order Number A-Z</option>
+                    <option value="dealer-asc">Dealer A-Z</option>
+                    <option value="priority-asc">Priority A-Z</option>
+                  </select>
+                </label>
+                <button class="primary-button" id="export-shared-planning" type="button">Export Excel</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first planning-table">
+                  <thead>
+                    <tr>
+                      <th>Plan Order</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Stage</th>
+                      <th>SLA</th>
+                      <th>Urgency</th>
+                      <th>Priority</th>
+                      <th>Visible Stations</th>
+                      <th>Planner Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shared-planning-production-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">All production machines can see the planner queue here.</span>
+                <div class="pagination-bar" id="shared-planning-production-pagination"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="dispatch">
+            <div class="section-head">
+              <div>
+                <h3>Dispatch</h3>
+                <p>Pending, partial, hold, and dispatch movement with separate dispatch login.</p>
+              </div>
+              <div class="toolbar-inline">
+                <label class="toolbar-field">
+                  <span>Search</span>
+                  <input id="dispatch-search" type="search" placeholder="Order / Dealer / Customer">
+                </label>
+              </div>
+            </div>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Dispatch Queue</h4>
+                <span class="tag subtle" id="dispatch-count">0 Visible</span>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first queue-table">
+                  <thead>
+                    <tr>
+                      <th>Order / Actions</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Packing Ready</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dispatch-table-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Actions stay pinned beside the order number. Scroll for full details.</span>
+                <div class="pagination-bar" id="dispatch-pagination"></div>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Shared Production Planning View</h4>
+                <span class="tag subtle" id="shared-planning-count-dispatch">0 Orders</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="shared-planning-dispatch-search" type="search" placeholder="Order / Dealer / Customer">
+                </label>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first planning-table">
+                  <thead>
+                    <tr>
+                      <th>Plan Order</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Stage</th>
+                      <th>SLA</th>
+                      <th>Urgency</th>
+                      <th>Priority</th>
+                      <th>Visible Stations</th>
+                      <th>Planner Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shared-planning-dispatch-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Packed and dispatch-facing planning visibility.</span>
+                <div class="pagination-bar" id="shared-planning-dispatch-pagination"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="reports">
+            <div class="section-head">
+              <div>
+                <h3>Reports</h3>
+                <p>Search, sort, filter, lifecycle, and audit from the Access database.</p>
+              </div>
+
+              <div class="toolbar-inline">
+                <label class="toolbar-field">
+                  <span>Search</span>
+                  <input id="report-search" type="search" placeholder="Order / Dealer / Type">
+                </label>
+                <label class="toolbar-field">
+                  <span>Status Filter</span>
+                  <select id="report-status-filter">
+                    <option value="all">All</option>
+                    <option value="QUOTATION_CREATED">Quotation Created</option>
+                    <option value="ORDER_CONFIRMED">Order Confirmed</option>
+                    <option value="OPTIMISATION_DONE">Optimisation Done</option>
+                    <option value="PRODUCTION_STARTED">Production Started</option>
+                    <option value="DISPATCH_READY">Pending Dispatch</option>
+                    <option value="DISPATCHED">Dispatched</option>
+                  </select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Dealer</span>
+                  <select id="report-dealer-filter"></select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Order Type</span>
+                  <select id="report-order-type-filter"></select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Station</span>
+                  <select id="report-station-filter"></select>
+                </label>
+                <label class="toolbar-field">
+                  <span>Date From</span>
+                  <input id="report-date-from" type="date">
+                </label>
+                <label class="toolbar-field">
+                  <span>Date To</span>
+                  <input id="report-date-to" type="date">
+                </label>
+                <label class="toolbar-field">
+                  <span>Sort By</span>
+                  <select id="report-sort">
+                    <option value="updated-desc">Latest Updated</option>
+                    <option value="updated-asc">Oldest Updated</option>
+                    <option value="order-asc">Order Number A-Z</option>
+                    <option value="dealer-asc">Dealer A-Z</option>
+                  </select>
+                </label>
+                <button class="ghost-button" id="report-last-7" type="button">Last 7 Days</button>
+                <button class="primary-button" id="export-report" type="button">Export Excel CSV</button>
+              </div>
+            </div>
+
+            <div class="card-grid two-up">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Dealer Dashboard</h4>
+                  <span class="tag subtle" id="dealer-dashboard-count">0 Dealers</span>
+                </div>
+                <div class="table-toolbar">
+                  <label class="field compact-field">
+                    <span>Search</span>
+                    <input id="dealer-dashboard-search" type="search" placeholder="Dealer / Customer Type / Owner">
+                  </label>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table table-sticky-first">
+                    <thead>
+                      <tr>
+                        <th>Dealer ID</th>
+                        <th>Dealer</th>
+                        <th>Customer Type</th>
+                        <th>Marketing Owner</th>
+                        <th>Active Orders</th>
+                        <th>In Production</th>
+                        <th>Dispatch Ready</th>
+                        <th>Last Updated</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dealer-dashboard-body"></tbody>
+                  </table>
+                </div>
+                <div class="table-footer">
+                  <span class="table-hint">Dealer-level live pipeline table.</span>
+                  <div class="pagination-bar" id="dealer-dashboard-pagination"></div>
+                </div>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Marketing Dashboard</h4>
+                  <span class="tag subtle" id="marketing-dashboard-count">0 Owners</span>
+                </div>
+                <div class="table-toolbar">
+                  <label class="field compact-field">
+                    <span>Search</span>
+                    <input id="marketing-dashboard-search" type="search" placeholder="Owner / Dealer Count / Priority">
+                  </label>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table table-sticky-first">
+                    <thead>
+                      <tr>
+                        <th>Marketing Owner</th>
+                        <th>Dealers</th>
+                        <th>Active Orders</th>
+                        <th>High Priority</th>
+                        <th>Dispatch Ready</th>
+                        <th>Dispatched Today</th>
+                        <th>Last Updated</th>
+                      </tr>
+                    </thead>
+                    <tbody id="marketing-dashboard-body"></tbody>
+                  </table>
+                </div>
+                <div class="table-footer">
+                  <span class="table-hint">Owner-wise commercial and fulfilment view.</span>
+                  <div class="pagination-bar" id="marketing-dashboard-pagination"></div>
+                </div>
+              </article>
+            </div>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Machine Report</h4>
+                <span class="tag subtle" id="machine-report-count">0 Rows</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="machine-report-search" type="search" placeholder="Order / Customer">
+                </label>
+              </div>
+              <div class="machine-report-meta">
+                <div class="machine-report-meta-item">
+                  <span class="machine-report-meta-label">Operator Name</span>
+                  <strong id="machine-report-operator">All Machines</strong>
+                </div>
+                <div class="machine-report-meta-item">
+                  <span class="machine-report-meta-label">Date</span>
+                  <strong id="machine-report-date">Today</strong>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first machine-report-table">
+                  <thead>
+                    <tr>
+                      <th>Order Con</th>
+                      <th>Order Num</th>
+                      <th>Customer Name</th>
+                      <th>Pnbox Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody id="machine-report-body"></tbody>
+                </table>
+              </div>
+              <div class="machine-report-sumbar">
+                <span>Pnbox Qty Sum: <strong id="machine-report-box-sum">0</strong></span>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Machine-wise worksheet view based on current report station and date filters.</span>
+                <div class="pagination-bar" id="machine-report-pagination"></div>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Last 7 Days Summary</h4>
+                <span class="tag subtle" id="weekly-range-label">Last 7 Days</span>
+              </div>
+
+              <div class="report-metric-grid" id="weekly-metrics"></div>
+
+              <div class="card-grid two-up report-summary-grid">
+                <div class="report-subpanel">
+                  <div class="card-head">
+                    <h4>Daily Activity</h4>
+                    <span class="tag subtle">7 Days</span>
+                  </div>
+                  <div class="table-toolbar">
+                    <label class="field compact-field">
+                      <span>Search</span>
+                      <input id="weekly-daily-search" type="search" placeholder="Date / Actions / Orders">
+                    </label>
+                  </div>
+
+                  <div class="table-wrap">
+                    <table class="data-table table-sticky-first">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Actions</th>
+                          <th>Orders Updated</th>
+                          <th>Quotations</th>
+                          <th>Production</th>
+                          <th>Dispatch</th>
+                        </tr>
+                      </thead>
+                      <tbody id="weekly-daily-body"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="report-subpanel">
+                  <div class="card-head">
+                    <h4>Module Summary</h4>
+                    <span class="tag subtle" id="weekly-module-count">0 Modules</span>
+                  </div>
+                  <div class="table-toolbar">
+                    <label class="field compact-field">
+                      <span>Search</span>
+                      <input id="weekly-module-search" type="search" placeholder="Module / User">
+                    </label>
+                  </div>
+
+                  <div class="table-wrap">
+                    <table class="data-table table-sticky-first">
+                      <thead>
+                        <tr>
+                          <th>Module</th>
+                          <th>Actions</th>
+                          <th>Last Activity</th>
+                          <th>Last User</th>
+                        </tr>
+                      </thead>
+                      <tbody id="weekly-module-body"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Recent Weekly Activity</h4>
+                <span class="tag subtle" id="weekly-recent-count">0 Logs</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="weekly-recent-search" type="search" placeholder="Module / Record / User / Remarks">
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Module</th>
+                      <th>Record</th>
+                      <th>User</th>
+                      <th>Action</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="weekly-recent-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Weekly audit-backed report for the last 7 days.</span>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Order Lifecycle Report</h4>
+                <span class="tag subtle" id="report-count">0 Rows</span>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first">
+                  <thead>
+                    <tr>
+                      <th>Order Number</th>
+                      <th>Dealer</th>
+                      <th>Customer</th>
+                      <th>Order Type</th>
+                      <th>Workflow Stage</th>
+                      <th>Visible Stations</th>
+                      <th>Last Action</th>
+                      <th>Updated</th>
+                      <th>Lifecycle</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reports-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Filter, then page through results.</span>
+                <div class="pagination-bar" id="reports-pagination"></div>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Selected Order Lifecycle</h4>
+                <span class="tag subtle" id="lifecycle-title">No Order Selected</span>
+              </div>
+
+              <div class="detail-grid" id="lifecycle-detail"></div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Audit Log</h4>
+                <span class="tag subtle" id="audit-count">0 Logs</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="audit-search" type="search" placeholder="User / Order / Module / Action">
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>User</th>
+                      <th>Order</th>
+                      <th>Module</th>
+                      <th>Action</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="audit-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Paged audit trail.</span>
+                <div class="pagination-bar" id="audit-pagination"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="history">
+            <div class="section-head">
+              <div>
+                <h3>History</h3>
+                <p>Stage movement and action history for the work visible to your role.</p>
+              </div>
+            </div>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Movement History</h4>
+                <span class="tag subtle" id="history-count">0 Rows</span>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact-field">
+                  <span>Search</span>
+                  <input id="history-search" type="search" placeholder="Order / User / Station / Remarks">
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table table-sticky-first">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Order</th>
+                      <th>User</th>
+                      <th>Station</th>
+                      <th>Action</th>
+                      <th>Remarks</th>
+                      <th>Lifecycle</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span class="table-hint">Paged movement history.</span>
+                <div class="pagination-bar" id="history-pagination"></div>
+              </div>
+            </article>
+
+            <article class="panel-card">
+              <div class="card-head">
+                <h4>Selected Order Lifecycle</h4>
+                <span class="tag subtle" id="history-lifecycle-title">No Order Selected</span>
+              </div>
+
+              <div class="detail-grid" id="history-lifecycle-detail"></div>
+            </article>
+          </section>
+
+          <section class="section-panel" data-panel="masters">
+            <div class="section-head">
+              <div>
+                <h3>Masters</h3>
+                <p>Add, deactivate, and reorder production masters without code changes.</p>
+              </div>
+            </div>
+
+            <div class="card-grid two-up">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Customer Type Master</h4>
+                  <span class="tag subtle">Editable</span>
+                </div>
+
+                <form id="customer-type-form" class="inline-form">
+                  <input id="customer-type-input" type="text" placeholder="Add customer type" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="customer-type-list"></div>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Order Type Master</h4>
+                  <span class="tag subtle">Editable</span>
+                </div>
+
+                <form id="order-type-form" class="inline-form">
+                  <input id="order-type-input" type="text" placeholder="Add order type" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="order-type-list"></div>
+              </article>
+            </div>
+
+            <div class="card-grid two-up">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Vendor Master</h4>
+                  <span class="tag subtle">Editable</span>
+                </div>
+
+                <form id="vendor-form" class="inline-form">
+                  <input id="vendor-input" type="text" placeholder="Add vendor" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="vendor-list"></div>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Machine Sequence</h4>
+                  <span class="tag subtle">Reorder</span>
+                </div>
+
+                <div class="list-stack" id="machine-sequence-list"></div>
+              </article>
+            </div>
+
+            <div class="card-grid two-up">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Dealer Type Master</h4>
+                  <span class="tag subtle">Add / Edit / Delete</span>
+                </div>
+
+                <form class="inline-form dropdown-master-form" data-dropdown-master="DEALER_TYPE">
+                  <input type="text" data-dropdown-input placeholder="Add dealer type" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="dealer-type-list" data-dropdown-list="DEALER_TYPE"></div>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Payment Terms Master</h4>
+                  <span class="tag subtle">Add / Edit / Delete</span>
+                </div>
+
+                <form class="inline-form dropdown-master-form" data-dropdown-master="PAYMENT_TERMS">
+                  <input type="text" data-dropdown-input placeholder="Add payment term" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="payment-terms-list" data-dropdown-list="PAYMENT_TERMS"></div>
+              </article>
+            </div>
+
+            <div class="card-grid two-up">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Marketing Owner Master</h4>
+                  <span class="tag subtle">Add / Edit / Delete</span>
+                </div>
+
+                <form class="inline-form dropdown-master-form" data-dropdown-master="MARKETING_OWNER">
+                  <input type="text" data-dropdown-input placeholder="Add marketing owner" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="marketing-owner-list" data-dropdown-list="MARKETING_OWNER"></div>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Quotation Owner Master</h4>
+                  <span class="tag subtle">Add / Edit / Delete</span>
+                </div>
+
+                <form class="inline-form dropdown-master-form" data-dropdown-master="QUOTATION_OWNER">
+                  <input type="text" data-dropdown-input placeholder="Add quotation owner" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="quotation-owner-list" data-dropdown-list="QUOTATION_OWNER"></div>
+              </article>
+            </div>
+
+            <div class="card-grid">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Order Class Master</h4>
+                  <span class="tag subtle">Add / Edit / Delete</span>
+                </div>
+
+                <form class="inline-form dropdown-master-form" data-dropdown-master="ORDER_CLASS">
+                  <input type="text" data-dropdown-input placeholder="Add order class" required>
+                  <button class="primary-button" type="submit">Add</button>
+                </form>
+
+                <div class="list-stack" id="order-class-list" data-dropdown-list="ORDER_CLASS"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="section-panel" data-panel="users">
+            <div class="section-head">
+              <div>
+                <h3>Users</h3>
+                <p>Excel-based user list, password-backed login, and role-linked visibility.</p>
+              </div>
+            </div>
+
+            <div class="card-grid two-up">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>User Master</h4>
+                  <span class="tag subtle">Active / Inactive</span>
+                </div>
+
+                <div class="toolbar-grid single-line">
+                  <label class="toolbar-field">
+                    <span>Search</span>
+                    <input id="users-search" type="search" placeholder="Name / Login / Role / Station">
+                  </label>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="data-table table-sticky-first">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Login ID</th>
+                        <th>Role</th>
+                        <th>Station</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="users-body"></tbody>
+                  </table>
+                </div>
+                <div class="table-footer">
+                  <span class="table-hint">Paged user master.</span>
+                  <div class="pagination-bar" id="users-pagination"></div>
+                </div>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Add User</h4>
+                  <span class="tag subtle">Login Ready</span>
+                </div>
+
+                <form id="user-form" class="stack-form">
+                  <input id="user-id" type="hidden">
+                  <label>
+                    <span>Name</span>
+                    <input id="user-name" type="text" required>
+                  </label>
+                  <label>
+                    <span>Login ID</span>
+                    <input id="user-login" type="text" required>
+                  </label>
+                  <label>
+                    <span>Password</span>
+                    <input id="user-password" type="password">
+                  </label>
+                  <label>
+                    <span>Role</span>
+                    <select id="user-role">
+                      <option>Admin</option>
+                      <option>Data Entry</option>
+                      <option>Quotation User</option>
+                      <option>Marketing User</option>
+                      <option>Optimisation User</option>
+                      <option>Procurement User</option>
+                      <option>Production Planner User</option>
+                      <option>Machine User</option>
+                      <option>Dispatch User</option>
+                      <option>Management</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Assigned Station</span>
+                    <select id="user-station"></select>
+                  </label>
+                  <button class="primary-button" id="user-save-button" type="submit">Create User</button>
+                  <button class="ghost-button" id="user-cancel-edit" type="button">Cancel Edit</button>
+                </form>
+
+                <div class="import-block">
+                  <div class="card-head">
+                    <h4>User Excel Import</h4>
+                    <a id="download-user-template" class="ghost-button link-button" href="assets/users-import-template.xlsx" download>Download Template</a>
+                  </div>
+
+                  <form id="user-import-form" class="stack-form">
+                    <label>
+                      <span>Excel File</span>
+                      <input id="user-import-file" type="file" accept=".xlsx,.xls" required>
+                    </label>
+                    <button class="primary-button" type="submit">Import Users</button>
+                  </form>
+                </div>
+
+                <div class="import-block">
+                  <div class="card-head">
+                    <h4>Reset Password</h4>
+                    <span class="tag subtle">Admin Only</span>
+                  </div>
+
+                  <form id="password-reset-form" class="stack-form">
+                    <label>
+                      <span>Login ID</span>
+                      <input id="password-reset-login" type="text" required>
+                    </label>
+                    <label>
+                      <span>New Password</span>
+                      <input id="password-reset-password" type="password" required>
+                    </label>
+                    <button class="primary-button" type="submit">Reset Password</button>
+                  </form>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="section-panel" data-panel="settings">
+            <div class="section-head">
+              <div>
+                <h3>Settings</h3>
+                <p>Current runtime and database paths for this local production build.</p>
+              </div>
+            </div>
+
+            <div class="card-grid two-up">
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Current Build</h4>
+                  <span class="tag subtle">Access Backed</span>
+                </div>
+                <ul class="settings-list" id="current-build-list"></ul>
+              </article>
+
+              <article class="panel-card">
+                <div class="card-head">
+                  <h4>Paths</h4>
+                  <span class="tag subtle">Local</span>
+                </div>
+                <ul class="settings-list" id="path-build-list"></ul>
+              </article>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <datalist id="dealer-options"></datalist>
+  <datalist id="dealer-type-options"></datalist>
+  <datalist id="payment-terms-options"></datalist>
+  <datalist id="marketing-owner-options"></datalist>
+  <datalist id="quotation-owner-options"></datalist>
+  <datalist id="customer-type-options"></datalist>
+  <datalist id="order-type-options"></datalist>
+  <datalist id="order-class-options"></datalist>
+  <datalist id="vendor-options"></datalist>
+  <datalist id="confirm-order-options"></datalist>
+  <datalist id="optimisation-order-options"></datalist>
+  <datalist id="procurement-order-options"></datalist>
+  <datalist id="production-action-order-options"></datalist>
+  <datalist id="packing-box-order-options"></datalist>
+
+  <div class="modal-shell hidden" id="history-modal">
+    <div class="modal-backdrop" id="history-modal-backdrop"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Order History</p>
+          <h3 id="history-modal-title">No Order Selected</h3>
+        </div>
+        <button class="ghost-button" id="history-modal-close" type="button">Close</button>
+      </div>
+      <div class="modal-body detail-grid" id="history-modal-body"></div>
+    </div>
+  </div>
+
+  <div class="modal-shell hidden" id="qr-modal">
+    <div class="modal-backdrop" id="qr-modal-backdrop"></div>
+    <div class="modal-card qr-modal-card" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Local QR Prototype</p>
+          <h3 id="qr-modal-title">Scan Machine Order QR</h3>
+        </div>
+        <button class="ghost-button" id="qr-modal-close" type="button">Close</button>
+      </div>
+      <div class="modal-body">
+        <p class="qr-modal-copy" id="qr-modal-copy">Point phone camera at order QR. Plain order number works best.</p>
+        <div class="qr-reader-shell">
+          <div id="qr-reader"></div>
+        </div>
+        <label>
+          <span>Manual QR Text</span>
+          <input id="qr-manual-input" type="text" placeholder="Paste scanned order text if camera not working">
+        </label>
+        <div class="action-inline">
+          <button class="primary-button" id="qr-manual-apply" type="button">Use This Order</button>
+          <button class="ghost-button" id="qr-restart" type="button">Restart Camera</button>
+        </div>
+        <small class="field-helper" id="qr-result-helper"></small>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script>
+    (function () {
+      var originalFetch = window.fetch ? window.fetch.bind(window) : null;
+      if (!originalFetch) return;
+      function isPlannerUser(user) {
+        if (!user) return false;
+        var loginId = String(user.login_id || "").toLowerCase();
+        var roleName = String(user.role_name || "").toLowerCase();
+        return loginId === "planner.user" || roleName === "production planner user";
+      }
+      function goPlannerPortal() {
+        if (window.location.pathname.toLowerCase().indexOf("/planner-portal.html") >= 0) return;
+        window.location.replace("/planner-portal.html");
+      }
+
+      window.fetch = function (input, init) {
+        var requestUrl = typeof input === "string" ? input : (input && input.url ? input.url : "");
+        var normalized = String(requestUrl || "");
+        if (normalized.indexOf("api.ashx?action=login") >= 0) {
+          return originalFetch(input, init).then(function (response) {
+            try {
+              response.clone().json().then(function (payload) {
+                if (payload && payload.user) {
+                  window.__elenzaSessionUser = payload.user;
+                  if (isPlannerUser(payload.user)) {
+                    goPlannerPortal();
+                  }
+                }
+              });
+            } catch (err) {}
+            return response;
+          });
+        }
+        return originalFetch(input, init);
+      };
+
+      originalFetch("api.ashx?action=session", { credentials: "same-origin" })
+        .then(function (response) { return response.json(); })
+        .then(function (payload) {
+          if (payload && payload.authenticated && isPlannerUser(payload.user)) {
+            goPlannerPortal();
+          }
+        })
+        .catch(function () {});
+    })();
+  </script>
+  <script src="script.js?v=20260703-01"></script>
+</body>
+</html>

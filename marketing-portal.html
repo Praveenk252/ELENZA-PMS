@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElenzaIndia - Marketing Portal</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;color:#1e293b}
+.topbar{background:#046bd2;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:16px;font-weight:600}
+.topbar .info{font-size:13px;opacity:.9}
+.topbar .btn{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+.topbar .btn:hover{background:rgba(255,255,255,.3)}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:6px;border-radius:10px}
+.tab{padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#64748b}
+.tab.on{background:#046bd2;color:#fff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.sc{background:#fff;border-radius:10px;padding:16px;text-align:center}
+.sc .n{font-size:28px;font-weight:700;color:#046bd2}
+.sc .l{font-size:12px;color:#64748b;margin-top:4px}
+.sbox{background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;align-items:center}
+.sbox input{flex:1;border:none;outline:none;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;background:#f8fafc;color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0}
+td{padding:8px 10px;border-bottom:1px solid #f1f5f9}
+tr:hover{background:#f8fafc}
+.b{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.b.g{background:#dcfce7;color:#166534}
+.b.bl{background:#dbeafe;color:#1e40af}
+.b.y{background:#fef9c3;color:#854d0e}
+.b.r{background:#fee2e2;color:#991b1b}
+.b.gr{background:#f1f5f9;color:#475569}
+.sec{display:none}.sec.on{display:block}
+.tscroll{max-height:500px;overflow-y:auto;border-radius:8px;border:1px solid #e2e8f0}
+.frow{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.frow select,.frow input{padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:13px;z-index:999;display:none}
+.toast.err{background:#dc2626}.toast.ok{background:#16a34a}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.topbar{flex-direction:column;gap:8px;text-align:center}.frow{flex-direction:column}table{font-size:12px}th,td{padding:6px 8px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>ElenzaIndia - Marketing Portal</h1>
+  <div class="info" id="uInfo"></div>
+  <button class="btn" onclick="logout()">Logout</button>
+</div>
+<div class="wrap" id="main" style="display:none">
+  <div class="stats" id="stats"></div>
+  <div class="tabs">
+    <div class="tab on" onclick="stab('dealers')">My Dealers</div>
+    <div class="tab" onclick="stab('orders')">My Orders</div>
+  </div>
+  <div class="sec on" id="s-dealers">
+    <div class="sbox"><input type="text" id="dSearch" placeholder="Search dealers..." oninput="rDealers()"></div>
+    <div class="tscroll"><table><thead><tr><th>Code</th><th>Dealer Name</th><th>City</th><th>Contact</th><th>Mobile</th><th>Orders</th></tr></thead><tbody id="dTb"></tbody></table></div>
+  </div>
+  <div class="sec" id="s-orders">
+    <div class="frow">
+      <select id="oFilter" onchange="rOrders()"><option value="all">All Status</option><option value="In Production">In Production</option><option value="Packed">Packed</option><option value="Dispatched">Dispatched</option></select>
+      <input type="text" id="oSearch" placeholder="Search orders..." oninput="rOrders()" style="flex:1">
+    </div>
+    <div class="tscroll"><table><thead><tr><th>Order #</th><th>Dealer</th><th>Customer</th><th>Type</th><th>Status</th><th>Updated</th></tr></thead><tbody id="oTb"></tbody></table></div>
+  </div>
+</div>
+<div id="loginOv" style="display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f1f5f9">
+  <div style="background:#fff;padding:32px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:360px;text-align:center">
+    <h2 style="font-size:18px;margin-bottom:4px">ElenzaIndia Marketing</h2>
+    <p style="font-size:13px;color:#64748b;margin-bottom:20px">Sign in to view your dealers and orders</p>
+    <form id="loginF" onsubmit="doLogin(event)">
+      <input type="text" id="lUser" placeholder="Login ID" required style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;margin-bottom:10px">
+      <input type="password" id="lPass" placeholder="Password" required style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;margin-bottom:16px">
+      <button type="submit" style="width:100%;padding:10px;background:#046bd2;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
+    </form>
+    <p id="lErr" style="color:#dc2626;font-size:12px;margin-top:10px;display:none"></p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var S={ses:null,dealers:[],orders:[]};
+function api(a){return fetch('api.ashx?action='+encodeURIComponent(a),{credentials:'same-origin'}).then(function(r){return r.json()})}
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
+function logout(){S.ses=null;document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
+function stab(t){document.querySelectorAll('.tab').forEach(function(e,i){e.className=t===(i===0?'dealers':'orders')?'tab on':'tab'});document.getElementById('s-dealers').className=t==='dealers'?'sec on':'sec';document.getElementById('s-orders').className=t==='orders'?'sec on':'sec'}
+function doLogin(e){e.preventDefault();var u=document.getElementById('lUser').value.trim(),p=document.getElementById('lPass').value,er=document.getElementById('lErr');er.style.display='none';api('login&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(function(r){if(!r.ok){er.textContent=r.message||'Failed';er.style.display='block';return}if(r.user.role_name!=='Marketing User'){er.textContent='Marketing Users only.';er.style.display='block';return}S.ses=r.user;document.getElementById('loginOv').style.display='none';document.getElementById('main').style.display='block';document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;load()}).catch(function(){er.textContent='Connection error';er.style.display='block'})}
+function gs(o){var w=String(o.workflow_stage_code||'').toUpperCase(),d=String(o.dispatch_status||'');if(d==='Dispatched'||w==='DISPATCHED')return'Dispatched';if(w==='DISPATCH_READY')return'Packed';var s=String(o.current_station||o.planner_stage_label||'').toLowerCase();if(s==='packed'||s==='packing'||s==='dispatch')return'Packed';return'In Production'}
+function bg(s){return{In Production:'bl',Packed:'y',Dispatched:'g'}[s]||'gr'}
+function fd(id){return S.dealers.find(function(d){return d.id===id})}
+function load(){api('app-state').then(function(d){S.ses=d.session||S.ses;document.getElementById('uInfo').textContent=S.ses.full_name+' | '+S.ses.role_name;var nm=S.ses.full_name.toLowerCase();S.dealers=(d.data_entry&&d.data_entry.dealers||[]).filter(function(x){return String(x.marketing_owner||'').toLowerCase()===nm});var all=[].concat(d.production.rows||[],d.planning.rows||[],d.dispatch.rows||[]);var seen={};S.orders=all.filter(function(o){var dn=String(o.dealer_name||'').toLowerCase();var m=S.dealers.some(function(dl){return String(dl.name||'').toLowerCase()===dn});if(m&&!seen[o.order_id]){seen[o.order_id]=1;return 1}return 0});rStats();rDealers();rOrders()})}
+function rStats(){var t=S.dealers.length,o=S.orders.length,ip=0,pa=0,di=0;S.orders.forEach(function(x){var s=gs(x);if(s==='In Production')ip++;else if(s==='Packed')pa++;else di++});document.getElementById('stats').innerHTML='<div class="sc"><div class="n">'+t+'</div><div class="l">My Dealers</div></div><div class="sc"><div class="n">'+o+'</div><div class="l">Total Orders</div></div><div class="sc"><div class="n">'+ip+'</div><div class="l">In Production</div></div><div class="sc"><div class="n">'+pa+'</div><div class="l">Packed</div></div><div class="sc"><div class="n">'+di+'</div><div class="l">Dispatched</div></div>'}
+function rDealers(){var q=(document.getElementById('dSearch').value||'').toLowerCase();var h='';S.dealers.forEach(function(d){var n=String(d.dealer_name||''),c=String(d.dealer_code||''),ci=String(d.city||''),co=String(d.contact_person||''),mo=String(d.mobile_number||'');if(q&&n.toLowerCase().indexOf(q)<0&&c.toLowerCase().indexOf(q)<0&&ci.toLowerCase().indexOf(q)<0)return;var cnt=S.orders.filter(function(o){return String(o.dealer_name||'').toLowerCase()===n.toLowerCase()}).length;h+='<tr><td>'+c+'</td><td>'+n+'</td><td>'+ci+'</td><td>'+co+'</td><td>'+mo+'</td><td>'+cnt+'</td></tr>'});document.getElementById('dTb').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#94a3b8">No dealers found</td></tr>'}
+function rOrders(){var q=(document.getElementById('oSearch').value||'').toLowerCase(),f=document.getElementById('oFilter').value;var h='';S.orders.forEach(function(o){var s=gs(o);if(f!=='all'&&s!==f)return;var on=String(o.order_number||''),dn=String(o.dealer_name||''),cn=String(o.customer_name||''),ty=String(o.order_type||o.order_type_name||''),ua=o.updated_at||'';if(q&&on.toLowerCase().indexOf(q)<0&&dn.toLowerCase().indexOf(q)<0&&cn.toLowerCase().indexOf(q)<0)return;h+='<tr><td>'+on+'</td><td>'+dn+'</td><td>'+cn+'</td><td>'+ty+'</td><td><span class="b '+bg(s)+'">'+s+'</span></td><td>'+ua+'</td></tr>'});document.getElementById('oTb').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#94a3b8">No orders found</td></tr>'}
+</script>
+</body>
+</html>
