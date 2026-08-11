@@ -39,7 +39,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         { "Admin", new[] { "data-entry", "optimisation", "procurement", "planner", "production", "dispatch", "reports", "history", "email-log", "masters", "users", "settings" } },
         { "Data Entry", new[] { "data-entry", "history", "reports", "settings" } },
         { "Quotation User", new[] { "data-entry", "history", "reports", "settings" } },
-        { "Marketing User", new[] { "data-entry", "reports", "settings" } },
+        { "Marketing User", new[] { "data-entry", "reports", "settings", "dispatch" } },
         { "Optimisation User", new[] { "optimisation", "history", "settings" } },
         { "Procurement User", new[] { "procurement", "history", "settings" } },
         { "Production Planner User", new[] { "planner", "history", "reports", "settings" } },
@@ -289,6 +289,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     break;
                 case "marketing-dealers-reassign":
                     HandleMarketingDealersReassign(context);
+                    break;
+                case "marketing-dealer-detail":
+                    HandleMarketingDealerDetail(context);
+                    break;
+                case "marketing-dealer-update":
+                    HandleMarketingDealerUpdate(context);
                     break;
                 default:
                     WriteError(context, 404, "API route not found.");
@@ -707,8 +713,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         {
             var user = RequireLogin(context, conn);
             EnsureRole(user, "Admin");
-            var dealers = QueryAll(conn, "SELECT dealer_id, dealer_code, dealer_name, city, contact_person, mobile_number, marketing_owner, customer_type_code, is_active FROM tbl_dealers WHERE is_active = TRUE ORDER BY dealer_name");
-            var marketingUsers = QueryAll(conn, "SELECT user_id, full_name, login_id FROM tbl_users WHERE role_name = 'Marketing User' AND is_active = TRUE ORDER BY full_name");
+            var dealers = LoadMasterSets(conn)["dealers"];
+            var marketingUsers = LoadUsers(conn).Where(u => string.Equals(S(u, "role_name"), "Marketing User", StringComparison.OrdinalIgnoreCase) && B(u, "is_active")).ToList();
             WriteJson(context, Obj(
                 "ok", true,
                 "dealers", dealers.Select(r => Obj(
@@ -736,8 +742,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         {
             var user = RequireLogin(context, conn);
             EnsureRole(user, "Admin");
-            var mode = S(context.Request.Form["mode"]);
-            var newOwner = S(context.Request.Form["marketing_owner"]);
+            var mode = Value(context, "mode").ToLowerInvariant();
+            var newOwner = Value(context, "marketing_owner");
             int updated = 0;
             if (mode == "single")
             {
@@ -757,7 +763,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             }
             else if (mode == "from-user")
             {
-                var fromUser = S(context.Request.Form["from_user"]);
+                var fromUser = Value(context, "from_user");
                 updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE is_active = TRUE AND marketing_owner = ?",
                     NullIfEmpty(newOwner), I(user, "user_id"), (object)fromUser ?? DBNull.Value);
             }
@@ -767,6 +773,111 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             }
             Audit(conn, I(user, "user_id"), "Dealer", "Marketing", "0", "Marketing Owner Reassigned", "", newOwner, mode, null);
             WriteJson(context, Obj("ok", true, "dealers_updated", updated));
+        }
+    }
+
+    private void HandleMarketingDealerDetail(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin");
+            var dealerId = IntRequired(Value(context, "dealer_id"), "Dealer is required.");
+            var dealer = QueryOne(conn, "SELECT * FROM tbl_dealers WHERE dealer_id = ?", dealerId);
+            if (dealer == null) throw new ApiFailure(404, "Dealer not found.");
+            var orders = QueryAll(conn, "SELECT * FROM tbl_orders WHERE dealer_id = ? ORDER BY updated_at DESC, order_id DESC", dealerId);
+            var masters = LoadMasterSets(conn);
+            var marketingUsers = LoadUsers(conn).Where(u => string.Equals(S(u, "role_name"), "Marketing User", StringComparison.OrdinalIgnoreCase) && B(u, "is_active")).ToList();
+            WriteJson(context, Obj(
+                "ok", true,
+                "dealer", Obj(
+                    "dealer_id", I(dealer, "dealer_id"),
+                    "dealer_code", S(dealer, "dealer_code"),
+                    "dealer_name", S(dealer, "dealer_name"),
+                    "company_name", S(dealer, "company_name"),
+                    "dealer_type", S(dealer, "dealer_type"),
+                    "customer_type_id", I(dealer, "customer_type_id"),
+                    "customer_type_code", S(dealer, "customer_type_code"),
+                    "city", S(dealer, "city"),
+                    "pin_code", S(dealer, "pin_code"),
+                    "gst_number", S(dealer, "gst_number"),
+                    "contact_person", S(dealer, "contact_person"),
+                    "mobile_number", S(dealer, "mobile_number"),
+                    "whatsapp_number", S(dealer, "whatsapp_number"),
+                    "email", S(dealer, "email"),
+                    "payment_terms", S(dealer, "payment_terms"),
+                    "credit_limit_lakh", I(dealer, "credit_limit_lakh"),
+                    "marketing_owner", S(dealer, "marketing_owner"),
+                    "quotation_owner", S(dealer, "quotation_owner"),
+                    "address", S(dealer, "address"),
+                    "area", S(dealer, "area"),
+                    "remarks", S(dealer, "remarks"),
+                    "is_active", B(dealer, "is_active"),
+                    "created_at", S(dealer, "created_at"),
+                    "updated_at", S(dealer, "updated_at")
+                ),
+                "orders", orders.Select(r => Obj(
+                    "order_id", I(r, "order_id"),
+                    "order_number", S(r, "order_number"),
+                    "customer_name", S(r, "customer_name"),
+                    "order_type", S(r, "order_type"),
+                    "workflow_stage_code", S(r, "workflow_stage_code"),
+                    "workflow_stage", S(r, "workflow_stage"),
+                    "updated_at", S(r, "updated_at"),
+                    "approx_value", S(r, "approx_value")
+                )).ToList(),
+                "customer_types", masters["customer_types"].Select(r => Obj("id", I(r, "customer_type_id"), "code", S(r, "customer_type_code"), "name", S(r, "customer_type_name"))).ToList(),
+                "marketing_users", marketingUsers.Select(r => Obj("full_name", S(r, "full_name"))).ToList(),
+                "dealer_types", masters["dealer_types"].Select(r => Obj("name", S(r, "option_value"))).ToList(),
+                "payment_terms_list", masters["payment_terms"].Select(r => Obj("name", S(r, "option_value"))).ToList()
+            ));
+        }
+    }
+
+    private void HandleMarketingDealerUpdate(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin");
+            var dealerId = IntRequired(Value(context, "dealer_id"), "Dealer is required.");
+            var dealer = QueryOne(conn, "SELECT * FROM tbl_dealers WHERE dealer_id = ?", dealerId);
+            if (dealer == null) throw new ApiFailure(404, "Dealer not found.");
+            var dealerName = Require(Value(context, "dealer_name"), "Dealer name is required.");
+            var mobileNumber = Require(Value(context, "mobile_number"), "Mobile number is required.");
+            var customerTypeText = Value(context, "customer_type_code");
+            int customerTypeId = 0;
+            if (!string.IsNullOrWhiteSpace(customerTypeText))
+            {
+                var ct = FindCustomerType(conn, customerTypeText);
+                if (ct != null) customerTypeId = I(ct, "customer_type_id");
+            }
+            var now = DateTime.Now;
+            Execute(conn, "UPDATE tbl_dealers SET dealer_name = ?, company_name = ?, dealer_type = ?, customer_type_id = ?, customer_type_code = ?, city = ?, pin_code = ?, gst_number = ?, contact_person = ?, mobile_number = ?, whatsapp_number = ?, email = ?, payment_terms = ?, credit_limit_lakh = ?, marketing_owner = ?, quotation_owner = ?, address = ?, area = ?, remarks = ?, updated_by = ?, updated_at = " + SqlDateLiteral(now) + " WHERE dealer_id = ?",
+                dealerName,
+                Value(context, "company_name"),
+                Value(context, "dealer_type"),
+                customerTypeId > 0 ? (object)customerTypeId : DBNull.Value,
+                NullIfEmpty(customerTypeText),
+                Value(context, "city"),
+                Value(context, "pin_code"),
+                Value(context, "gst_number"),
+                Value(context, "contact_person"),
+                mobileNumber,
+                Value(context, "whatsapp_number"),
+                Value(context, "email"),
+                Value(context, "payment_terms"),
+                NullIfEmpty(Value(context, "credit_limit_lakh")),
+                NullIfEmpty(Value(context, "marketing_owner")),
+                NullIfEmpty(Value(context, "quotation_owner")),
+                Value(context, "address"),
+                Value(context, "area"),
+                Value(context, "remarks"),
+                I(user, "user_id"),
+                dealerId
+            );
+            Audit(conn, I(user, "user_id"), "Dealer", "Dealer", dealerId.ToString(), "Dealer Updated", "", dealerName, "", null);
+            WriteJson(context, Obj("ok", true));
         }
     }
 
@@ -1071,7 +1182,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         using (var conn = OpenConnection(context))
         {
             var user = RequireLogin(context, conn);
-            EnsureRole(user, "Admin", "Production Planner User");
+            EnsureRole(user, "Admin", "Production Planner User", "Marketing User");
             var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
             var order = FindOrderById(conn, orderId);
             if (order == null) throw new ApiFailure(404, "Order not found.");
@@ -2341,7 +2452,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             "assigned_station", B(order, "correction_queue") ? "" : (visibleStations.Count > 0 ? visibleStations.Last() : ""),
             "partial_pending", visibleStations.Any(v => stationStatuses.ContainsKey(v) && string.Equals(stationStatuses[v], "PARTIAL_COMPLETED", StringComparison.OrdinalIgnoreCase)),
             "planner_stage_key", stageKey,
-            "planner_stage_label", PlanningStageLabel(stageKey)
+            "planner_stage_label", PlanningStageLabel(stageKey),
+            "packing_balance_box_qty", D(order, "packing_balance_box_qty"),
+            "box_count", D(order, "packing_balance_box_qty")
         );
     }
 

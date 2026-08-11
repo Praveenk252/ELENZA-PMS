@@ -41,7 +41,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         { "Admin", new[] { "data-entry", "optimisation", "procurement", "planner", "production", "dispatch", "reports", "history", "email-log", "masters", "users", "settings" } },
         { "Data Entry", new[] { "data-entry", "history", "reports", "settings" } },
         { "Quotation User", new[] { "data-entry", "history", "reports", "settings" } },
-        { "Marketing User", new[] { "data-entry", "reports", "settings" } },
+        { "Marketing User", new[] { "data-entry", "reports", "settings", "dispatch" } },
         { "Optimisation User", new[] { "optimisation", "history", "settings" } },
         { "Procurement User", new[] { "procurement", "history", "settings" } },
         { "Production Planner User", new[] { "planner", "history", "reports", "settings" } },
@@ -947,7 +947,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         using (var conn = OpenConnection(context))
         {
             var user = RequireLogin(context, conn);
-            EnsureRole(user, "Admin", "Production Planner User");
+            EnsureRole(user, "Admin", "Production Planner User", "Marketing User");
             var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
             var order = FindOrderById(conn, orderId);
             if (order == null) throw new ApiFailure(404, "Order not found.");
@@ -2161,7 +2161,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             "assigned_station", B(order, "correction_queue") ? "" : (visibleStations.Count > 0 ? visibleStations.Last() : ""),
             "partial_pending", visibleStations.Any(v => stationStatuses.ContainsKey(v) && string.Equals(stationStatuses[v], "PARTIAL_COMPLETED", StringComparison.OrdinalIgnoreCase)),
             "planner_stage_key", stageKey,
-            "planner_stage_label", PlanningStageLabel(stageKey)
+            "planner_stage_label", PlanningStageLabel(stageKey),
+            "packing_balance_box_qty", D(order, "packing_balance_box_qty"),
+            "box_count", D(order, "packing_balance_box_qty")
         );
     }
 
