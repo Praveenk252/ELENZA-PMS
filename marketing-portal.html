@@ -191,7 +191,7 @@ tr:hover{background:#f8fafc}
 </div>
 
 <script>
-var S={ses:null,dealers:[],orders:[]};
+var S={ses:null,dealers:[],orders:[],requests:[]};
 var TABS=['dealers','production','packed','dispatched'];
 var TAB_STATUS={production:'In Production',packed:'Packed',dispatched:'Dispatched'};
 var TAB_SEARCH={production:'ipSearch',packed:'pkSearch',dispatched:'diSearch'};
@@ -224,7 +224,31 @@ function gs(o){
 }
 function bg(s){return{"In Production":'bl',Packed:'y',Dispatched:'g'}[s]||'gr'}
 function esc(h){return String(h).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function load(){api('app-state').then(function(d){S.ses=d.session||S.ses;document.getElementById('uInfo').textContent=S.ses.full_name+' | '+S.ses.role_name;var nm=S.ses.full_name.toLowerCase();S.dealers=(d.data_entry&&d.data_entry.dealers||[]).filter(function(x){return String(x.marketing_owner||'').toLowerCase()===nm});var all=[].concat(d.production.rows||[],d.planning.rows||[],d.dispatch.rows||[]);var seen={};S.orders=all.filter(function(o){var dn=String(o.dealer_name||'').toLowerCase();var m=S.dealers.some(function(dl){return String(dl.dealer_name||'').toLowerCase()===dn});if(m&&!seen[o.order_id]){seen[o.order_id]=1;return 1}return 0});var dispatchIds={};(d.dispatch.rows||[]).forEach(function(o){dispatchIds[o.order_id]=o});S.orders.forEach(function(o){if(dispatchIds[o.order_id]){var ds=String(dispatchIds[o.order_id].dispatch_status||'').toLowerCase();if(ds==='dispatched')o._dispatched=1;else o._packed=1}});S.orders.sort(function(a,b){return String(a.dealer_name||'').localeCompare(String(b.dealer_name||''))});var cts={},ots={};S.orders.forEach(function(o){var ct=o.customer_type||'';var ot=o.order_type||o.order_type_name||'';if(ct)cts[ct]=1;if(ot)ots[ot]=1});var ctSel=document.getElementById('ctFilter');ctSel.innerHTML='<option value="all">All Customer Types</option>';Object.keys(cts).sort().forEach(function(k){ctSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});var otSel=document.getElementById('otFilter');otSel.innerHTML='<option value="all">All Order Types</option>';Object.keys(ots).sort().forEach(function(k){otSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});rStats();rDealers();rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched')})}
+function load(){api('app-state').then(function(d){S.ses=d.session||S.ses;document.getElementById('uInfo').textContent=S.ses.full_name+' | '+S.ses.role_name;var nm=S.ses.full_name.toLowerCase();S.dealers=(d.data_entry&&d.data_entry.dealers||[]).filter(function(x){return String(x.marketing_owner||'').toLowerCase()===nm});var all=[].concat(d.production.rows||[],d.planning.rows||[],d.dispatch.rows||[]);var seen={};S.orders=all.filter(function(o){var dn=String(o.dealer_name||'').toLowerCase();var m=S.dealers.some(function(dl){return String(dl.dealer_name||'').toLowerCase()===dn});if(m&&!seen[o.order_id]){seen[o.order_id]=1;return 1}return 0});var dispatchIds={};(d.dispatch.rows||[]).forEach(function(o){dispatchIds[o.order_id]=o});S.orders.forEach(function(o){if(dispatchIds[o.order_id]){var ds=String(dispatchIds[o.order_id].dispatch_status||'').toLowerCase();if(ds==='dispatched')o._dispatched=1;else o._packed=1}});S.orders.sort(function(a,b){return String(a.dealer_name||'').localeCompare(String(b.dealer_name||''))});var cts={},ots={};S.orders.forEach(function(o){var ct=o.customer_type||'';var ot=o.order_type||o.order_type_name||'';if(ct)cts[ct]=1;if(ot)ots[ot]=1});var ctSel=document.getElementById('ctFilter');ctSel.innerHTML='<option value="all">All Customer Types</option>';Object.keys(cts).sort().forEach(function(k){ctSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});var otSel=document.getElementById('otFilter');otSel.innerHTML='<option value="all">All Order Types</option>';Object.keys(ots).sort().forEach(function(k){otSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});rStats();rDealers();rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched');loadRequests()})}
+
+
+function loadRequests(){
+  api('remarks-requests-list').then(function(r){
+    if(r.ok&&r.rows){
+      S.requests=r.rows;
+      buildRequestLookup();
+      rOrdersTab('production');
+    }
+  }).catch(function(){});
+}
+function buildRequestLookup(){
+  S.requestLookup={};
+  S.requests.forEach(function(req){
+    var ids=(req.order_ids||'').split(',');
+    ids.forEach(function(id){
+      var oid=parseInt(id.trim());
+      if(oid){
+        if(!S.requestLookup[oid])S.requestLookup[oid]=[];
+        S.requestLookup[oid].push(req);
+      }
+    });
+  });
+}
 function rStats(){var t=S.dealers.length,o=S.orders.length,ip=0,pa=0,di=0;S.orders.forEach(function(x){var s=gs(x);if(s==='In Production')ip++;else if(s==='Packed')pa++;else di++});document.getElementById('stats').innerHTML='<div class="sc"><div class="n">'+t+'</div><div class="l">My Dealers</div></div><div class="sc"><div class="n">'+o+'</div><div class="l">Total Orders</div></div><div class="sc"><div class="n">'+ip+'</div><div class="l">In Production</div></div><div class="sc"><div class="n">'+pa+'</div><div class="l">Packed</div></div><div class="sc"><div class="n">'+di+'</div><div class="l">Dispatched</div></div>'}
 function rDealers(){var q=(document.getElementById('dSearch').value||'').toLowerCase();var h='';S.dealers.forEach(function(d){var n=String(d.dealer_name||''),c=String(d.dealer_code||''),ci=String(d.city||''),co=String(d.contact_person||''),mo=String(d.mobile_number||'');if(q&&n.toLowerCase().indexOf(q)<0&&c.toLowerCase().indexOf(q)<0&&ci.toLowerCase().indexOf(q)<0)return;var cnt=S.orders.filter(function(o){return String(o.dealer_name||'').toLowerCase()===n.toLowerCase()}).length;h+='<tr><td>'+esc(c)+'</td><td>'+esc(n)+'</td><td>'+esc(ci)+'</td><td>'+esc(co)+'</td><td>'+esc(mo)+'</td><td>'+cnt+'</td></tr>'});document.getElementById('dTb').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#94a3b8">No dealers found</td></tr>'}
 function applyFilters(){rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched')}
@@ -243,7 +267,15 @@ function rOrdersTab(tab){
     var on=String(o.order_number||''),dn=String(o.dealer_name||''),cn=String(o.customer_name||''),ty=String(o.order_type||o.order_type_name||''),ua=o.updated_at||'',cd=o.confirmation_date||'',edd=o.edd||o.sla_date||'',oid=o.order_id||'';
     if(q&&on.toLowerCase().indexOf(q)<0&&dn.toLowerCase().indexOf(q)<0&&cn.toLowerCase().indexOf(q)<0)return;
     if(tab==='production'){
-      h+='<tr><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td><button class="btn-sm btn-edd" onclick="openEddModal('+oid+',\''+esc(on)+'\')">EDD</button> <button class="btn-sm btn-pri" onclick="openPriModal('+oid+',\''+esc(on)+'\')">Priority</button></td></tr>';
+      var reqBadge='';
+      if(S.requestLookup&&S.requestLookup[oid]){
+        var reqs=S.requestLookup[oid];
+        var hasPending=reqs.some(function(r){return r.status==='pending'});
+        var hasReplied=reqs.some(function(r){return r.status==='replied'});
+        if(hasPending)reqBadge=' <span style="color:#ca8a04;font-size:10px" title="Pending reply">⏳</span>';
+        else if(hasReplied)reqBadge=' <span style="color:#16a34a;font-size:10px" title="Replied">✓</span>';
+      }
+      h+='<tr><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+reqBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td><button class="btn-sm btn-edd" onclick="openEddModal('+oid+',\''+esc(on)+'\')">EDD</button> <button class="btn-sm btn-pri" onclick="openPriModal('+oid+',\''+esc(on)+'\')">Priority</button></td></tr>';
     } else if(tab==='packed'){
       var bq=String(o.box_count||'');
       var bb=String(o.packing_balance_box_qty||'');
@@ -303,7 +335,17 @@ function genWhatsApp(tab,type){
   document.querySelectorAll('.wa-menu').forEach(function(m){m.className='wa-menu'});
   var rows=getCheckedOrderRows(tab);
   var orderTable=buildOrderTable(rows,tab);
-  if(type==='status'){
+  if(type==='status' && tab==='production'){
+    var idStr=ids.join(',');
+    apiPost('remarks-request-create','order_ids='+encodeURIComponent(idStr)).then(function(r){
+      if(!r.ok){toast(r.message||'Failed to create request','err');return}
+      var url=window.location.origin+'/remarks-reply.html?token='+r.token;
+      var msg='Please update status for these orders:\n\n'+orderTable+'\n\nRemarks here: '+url;
+      shareMsg(msg,tab);
+      toast('Request created','ok');
+    }).catch(function(){toast('Connection error','err')});
+    return;
+  } else if(type==='status'){
     var msg='What is the status of these orders?\n\n'+orderTable;
     shareMsg(msg,tab);
   } else if(type==='dispatch'){

@@ -296,6 +296,18 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "marketing-dealer-update":
                     HandleMarketingDealerUpdate(context);
                     break;
+                case "remarks-request-create":
+                    HandleRemarksRequestCreate(context);
+                    break;
+                case "remarks-request-info":
+                    HandleRemarksRequestInfo(context);
+                    break;
+                case "remarks-reply-save":
+                    HandleRemarksReplySave(context);
+                    break;
+                case "remarks-requests-list":
+                    HandleRemarksRequestsList(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -3801,6 +3813,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "CREATE TABLE tbl_sequence_profile_stations (profile_station_id COUNTER PRIMARY KEY, profile_id LONG NOT NULL, station_id LONG NOT NULL, sequence_no LONG NOT NULL)");
         TryExecute(conn, "CREATE TABLE tbl_mail_reports (mail_report_id COUNTER PRIMARY KEY, report_kind TEXT(60) NOT NULL, report_date DATETIME NOT NULL, recipient_list MEMO, subject_line TEXT(255), send_status TEXT(30), error_text MEMO, sent_at DATETIME, created_at DATETIME)");
         EnsureDispatchBoxSchema(conn);
+        EnsureRemarksSchema(conn);
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN customer_type_id LONG");
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN customer_type_code TEXT(50)");
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN pin_code TEXT(20)");
@@ -3828,6 +3841,14 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     {
         TryExecute(conn, "CREATE TABLE tbl_dispatch_boxes (dispatch_box_id COUNTER PRIMARY KEY, order_id LONG NOT NULL, box_no LONG NOT NULL, box_state TEXT(40) NOT NULL, updated_by LONG, updated_at DATETIME, created_at DATETIME)");
         TryExecute(conn, "CREATE INDEX ix_tbl_dispatch_boxes_order ON tbl_dispatch_boxes (order_id)");
+    }
+
+    private void EnsureRemarksSchema(OleDbConnection conn)
+    {
+        TryExecute(conn, "CREATE TABLE tbl_remarks_requests (request_id COUNTER PRIMARY KEY, token TEXT(32) NOT NULL, order_ids MEMO NOT NULL, requested_by LONG NOT NULL, requested_at DATETIME NOT NULL, status TEXT(20) NOT NULL, replied_by LONG, replied_at DATETIME, created_at DATETIME)");
+        TryExecute(conn, "CREATE UNIQUE INDEX ux_tbl_remarks_requests_token ON tbl_remarks_requests (token)");
+        TryExecute(conn, "CREATE TABLE tbl_remarks_replies (reply_id COUNTER PRIMARY KEY, request_id LONG NOT NULL, order_id LONG NOT NULL, remarks MEMO, replied_by LONG NOT NULL, replied_at DATETIME NOT NULL)");
+        TryExecute(conn, "CREATE INDEX ix_tbl_replies_request ON tbl_remarks_replies (request_id)");
     }
 
     private void EnsureCoreRoles(OleDbConnection conn)
@@ -5105,6 +5126,112 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         public string TimeZoneId;
         public int DailyHour;
         public int DailyMinute;
+    }
+
+    private void HandleRemarksRequestCreate(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var orderIds = Value(context, "order_ids");
+            if (string.IsNullOrWhiteSpace(orderIds)) throw new ApiFailure(400, "Order IDs required.");
+            var token = Guid.NewGuid().ToString("N").Substring(0, 16);
+            var now = DateTime.Now;
+            Execute(conn, "INSERT INTO tbl_remarks_requests (token, order_ids, requested_by, requested_at, status, created_at) VALUES (?, ?, ?, " + SqlDateLiteral(now) + ", 'pending', " + SqlDateLiteral(now) + ")",
+                token, orderIds, I(user, "user_id"));
+            var reqId = Convert.ToInt32(Scalar(conn, "SELECT @@IDENTITY"));
+            WriteJson(context, Obj("ok", true, "token", token, "request_id", reqId));
+        }
+    }
+
+    private void HandleRemarksRequestInfo(HttpContext context)
+    {
+        var token = Value(context, "token");
+        if (string.IsNullOrWhiteSpace(token)) throw new ApiFailure(400, "Token required.");
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var row = QueryOne(conn, "SELECT * FROM tbl_remarks_requests WHERE token = ?", token);
+            if (row == null) throw new ApiFailure(404, "Request not found.");
+            var orderIdsStr = S(row, "order_ids");
+            var ids = orderIdsStr.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => { int id; return int.TryParse(s.Trim(), out id) ? id : 0; }).Where(id => id > 0).ToList();
+            var orders = new List<object>();
+            foreach (var oid in ids)
+            {
+                var order = QueryOne(conn, "SELECT o.order_id, o.order_number, o.customer_name, o.confirmation_date, d.dealer_name FROM tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id WHERE o.order_id = ?", oid);
+                if (order != null)
+                {
+                    var existingReply = QueryOne(conn, "SELECT remarks FROM tbl_remarks_replies WHERE request_id = ? AND order_id = ?", I(row, "request_id"), oid);
+                    orders.Add(Obj("order_id", oid, "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "confirmation_date", S(order, "confirmation_date"), "existing_remarks", existingReply != null ? S(existingReply, "remarks") : ""));
+                }
+            }
+            WriteJson(context, Obj("ok", true, "request_id", I(row, "request_id"), "status", S(row, "status"), "requested_at", S(row, "requested_at"), "orders", orders));
+        }
+    }
+
+    private void HandleRemarksReplySave(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var requestId = IntRequired(Value(context, "request_id"), "Request ID required.");
+            var bulkRemarks = Value(context, "remarks");
+            var orderRemarksRaw = Value(context, "order_remarks");
+            var request = QueryOne(conn, "SELECT * FROM tbl_remarks_requests WHERE request_id = ?", requestId);
+            if (request == null) throw new ApiFailure(404, "Request not found.");
+            var orderIdsStr = S(request, "order_ids");
+            var ids = orderIdsStr.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => { int id; return int.TryParse(s.Trim(), out id) ? id : 0; }).Where(id => id > 0).ToList();
+            var now = DateTime.Now;
+            Dictionary<int, string> perOrderRemarks = null;
+            if (!string.IsNullOrWhiteSpace(orderRemarksRaw))
+            {
+                perOrderRemarks = new Dictionary<int, string>();
+                var pairs = orderRemarksRaw.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var pair in pairs)
+                {
+                    var parts = pair.Split(new[] { ':' }, 2);
+                    if (parts.Length == 2)
+                    {
+                        int oid;
+                        if (int.TryParse(parts[0].Trim(), out oid))
+                            perOrderRemarks[oid] = parts[1].Trim();
+                    }
+                }
+            }
+            foreach (var oid in ids)
+            {
+                var remarks = bulkRemarks;
+                if (perOrderRemarks != null && perOrderRemarks.ContainsKey(oid) && !string.IsNullOrWhiteSpace(perOrderRemarks[oid]))
+                    remarks = perOrderRemarks[oid];
+                if (string.IsNullOrWhiteSpace(remarks)) continue;
+                Execute(conn, "DELETE FROM tbl_remarks_replies WHERE request_id = ? AND order_id = ?", requestId, oid);
+                Execute(conn, "INSERT INTO tbl_remarks_replies (request_id, order_id, remarks, replied_by, replied_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(now) + ")",
+                    requestId, oid, remarks, I(user, "user_id"));
+            }
+            Execute(conn, "UPDATE tbl_remarks_requests SET status = 'replied', replied_by = ?, replied_at = " + SqlDateLiteral(now) + " WHERE request_id = ?",
+                I(user, "user_id"), requestId);
+            WriteJson(context, Obj("ok", true));
+        }
+    }
+
+    private void HandleRemarksRequestsList(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var rows = QueryAll(conn, "SELECT * FROM tbl_remarks_requests ORDER BY created_at DESC");
+            var result = new List<object>();
+            foreach (var r in rows)
+            {
+                var reqBy = I(r, "requested_by");
+                var reqUser = reqBy != null ? QueryOne(conn, "SELECT full_name FROM tbl_users WHERE user_id = ?", reqBy) : null;
+                result.Add(Obj("request_id", I(r, "request_id"), "token", S(r, "token"), "order_ids", S(r, "order_ids"), "requester_name", reqUser != null ? S(reqUser, "full_name") : "", "requested_at", S(r, "requested_at"), "status", S(r, "status"), "replied_at", S(r, "replied_at")));
+            }
+            WriteJson(context, Obj("rows", result));
+        }
     }
 }
 

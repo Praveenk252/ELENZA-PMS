@@ -1,5 +1,61 @@
 # Elenza PMS Working Context
 
+## 2026-08-11
+
+### Marketing Portal — 4-Tab Layout
+
+- Rebuilt `marketing-portal.html` with 4 tabs: My Dealers, In Production, Packed, Dispatched.
+- In Production: sorted by dealer, sub-orders excluded, columns (Checkbox, Order #, Confirmation, Order Type, Dealer, Customer, Status, EDD, Actions).
+- Packed: added Box Qty and Balance Box columns from `packing_balance_box_qty`.
+- Dispatched: shows dispatch rows for Marketing User.
+- `planner-save` endpoint allows Marketing User role for priority setting.
+- Marketing User role sections updated to include `"dispatch"` in `PmsApiHandler.cs` and `live-api.ashx`.
+
+### WhatsApp Messaging
+
+- Each tab has WhatsApp dropdown: Status Ask, Need Urgent, Custom Message.
+- Packed tab has different options: Ready for Dispatch, Box Balance, Custom Message.
+- All tabs have "Just copy to clipboard" checkbox (desktop only, unticked by default).
+- `navigator.share()` with clipboard fallback. Added `fallbackCopy()` using `document.execCommand('copy')` for non-HTTPS environments.
+- Date format: `fmtDate()` outputs DD-Mon-YY (e.g., 11-Aug-26). Handles any input format.
+- `submitUrgentWa()` includes selected date in message.
+
+### EDD Change Request
+
+- EDD change request modal copies text to clipboard for WhatsApp sharing.
+
+### Priority Setting
+
+- Priority modal (High/Medium/Low + comments) saves via `planner-save` API.
+
+### Login Fix
+
+- Removed `encodeURIComponent(a)` from `api()` function that was breaking login.
+
+### Stats Area
+
+- Compacted for mobile (5-column grid, smaller fonts).
+
+### Backup
+
+- Full FTP site backup: `backup/site-ftp-20260811/` (all files from `[removed]/site1/`).
+- FTP host: `[removed]`, user: `[removed]`, password: `[removed]`.
+- Old FTP host `win1006.site4now.net` returns 530 Not logged in.
+
+### Git
+
+- Committed and pushed to GitHub: `https://github.com/Praveenk252/ELENZA-PMS.git`
+
+### Production Remarks Request (Planned)
+
+- Marketing selects in-production orders → clicks Status Ask → creates request record with token → URL included in WhatsApp message.
+- Planner opens URL (`remarks-reply.html?token=...`), logs in, enters remarks per order or bulk.
+- Saves to `tbl_remarks_requests` and `tbl_remarks_replies` tables.
+- Tracks replied/unreplied status. Summary email to management (later phase).
+- Not yet implemented — plan finalized.
+
+---
+
 ## 2026-08-07
 
 ### Machine QR Scanner
@@ -77,6 +133,8 @@
 - Saved approximately 87 MB.
 - Retained: `site1-live-backup-20260805` (14.07 MB) and `project-backup-20260805-151617` (1.31 MB).
 
+---
+
 ## 2026-07-23
 
 ### Project Blueprint Documentation
@@ -87,6 +145,8 @@
 - The master requirement specification remains the functional authority.
 - No application code, API, Access database, or production deployment was changed.
 - Deployment credentials and other secrets were deliberately excluded from `docs/`.
+
+---
 
 ## 2026-07-22
 
@@ -130,6 +190,8 @@
 - Verified live: history HTTP 200 with 120 rows; `Vishal-PD bathroom 1` appears with 1 packed box, 0 balance, station `Packed`, and action `Completed`.
 - The Access database was not changed.
 
+---
+
 ## Working Rules
 
 - Update this file during the first project chat of each day.
@@ -138,112 +200,37 @@
 - Back up a live file before changing it.
 - Do not modify the API or database unless explicitly approved.
 
-## 2026-07-16
+## Hosting & Deployment
 
-### Completed
-
-- Read and understood the master requirement specification.
-- Backed up the live `PMS/planner-portal.html` page before editing.
-- Added an `Export Consolidated` button to the Consolidated Planner List.
-- Export uses the currently filtered planner rows and produces an Excel-compatible CSV.
-- Uploaded only `PMS/planner-portal.html` and verified it through FTP read-back and the public URL.
-- API and database were not modified.
-
-### Backup
-
-- `backups/planner-export-20260716-133756/planner-portal.html`
-- Original SHA-256: `56FDE39721C791500D061E864241658B02BC445D218D0B28A15E38D38D7C27C7`
-
-### Pending Approval
-
-- Requested change: hide orders whose planner current stage is `Packed`.
-- A read-only check of a downloaded live database copy found 24 affected orders.
-- No change has been made for this request; wait for explicit approval before editing or uploading.
-
-## Hosting Migration Details
-
-- Destination host: `ftp.serverbyt.in`
-- Protocol: explicit FTPS / TLS
-- Destination folder: `/erp`
-- Username: `elenzaerp@erp.elenzaerp.cloud`
-- Password: `Elenzaerp@123#$`
-- Migration rule: upload application files and database only; do not upload Markdown (`.md`) files.
-
-## 2026-07-16 Migration Status
-
-### New Hosting
-
-- Public site: `http://erpelenza.runasp.net/`
-- Hosting: MonsterASP, ASP.NET Framework 4.8, Integrated mode, 32-bit.
-- Full application migration completed to `wwwroot`.
-- Uploaded 228 non-Markdown files, including the Access database, API handler, assets, configuration, and planner updates.
-- Markdown files were deliberately excluded from the host.
-- The login page was redesigned with the premium Elenza green/lime visual direction and uploaded as `index.html` plus `styles.css`.
-
-### Verified Working
-
-- Public landing/login page loads.
-- `api.ashx?action=session` returns valid JSON.
-- Login with `planner.user` and password `1` succeeds.
-- Session remains authenticated after login.
-
-### Active Blocker
-
-- `api.ashx?action=app-state` resets the connection on MonsterASP after login.
-- Exact transport error: `curl: (56) Recv failure: Connection was reset` with HTTP `000`.
-- This prevents the dashboard from rendering after login.
-- The issue affects planner, data-entry, optimisation, and management users.
-- AppPool restart did not resolve it.
-- Pending MonsterASP support/forum guidance on application logs, ACE OLEDB/Access compatibility, and application data folder permissions.
-
-## 2026-07-16 Current Production State (MyASP)
-
-- Active FTP/site: `win1006.site4now.net`, application root `/PMS`.
-- Public URL: `http://elenzapms-001-site1.jtempurl.com/`.
-- Rule: use this MyASP host only unless the user explicitly changes the instruction.
-- Do not upload Markdown files. Back up before every live upload or deletion.
-
-### Lean Deployment
-
-- Legacy duplicate apps, LSP, timer, Cabinet databases, Python files, logs, and Markdown files were removed from `/PMS`.
-- Required production set retained: `index.html`, `styles.css`, `script.js`, `api.ashx`, `api.aspx`, `web.config`, `planner-portal.html`, `packing-portal.html`, `favicon.ico`, health checks, `assets/`, `App_Data/`, and `App_Code/PmsApiHandler.cs`.
-- Important correction: `App_Code/PmsApiHandler.cs` is required by `api.aspx`; it was restored after cleanup. Do not remove it.
-- Active data is `App_Data/elenza_pms.accdb` (10,006,528 bytes, SHA-256 `5421EAF9B606E9DD8A992ADD602CAF00B2319049B927D1227EFA5BD9D60EE41A`).
-
-### Latest Verification
-
-- Homepage and API session endpoints return HTTP 200.
-- Planner login works (`planner.user` / `1` used only for read-only verification).
-- Authenticated app-state read works: planner rows 485, customer types 6, machines 8, sequence profiles 64.
-
-### Latest Visual Updates
-
-- `index.html` and `styles.css`: premium blue/navy login visual refresh, uploaded and live.
-- `planner-portal.html` and `packing-portal.html`: matching blue workspace treatment, uploaded and live (HTTP 200).
-
-### Recent Backups (local only)
-
-- `C:\Users\Praveen\Documents\Codex\2026-07-16\c-users-praveen-documents-codex-2026\work\original-myasp-preupload-backup-20260716-202752`
-- `C:\Users\Praveen\Documents\Codex\2026-07-16\c-users-praveen-documents-codex-2026\work\original-myasp-preupload-backup-20260716-203023`
-
-## 2026-07-18 Active Site 1 State
-
-- Active deployment target: `[removed]`, user `[removed]`, website root `/site1`.
+- Active FTP/site: `[removed]`, user `[removed]`, website root `/site1`.
 - Public URL: `http://[removed]-site1.ktempurl.com/`.
-- Previous MyASP host is paused; do not deploy there unless explicitly instructed.
-- Complete lean PMS site is deployed to Site 1, including `App_Code/PmsApiHandler.cs` (required by `api.aspx`).
-- Old-live database was copied to Site 1 and verified by SHA-256: `7FEBDFCAC0DFEE4D325D153A98CD8CA11780BDADD1ED3A5388194C5927486763`.
+- Old FTP host `win1006.site4now.net` returns 530 Not logged in — do not use.
+- Database: `App_Data/elenza_pms.accdb` on Site 1.
+- API handler: `App_Code/PmsApiHandler.cs` (required by `api.aspx`).
+- Git: `https://github.com/Praveenk252/ELENZA-PMS.git`
+- Backup skill: `.agents/skills/backup/SKILL.md` — run `backup the site` to download full FTP.
 
-### Current API Behaviour
+## Key Files
 
-- Planner station mapping was corrected: selecting `Packed` sets `DISPATCH_READY` / `PENDING_DISPATCH`; selecting `Dispatched` sets `DISPATCHED` / `DISPATCHED`.
-- This stage-mapping change remains live.
-- History loading investigation found two deferred fixes: missing deep-state parameters and an invalid history field (`old_status_code` instead of `previous_status_code`).
-- The history fixes were deliberately rolled back at the user's request. Do not reapply until the user asks.
+| File | Purpose |
+|---|---|
+| `marketing-portal.html` | Marketing 4-tab portal (My Dealers, In Production, Packed, Dispatched) |
+| `planner-portal.html` | Planner portal (rewritten to production-planner.html) |
+| `packing-portal.html` | Packing portal |
+| `qr-scanner.html` | Machine QR scanner |
+| `qr-printer.html` | QR label printer |
+| `priority-desk.html` | Priority desk |
+| `PmsApiHandler.cs` | API handler (also uploaded as `App_Code/PmsApiHandler.cs`) |
+| `live-api.ashx` | Local API handler source |
+| `elenza_pms.accdb` | Access database |
 
-### Retained Local Backups
+## Database Key Tables
 
-- Full migration snapshot: `work\migration-backup`.
-- Current Site 1 database source: `work\old-live-db-backup-20260717-105200\elenza_pms.accdb`.
-- Current API rollback point: `work\site1-before-history-fix-rollback-20260718-154407\PmsApiHandler.cs`.
-- Redundant/partial backups were intentionally removed on 2026-07-18.
+- `tbl_orders` — orders with workflow_stage_code, dispatch_status_code, packing_balance_box_qty, dispatch_balance_box_qty
+- `tbl_production_planner` — planner priority, EDD (sla_date), priority, priority_date, planner_remarks
+- `tbl_order_station_queue` — station queue with status, remarks
+- `tbl_dealers` — dealer info with marketing_owner
+- `tbl_users` — users with role_id
+- `tbl_dispatch_boxes` — box tracking per order
+- `tbl_remarks_requests` — (planned) WhatsApp remarks requests
+- `tbl_remarks_replies` — (planned) Planner remarks replies
