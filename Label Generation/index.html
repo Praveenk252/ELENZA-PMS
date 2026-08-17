@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Label Generator — v1.2.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--blue:#046BD2;--blue-hover:#045CB4;--navy:#1E293B;--slate:#334155;--gray:#64748B;--border:#D1D5DB;--bg:#F0F5FA;--white:#FFFFFF;--red:#DC2626;--green:#16A34A;--orange:#D97706;--purple:#7C3AED;--radius:8px;--shadow:0 2px 8px rgba(0,0,0,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--slate);min-height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+.topbar{background:var(--navy);color:white;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0;position:relative;z-index:10;}
+.topbar h1{font-size:17px;font-weight:700;letter-spacing:-0.3px;}
+.topbar .sub{font-size:11px;color:#94A3B8;margin-left:10px;font-weight:400;}
+.topbar-right{display:flex;gap:6px;align-items:center;}
+.topbar button{background:rgba(255,255,255,0.12);color:white;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:background .15s;}
+.topbar button:hover{background:rgba(255,255,255,0.22);}
+.topbar button.btn-accent{background:var(--blue);margin-left:4px;}
+.topbar button.btn-accent:hover{background:var(--blue-hover);}
+.topbar button.btn-green{background:var(--green);}
+.topbar button.btn-green:hover{background:#15803D;}
+
+.app{display:flex;flex:1;overflow:hidden;min-height:0;}
+
+/* LEFT PANEL — Fields */
+.panel-left{width:240px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.panel-left .ph{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.panel-left .ph h3{font-size:13px;color:var(--navy);font-weight:700;}
+.panel-left .ph .cnt{font-size:11px;color:var(--gray);background:var(--bg);padding:2px 8px;border-radius:10px;}
+.panel-left .pb{flex:1;overflow-y:auto;padding:10px 12px;}
+.btn-add-field{width:100%;padding:8px;background:var(--blue);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:10px;}
+.btn-add-field:hover{background:var(--blue-hover);}
+.btn-add-field:disabled{opacity:.4;cursor:not-allowed;}
+
+.field-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;}
+.field-item:hover{border-color:var(--blue);background:#EFF6FF;}
+.field-item.active{border-color:var(--blue);background:#DBEAFE;box-shadow:0 0 0 2px rgba(4,107,210,0.15);}
+.field-item .fi-icon{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.field-item .fi-icon.text{background:#DBEAFE;color:var(--blue);}
+.field-item .fi-icon.qr{background:#D1FAE5;color:#065F46;}
+.field-item .fi-icon.static{background:#FEF3C7;color:#92400E;}
+.field-item .fi-info{flex:1;min-width:0;}
+.field-item .fi-name{font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.field-item .fi-type{font-size:10px;color:var(--gray);}
+.field-item .fi-del{background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;}
+.field-item .fi-del:hover{color:var(--red);}
+
+/* CENTER — Canvas */
+.panel-center{flex:1;display:flex;flex-direction:column;min-width:0;}
+.canvas-toolbar{background:var(--white);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;overflow:hidden;}
+.canvas-toolbar label{font-size:11px;color:var(--gray);font-weight:600;}
+.canvas-toolbar input[type="number"]{width:56px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center;}
+.canvas-toolbar input[type="number"]:focus{outline:2px solid var(--blue);border-color:transparent;}
+.canvas-toolbar .sep{width:1px;height:20px;background:var(--border);}
+.canvas-toolbar select{padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;}
+
+.canvas-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:30px;background:repeating-conic-gradient(#E2E8F0 0% 25%, transparent 0% 50%) 50% / 20px 20px;}
+.canvas-wrapper{position:relative;box-shadow:0 4px 24px rgba(0,0,0,0.12);background:white;flex-shrink:0;transform-origin:center center;transition:transform .15s ease;}
+#label-canvas{position:relative;overflow:hidden;background:white;cursor:default;}
+.canvas-toolbar .zoom-group{display:flex;align-items:center;gap:4px;}
+.zoom-btn{width:26px;height:26px;border:1px solid var(--border);border-radius:4px;background:var(--white);color:var(--slate);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.zoom-btn:hover{background:var(--bg);border-color:var(--blue);color:var(--blue);}
+#zoom-level{font-size:11px;color:var(--navy);font-weight:700;min-width:36px;text-align:center;}
+
+.canvas-element{position:absolute;border:2px solid transparent;cursor:move;user-select:none;display:flex;align-items:center;justify-content:center;transition:border-color .1s;}
+.canvas-element:hover{border-color:rgba(4,107,210,0.4);}
+.canvas-element.selected{border-color:var(--blue);box-shadow:0 0 0 3px rgba(4,107,210,0.15);}
+.canvas-element .el-label{font-size:9px;color:var(--gray);position:absolute;top:-14px;left:0;white-space:nowrap;pointer-events:none;}
+.canvas-element .el-text{width:100%;height:100%;display:flex;align-items:center;overflow:hidden;word-break:break-word;}
+.canvas-element .el-text.align-left{justify-content:flex-start;text-align:left;}
+.canvas-element .el-text.align-center{justify-content:center;text-align:center;}
+.canvas-element .el-text.align-right{justify-content:flex-end;text-align:right;}
+.canvas-element .resize-handle{position:absolute;width:10px;height:10px;background:var(--blue);border:2px solid white;border-radius:2px;bottom:-5px;right:-5px;cursor:nwse-resize;display:none;}
+.canvas-element.selected .resize-handle{display:block;}
+
+/* RIGHT PANEL — Properties + Data */
+.panel-right{width:340px;min-width:260px;max-width:50vw;background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;min-height:0;overflow:hidden;position:relative;}
+.panel-right .panel-resize{position:absolute;left:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;background:transparent;transition:background .15s;}
+.panel-right .panel-resize:hover,.panel-right .panel-resize.dragging{background:var(--blue);}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--navy);background:var(--bg);}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--white);}
+.tab-content{display:none;flex:1;min-height:0;overflow:hidden;}
+.tab-content.active{display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+
+/* Properties Tab */
+.props-body{padding:12px 14px;flex:1 1 0;height:0;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.prop-group{margin-bottom:14px;}
+.prop-group-title{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+.prop-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.prop-row label{font-size:11px;color:var(--slate);}
+.prop-row input[type="text"],.prop-row input[type="number"],.prop-row select{width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;}
+.prop-row input:focus,.prop-row select:focus{outline:2px solid var(--blue);border-color:transparent;}
+.prop-row-full{margin-bottom:8px;}
+.prop-row-full label{display:block;font-size:11px;color:var(--slate);margin-bottom:3px;}
+.prop-row-full input,.prop-row-full select{width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;}
+.prop-row-full input:focus,.prop-row-full select:focus{outline:2px solid var(--blue);border-color:transparent;}
+.prop-actions{display:flex;gap:6px;margin-top:10px;}
+.prop-btn{padding:6px 12px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;}
+.prop-btn.duplicate{background:#DBEAFE;color:var(--blue);}
+.prop-btn.duplicate:hover{background:#BFDBFE;}
+.prop-btn.delete{background:#FEE2E2;color:var(--red);}
+.prop-btn.delete:hover{background:#FECACA;}
+.no-selection{display:flex;align-items:center;justify-content:center;flex:1;color:var(--gray);font-size:12px;text-align:center;padding:20px;}
+
+/* Data Tab */
+.data-body{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.data-toolbar{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;}
+.data-toolbar button{padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;background:var(--white);color:var(--slate);white-space:nowrap;}
+.data-toolbar button:hover{background:var(--bg);}
+.data-toolbar button.primary{background:var(--blue);color:white;border-color:var(--blue);}
+.data-toolbar button.primary:hover{background:var(--blue-hover);}
+.data-toolbar button.green{background:var(--green);color:white;border-color:var(--green);}
+.data-toolbar button.green:hover{background:#15803D;}
+.data-toolbar .sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
+.data-count{padding:3px 10px;font-size:10px;color:var(--gray);border-bottom:1px solid var(--border);flex-shrink:0;}
+.data-table-wrap{flex:1;overflow:auto;}
+.data-table{border-collapse:collapse;font-size:11px;table-layout:auto;width:max-content;min-width:100%;}
+.data-table th{background:var(--bg);padding:0;text-align:left;font-weight:700;color:var(--navy);border:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap;}
+.data-table th .th-inner{padding:5px 6px;display:flex;align-items:center;gap:4px;}
+.data-table th .col-rename{border:none;background:transparent;font-size:11px;font-weight:700;color:var(--navy);padding:0;width:100%;min-width:60px;cursor:text;}
+.data-table th .col-rename:focus{outline:2px solid var(--blue);background:white;border-radius:2px;}
+.data-table th .col-del{background:none;border:none;color:var(--gray);cursor:pointer;font-size:12px;padding:0;line-height:1;}
+.data-table th .col-del:hover{color:var(--red);}
+.data-table th.col-resize{position:relative;}
+.data-table th.col-resize::after{content:'';position:absolute;right:-2px;top:0;bottom:0;width:5px;cursor:col-resize;z-index:3;}
+.data-table th.col-resize:hover::after{background:var(--blue);opacity:0.4;}
+.data-table td{padding:0;border:1px solid var(--border);height:26px;}
+.data-table td.cell{cursor:text;overflow:hidden;}
+.data-table td.cell:hover{background:#F0F7FF;}
+.data-table td.cell.active{outline:2px solid var(--blue);outline-offset:-1px;background:white;}
+.data-table td.cell .cell-editor{width:100%;height:100%;border:none;outline:none;padding:4px 6px;font-size:11px;font-family:inherit;background:transparent;display:block;min-width:60px;}
+.data-table td.row-num{color:var(--gray);font-size:10px;width:32px;text-align:center;background:var(--bg);cursor:default;padding:4px;}
+.data-table td.row-num.selected{background:#DBEAFE;}
+.data-table td.chk-cell{width:28px;text-align:center;padding:4px;}
+.data-table td.chk-cell input{accent-color:var(--blue);}
+.data-table .add-col-cell{width:32px;text-align:center;padding:4px;}
+.data-table .add-col-btn{width:22px;height:22px;border:1px dashed var(--border);border-radius:4px;background:white;color:var(--gray);cursor:pointer;font-size:14px;line-height:1;}
+.data-table .add-col-btn:hover{border-color:var(--blue);color:var(--blue);background:#EFF6FF;}
+.data-table .paste-zone{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;}
+.empty-data{text-align:center;padding:40px 20px;color:var(--gray);font-size:12px;}
+
+/* Import Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.active{display:flex;}
+.modal{background:white;border-radius:12px;width:90%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-head h2{font-size:15px;color:var(--navy);}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray);padding:0 4px;}
+.modal-body{padding:20px;overflow-y:auto;flex:1;}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.modal-btn{padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+.modal-btn.cancel{background:var(--bg);color:var(--slate);border:1px solid var(--border);}
+.modal-btn.cancel:hover{background:#E2E8F0;}
+.modal-btn.proceed{background:var(--blue);color:white;}
+.modal-btn.proceed:hover{background:var(--blue-hover);}
+
+.import-drop{border:2px dashed var(--border);border-radius:8px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;}
+.import-drop:hover,.import-drop.dragover{border-color:var(--blue);background:#EFF6FF;}
+.import-drop p{font-size:13px;color:var(--slate);margin-bottom:4px;}
+.import-drop span{font-size:11px;color:var(--gray);}
+.import-drop input{display:none;}
+.import-preview{max-height:200px;overflow:auto;border:1px solid var(--border);border-radius:6px;}
+.import-preview table{width:100%;border-collapse:collapse;font-size:11px;}
+.import-preview th{background:var(--bg);padding:5px 8px;text-align:left;font-weight:600;position:sticky;top:0;}
+.import-preview td{padding:4px 8px;border-bottom:1px solid #F1F5F9;}
+.import-match{margin-top:12px;}
+.import-match h4{font-size:12px;color:var(--navy);margin-bottom:6px;}
+.match-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px;}
+.match-row .excel-col{background:#DBEAFE;padding:2px 8px;border-radius:4px;font-weight:600;color:var(--blue);}
+.match-row .arrow{color:var(--gray);}
+.match-row .field-col{background:#D1FAE5;padding:2px 8px;border-radius:4px;font-weight:600;color:#065F46;}
+.match-row.unmatched .field-col{background:#FEE2E2;color:var(--red);}
+
+/* Print Area */
+#print-area{position:absolute;left:-9999px;top:0;visibility:hidden;width:0;height:0;overflow:hidden;}
+@media print{
+  body>*:not(#print-area){display:none!important;}
+  #print-area{position:static!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;visibility:visible!important;overflow:visible!important;}
+  #print-area *{visibility:visible!important;}
+}
+.print-roll-page{width:var(--pw);height:var(--ph);position:relative;overflow:hidden;page-break-after:always;page-break-inside:avoid;}
+.print-roll-page:last-child{page-break-after:auto;}
+.print-sheet-wrap{display:grid;grid-template-columns:repeat(var(--cols),var(--pw));gap:var(--gap,2mm);justify-content:center;align-content:start;padding:var(--paper-margin,10mm);}
+.print-sheet-label{width:var(--pw);height:var(--ph);position:relative;overflow:hidden;border:0.5px solid #D1D5DB;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;}
+.print-el{position:absolute;display:flex;align-items:center;overflow:hidden;box-sizing:border-box;}
+.print-el img{display:block;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#94A3B8;}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:white;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;z-index:2000;transform:translateY(80px);opacity:0;transition:all .3s ease;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:var(--green);}
+.toast.error{background:var(--red);}
+.session-list{max-height:260px;overflow-y:auto;}
+.session-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;cursor:pointer;transition:all .15s;}
+.session-item:hover{border-color:var(--blue);background:#EFF6FF;}
+.session-item.active{border-color:var(--blue);background:#DBEAFE;}
+.session-item .si-name{font-size:13px;font-weight:600;color:var(--navy);}
+.session-item .si-meta{font-size:10px;color:var(--gray);margin-top:2px;}
+.session-item .si-del{background:none;border:none;color:var(--gray);cursor:pointer;font-size:16px;padding:0 4px;}
+.session-item .si-del:hover{color:var(--red);}
+.session-empty{text-align:center;color:var(--gray);font-size:12px;padding:30px 0;}
+
+/* ═══ MOBILE RESPONSIVE ═══ */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--navy);z-index:500;border-top:1px solid rgba(255,255,255,0.15);}
+.mobile-nav-inner{display:flex;}
+.mob-nav-btn{flex:1;padding:10px 0;text-align:center;color:#94A3B8;font-size:10px;font-weight:600;cursor:pointer;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.mob-nav-btn.active{color:white;}
+.mob-nav-btn svg{width:20px;height:20px;}
+.mob-topbar{display:none;background:var(--navy);padding:8px 12px;flex-wrap:wrap;gap:6px;align-items:center;position:relative;z-index:200;}
+.mob-topbar button{background:rgba(255,255,255,0.12);color:white;border:none;padding:6px 10px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;}
+.mob-topbar button.btn-green{background:var(--green);}
+.mob-topbar button.btn-accent{background:var(--blue);}
+
+@media(max-width:768px){
+  .topbar{display:none;}
+  .mob-topbar{display:flex;}
+  .mobile-nav{display:block;}
+  .app{flex-direction:column;flex:1;position:relative;min-height:0;}
+  .panel-left{display:none;width:100%;position:absolute;inset:0;z-index:100;background:var(--white);}
+  .panel-left.mob-active{display:flex;}
+  .panel-center{display:none;width:100%;position:absolute;inset:0;z-index:90;}
+  .panel-center.mob-active{display:flex;}
+  .panel-right{display:none;width:100%;position:absolute;inset:0;z-index:80;max-width:100%;resize:none;}
+  .panel-right.mob-active{display:flex;}
+  .panel-right .panel-resize{display:none;}
+  .canvas-toolbar{flex-wrap:wrap;gap:6px;padding:6px 8px;}
+  .canvas-toolbar .sep{display:none;}
+  .canvas-area{padding:15px;}
+  .data-toolbar{gap:3px;padding:4px 6px;}
+  .data-toolbar button{font-size:9px;padding:3px 6px;}
+}
+
+/* ═══ LABEL SETTINGS ═══ */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.settings-grid .sg-full{grid-column:1/-1;}
+.sg-label{font-size:11px;color:var(--slate);margin-bottom:3px;display:block;}
+.sg-input{width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;}
+.sg-input:focus{outline:2px solid var(--blue);border-color:transparent;}
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.preset-btn{padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--white);cursor:pointer;text-align:left;transition:all .15s;}
+.preset-btn:hover{border-color:var(--blue);background:#EFF6FF;}
+.preset-btn.active{border-color:var(--blue);background:#DBEAFE;}
+.preset-btn .pz-name{font-size:11px;font-weight:700;color:var(--navy);}
+.preset-btn .pz-size{font-size:10px;color:var(--gray);}
+.preset-btn .pz-use{font-size:9px;color:var(--blue);margin-top:2px;}
+.settings-section{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.settings-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.settings-section h4{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+</style>
+</head>
+<body>
+
+<!-- Mobile Top Bar -->
+<div class="mob-topbar">
+  <button onclick="toggleMobPanel('fields')">Fields</button>
+  <button onclick="toggleMobPanel('canvas')">Canvas</button>
+  <button onclick="toggleMobPanel('data')">Data</button>
+  <button class="btn-accent" onclick="showLabelSettings()">Settings</button>
+  <button class="btn-green" onclick="doPrintRoll()">Print</button>
+</div>
+
+<!-- Mobile Bottom Nav -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mob-nav-btn active" onclick="toggleMobPanel('fields')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+      Fields
+    </button>
+    <button class="mob-nav-btn" onclick="toggleMobPanel('canvas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+      Canvas
+    </button>
+    <button class="mob-nav-btn" onclick="toggleMobPanel('data')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      Data
+    </button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+<!-- LABEL SETTINGS MODAL -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+<div id="labelSettingsModal" class="modal-overlay">
+  <div class="modal" style="max-width:520px;max-height:85vh;">
+    <div class="modal-head">
+      <span class="modal-title">Label Settings</span>
+      <button class="modal-x" onclick="closeLabelSettings()">&#10005;</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+      <div class="settings-section">
+        <h4>Preset Sizes</h4>
+        <div class="preset-grid" id="presetGrid"></div>
+      </div>
+      <div class="settings-section">
+        <h4>Dimensions</h4>
+        <div class="settings-grid">
+          <div>
+            <label class="sg-label">Width</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsW" value="4" min="0.5" step="0.1">
+              <select class="sg-input" id="lsWu" style="width:60px;">
+                <option value="in">in</option><option value="mm">mm</option><option value="cm">cm</option><option value="px">px</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Height</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsH" value="6" min="0.5" step="0.1">
+              <select class="sg-input" id="lsHu" style="width:60px;">
+                <option value="in">in</option><option value="mm">mm</option><option value="cm">cm</option><option value="px">px</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Orientation</label>
+            <select class="sg-input" id="lsOrient">
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </div>
+          <div>
+            <label class="sg-label">DPI</label>
+            <select class="sg-input" id="lsDpi">
+              <option value="96">96 (Screen)</option>
+              <option value="203" selected>203 (Thermal)</option>
+              <option value="300">300 (Standard)</option>
+              <option value="600">600 (High)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Appearance</h4>
+        <div class="settings-grid">
+          <div>
+            <label class="sg-label">Border Width</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsBorder" value="1" min="0" max="10" step="0.5">
+              <span style="font-size:11px;color:var(--gray);line-height:28px;">px</span>
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Border Color</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="color" id="lsBorderColor" value="#000000" style="padding:2px;height:28px;width:50px;">
+              <input class="sg-input" type="text" id="lsBorderColorHex" value="#000000" style="flex:1;">
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Background Color</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="color" id="lsBg" value="#ffffff" style="padding:2px;height:28px;width:50px;">
+              <input class="sg-input" type="text" id="lsBgHex" value="#ffffff" style="flex:1;">
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Corner Radius</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsRadius" value="0" min="0" max="50" step="1">
+              <span style="font-size:11px;color:var(--gray);line-height:28px;">px</span>
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Bleed Margin</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsBleed" value="0" min="0" max="10" step="0.5">
+              <span style="font-size:11px;color:var(--gray);line-height:28px;">mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Canvas Display</h4>
+        <div class="settings-grid">
+          <div>
+            <label class="sg-label">Grid Size</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsGrid" value="10" min="2" max="50" step="1">
+              <span style="font-size:11px;color:var(--gray);line-height:28px;">px</span>
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Snap to Grid</label>
+            <select class="sg-input" id="lsSnap">
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Desktop Print (A4 Sheet)</h4>
+        <div class="settings-grid">
+          <div>
+            <label class="sg-label">Paper Margin</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsPaperMargin" value="10" min="0" max="30" step="1">
+              <span style="font-size:11px;color:var(--gray);line-height:28px;">mm</span>
+            </div>
+          </div>
+          <div>
+            <label class="sg-label">Label Gap</label>
+            <div style="display:flex;gap:4px;">
+              <input class="sg-input" type="number" id="lsLabelGap" value="2" min="0" max="20" step="1">
+              <span style="font-size:11px;color:var(--gray);line-height:28px;">mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeLabelSettings()">Cancel</button>
+      <button class="btn btn-accent" onclick="applyLabelSettings()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;">
+    <h1>Label Generator</h1>
+    <span class="sub">v1.2.0 — Production Management</span>
+  </div>
+  <div class="topbar-right">
+    <button id="btn-import-excel" type="button">Import Excel</button>
+    <button id="btn-export-template" type="button">Export Template</button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,0.2);margin:0 4px;"></div>
+    <button id="btn-save-session" type="button">Save Session</button>
+    <button id="btn-load-session" type="button">Load Session</button>
+    <button id="btn-clear-session" type="button">Clear Session</button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,0.2);margin:0 4px;"></div>
+    <button id="btn-export-session" type="button">Export File</button>
+    <button id="btn-import-session" type="button">Import File</button>
+    <input type="file" id="import-file-input" accept=".json,.lenz" style="display:none;">
+    <div style="width:1px;height:20px;background:rgba(255,255,255,0.2);margin:0 4px;"></div>
+    <button id="btn-print-roll" type="button" class="btn-green">Print Roll</button>
+    <button id="btn-print-sheet" type="button" class="btn-accent">Print Desktop</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- LEFT: Fields Panel -->
+  <div class="panel-left">
+    <div class="ph">
+      <h3>Fields</h3>
+      <span class="cnt" id="field-count">0/12</span>
+    </div>
+    <div class="pb">
+      <div style="display:flex;gap:4px;margin-bottom:10px;">
+        <select id="add-field-type" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;color:var(--navy);cursor:pointer;">
+          <option value="text">Text Field</option>
+          <option value="qr">QR Code (Dynamic)</option>
+          <option value="qrStatic">QR Code (Static)</option>
+          <option value="static">Static Text</option>
+          <option value="image">Image / Logo</option>
+        </select>
+        <button class="btn-add-field" id="btn-add-field" type="button" style="width:auto;margin:0;padding:6px 12px;">+</button>
+      </div>
+      <div id="field-list"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Canvas -->
+  <div class="panel-center">
+    <div class="canvas-toolbar">
+      <label>Grid</label>
+      <select id="cfg-grid">
+        <option value="0">Off</option>
+        <option value="5">5px</option>
+        <option value="10" selected>10px</option>
+        <option value="20">20px</option>
+      </select>
+      <div class="sep"></div>
+      <div class="zoom-group">
+        <button class="zoom-btn" id="zoom-out" type="button" title="Zoom Out (Ctrl+-)">&minus;</button>
+        <span id="zoom-level">100%</span>
+        <button class="zoom-btn" id="zoom-in" type="button" title="Zoom In (Ctrl++)">+</button>
+        <button class="zoom-btn" id="zoom-reset" type="button" title="Reset Zoom (Ctrl+0)" style="font-size:11px;width:auto;padding:0 6px;">Fit</button>
+      </div>
+      <div class="sep"></div>
+      <button class="btn btn-accent" id="btn-label-settings" type="button" onclick="showLabelSettings()" title="Label Settings" style="font-size:11px;padding:4px 10px;">Settings</button>
+    </div>
+    <div class="canvas-area" id="canvas-area">
+      <div class="canvas-wrapper">
+        <div id="label-canvas"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Properties + Data -->
+  <div class="panel-right">
+    <div class="panel-resize" id="panel-resize"></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="props">Properties</div>
+      <div class="tab" data-tab="data">Data</div>
+    </div>
+    <div class="tab-content active" id="tab-props">
+      <div class="no-selection" id="no-selection">Click a field on the canvas<br>to edit its properties</div>
+      <div class="props-body" id="props-body" style="display:none;"></div>
+    </div>
+    <div class="tab-content" id="tab-data">
+      <div class="data-body">
+        <div class="data-toolbar">
+          <button class="primary" id="btn-add-row" type="button">+ Row</button>
+          <button id="btn-add-col" type="button">+ Column</button>
+          <button id="btn-del-rows" type="button">Delete Rows</button>
+          <div class="sep"></div>
+          <button id="btn-select-all-data" type="button">Select All</button>
+          <button id="btn-deselect-all-data" type="button">Deselect</button>
+          <div class="sep"></div>
+          <button id="btn-paste-data" type="button" class="green">Paste from Excel</button>
+        </div>
+        <div class="data-count" id="data-count">0 rows</div>
+        <div class="data-table-wrap" id="data-table-wrap">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Import Excel</h2>
+      <button class="modal-close" id="import-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-drop" id="import-drop">
+        <p>Drop .xlsx file here or click to browse</p>
+        <span>Column headers should match your field names</span>
+        <input type="file" id="import-file" accept=".xlsx,.xls">
+      </div>
+      <div id="import-info" style="display:none;"></div>
+      <div class="import-preview" id="import-preview" style="display:none;"></div>
+      <div class="import-match" id="import-match" style="display:none;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn cancel" id="import-cancel" type="button">Cancel</button>
+      <button class="modal-btn proceed" id="import-confirm" type="button" disabled>Import Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- Session Modal -->
+<div class="modal-overlay" id="session-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <h2 id="session-modal-title">Save Session</h2>
+      <button class="modal-close" id="session-modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="session-modal-body"></div>
+    <div class="modal-foot">
+      <button class="modal-btn cancel" id="session-modal-cancel" type="button">Cancel</button>
+      <button class="modal-btn proceed" id="session-modal-confirm" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print Area -->
+<div id="print-area"></div>
+<input type="hidden" id="cfg-width" value="60">
+<input type="hidden" id="cfg-height" value="40">
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════ */
+var state = {
+  fields: [],
+  data: [],
+  selectedFieldId: null,
+  nextFieldId: 1,
+  dragState: null,
+  resizeState: null,
+  canvasW: 0,
+  canvasH: 0,
+  zoom: 1
+};
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════ */
+function $(id){return document.getElementById(id);}
+function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';}
+function mmToPx(mm){return Math.round(mm * 3.7795);}
+function pxToMm(px){return Math.round(px / 3.7795 * 10) / 10;}
+function toast(msg,type){
+  var t=$('toast');t.textContent=msg;t.className='toast '+(type||'')+' show';
+  clearTimeout(t._timer);t._timer=setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CANVAS SIZING
+   ═══════════════════════════════════════════════════════════ */
+function updateCanvasSize(){
+  var w=Number($('cfg-width').value)||60;
+  var h=Number($('cfg-height').value)||40;
+  state.canvasW=mmToPx(w);
+  state.canvasH=mmToPx(h);
+  var c=$('label-canvas');
+  c.style.width=state.canvasW+'px';
+  c.style.height=state.canvasH+'px';
+  renderCanvas();
+}
+$('cfg-width').addEventListener('change',updateCanvasSize);
+$('cfg-height').addEventListener('change',updateCanvasSize);
+
+/* ═══════════════════════════════════════════════════════════
+   FIELD MANAGEMENT
+   ═══════════════════════════════════════════════════════════ */
+function addField(type){
+  if(state.fields.length>=12){toast('Maximum 12 fields allowed','error');return;}
+  var id=state.nextFieldId++;
+  var names={text:'Field '+id,qr:'QR Code',qrStatic:'Static QR',static:'Static '+(state.fields.length+1),image:'Image '+(state.fields.length+1)};
+  var name=names[type]||'Field '+id;
+  var field={
+    id:id,name:name,type:type||'text',
+    x:10,y:10,w:120,h:28,
+    fontSize:12,fontWeight:'normal',fontStyle:'normal',textAlign:'left',
+    color:'#000000',bgColor:'',
+    qrField:'',staticText:'',imageData:'',qrSize:80
+  };
+  if(type==='qr'||type==='qrStatic'){field.w=80;field.h=80;}
+  if(type==='static'){field.staticText='Label';field.w=80;field.h=22;}
+  if(type==='image'){field.w=100;field.h=60;}
+  state.fields.push(field);
+  selectField(id);
+  renderFieldList();
+  renderCanvas();
+  toast('Field added: '+name,'success');
+}
+
+function deleteField(id){
+  var field=state.fields.find(function(f){return f.id===id;});
+  state.fields=state.fields.filter(function(f){return f.id!==id;});
+  if(field){
+    var colName=field.type==='text'?field.name:(field.type==='qr'&&field.qrField?field.qrField:null);
+    if(colName){
+      var stillUsed=state.fields.some(function(f){
+        return (f.type==='text'&&f.name===colName)||(f.type==='qr'&&f.qrField===colName);
+      });
+      if(!stillUsed){
+        state.data.forEach(function(row){delete row[colName];});
+      }
+    }
+  }
+  if(state.selectedFieldId===id)state.selectedFieldId=null;
+  renderFieldList();renderCanvas();renderProps();renderData();
+}
+
+function duplicateField(id){
+  if(state.fields.length>=12){toast('Maximum 12 fields','error');return;}
+  var src=state.fields.find(function(f){return f.id===id;});
+  if(!src)return;
+  var newField=JSON.parse(JSON.stringify(src));
+  newField.id=state.nextFieldId++;
+  newField.name=src.name+' Copy';
+  newField.x+=15;newField.y+=15;
+  state.fields.push(newField);
+  selectField(newField.id);
+  renderFieldList();renderCanvas();
+  toast('Field duplicated','success');
+}
+
+function selectField(id){
+  state.selectedFieldId=id;
+  renderFieldList();renderCanvas();renderProps();
+}
+
+function getField(id){return state.fields.find(function(f){return f.id===id;});}
+
+var addFieldBtn=$('btn-add-field');
+if(addFieldBtn)addFieldBtn.addEventListener('click',function(){
+  var typeSelect=$('add-field-type');
+  addField(typeSelect?typeSelect.value:'text');
+});
+
+/* ═══════════════════════════════════════════════════════════
+   FIELD LIST (Left Panel)
+   ═══════════════════════════════════════════════════════════ */
+function renderFieldList(){
+  var list=$('field-list');
+  var cnt=$('field-count');
+  var addBtn=$('btn-add-field');
+  cnt.textContent=state.fields.length+'/12';
+  addBtn.disabled=state.fields.length>=12;
+  if(!state.fields.length){list.innerHTML='<div style="text-align:center;color:#94A3B8;font-size:12px;padding:20px 0;">No fields yet.<br>Select a type and click + to add.</div>';return;}
+  var html='';
+  state.fields.forEach(function(f){
+    var icons={text:'T',qr:'QR',qrStatic:'QR',static:'S',image:'IMG'};
+    var classes={text:'text',qr:'qr',qrStatic:'qr',static:'static',image:'static'};
+    var labels={text:'Text Field',qr:'QR Code (Dynamic)',qrStatic:'QR Code (Static)',static:'Static Text',image:'Image / Logo'};
+    var icon=icons[f.type]||'T';
+    var iconClass=classes[f.type]||'text';
+    var label=labels[f.type]||f.type;
+    var active=state.selectedFieldId===f.id?' active':'';
+    html+='<div class="field-item'+active+'" data-fid="'+f.id+'">'
+      +'<div class="fi-icon '+iconClass+'">'+icon+'</div>'
+      +'<div class="fi-info"><div class="fi-name">'+esc(f.name)+'</div>'
+      +'<div class="fi-type">'+esc(label)+'</div></div>'
+      +'<button class="fi-del" data-del="'+f.id+'" title="Delete">&times;</button></div>';
+  });
+  list.innerHTML=html;
+}
+
+$('field-list').addEventListener('click',function(e){
+  var del=e.target.closest('[data-del]');
+  if(del){e.stopPropagation();deleteField(Number(del.dataset.del));return;}
+  var item=e.target.closest('.field-item');
+  if(item)selectField(Number(item.dataset.fid));
+});
+
+/* ═══════════════════════════════════════════════════════════
+   CANVAS RENDERING
+   ═══════════════════════════════════════════════════════════ */
+function renderCanvas(){
+  var c=$('label-canvas');
+  c.innerHTML='';
+  state.fields.forEach(function(f){
+    var el=document.createElement('div');
+    el.className='canvas-element'+(state.selectedFieldId===f.id?' selected':'');
+    el.dataset.fid=f.id;
+    el.style.left=f.x+'px';el.style.top=f.y+'px';
+    el.style.width=f.w+'px';el.style.height=f.h+'px';
+
+    var label=document.createElement('div');
+    label.className='el-label';
+    label.textContent=f.name;
+    el.appendChild(label);
+
+    if(f.type==='qr'||f.type==='qrStatic'){
+      var qrImg=document.createElement('img');
+      qrImg.style.maxWidth='100%';qrImg.style.maxHeight='100%';
+      qrImg.style.objectFit='contain';
+      if(f.type==='qrStatic'){
+        if(f.staticText)qrImg.src=makeQRDataUrl(f.staticText,f.qrSize);
+      } else {
+        if(f.qrField){
+          var fieldData=getFirstRowValue(f.qrField);
+          if(fieldData)qrImg.src=makeQRDataUrl(fieldData,f.qrSize);
+        }
+      }
+      if(!qrImg.src){
+        var placeholder=document.createElement('div');
+        placeholder.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-size:10px;text-align:center;padding:4px;';
+        placeholder.textContent=f.type==='qrStatic'?'Static QR: Enter text in properties':'QR: Select field in properties';
+        el.appendChild(placeholder);
+      } else {
+        el.appendChild(qrImg);
+      }
+    } else if(f.type==='image'){
+      if(f.imageData){
+        var img=document.createElement('img');
+        img.src=f.imageData;
+        img.style.width='100%';img.style.height='100%';
+        img.style.objectFit='contain';
+        el.appendChild(img);
+      } else {
+        var placeholder=document.createElement('div');
+        placeholder.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-size:10px;text-align:center;padding:4px;border:2px dashed #D1D5DB;border-radius:4px;';
+        placeholder.textContent='Click to upload image';
+        el.appendChild(placeholder);
+      }
+    } else {
+      var textDiv=document.createElement('div');
+      textDiv.className='el-text align-'+(f.textAlign||'left');
+      textDiv.style.fontSize=f.fontSize+'px';
+      textDiv.style.fontWeight=f.fontWeight;
+      textDiv.style.fontStyle=f.fontStyle;
+      textDiv.style.color=f.color||'#000';
+      if(f.bgColor){textDiv.style.background=f.bgColor;textDiv.style.padding='2px 4px';textDiv.style.borderRadius='3px';}
+      if(f.type==='static'){textDiv.textContent=f.staticText||'Static';}
+      else{
+        var val=getFirstRowValue(f.name);
+        textDiv.textContent=val||'['+f.name+']';
+      }
+      el.appendChild(textDiv);
+    }
+
+    var handle=document.createElement('div');
+    handle.className='resize-handle';
+    el.appendChild(handle);
+
+    c.appendChild(el);
+  });
+}
+
+function getFirstRowValue(fieldName){
+  if(!state.data.length)return '';
+  var row=state.data[0];
+  var key=fieldName.toLowerCase();
+  for(var k in row){if(k.toLowerCase()===key)return row[k];}
+  return '';
+}
+
+function getRowValue(row,fieldName){
+  if(!row)return '';
+  var key=fieldName.toLowerCase();
+  for(var k in row){if(k.toLowerCase()===key)return row[k];}
+  return '';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CANVAS DRAG & RESIZE
+   ═══════════════════════════════════════════════════════════ */
+$('label-canvas').addEventListener('mousedown',function(e){
+  var handle=e.target.closest('.resize-handle');
+  var el=e.target.closest('.canvas-element');
+  if(!el)return;
+  var fid=Number(el.dataset.fid);
+  var field=getField(fid);
+  if(!field)return;
+
+  selectField(fid);
+
+  if(handle){
+    e.preventDefault();
+    state.resizeState={field:fid,startX:e.clientX,startY:e.clientY,startW:field.w,startH:field.h};
+    return;
+  }
+  if(e.target.closest('.el-label'))return;
+  e.preventDefault();
+  state.dragState={field:fid,startX:e.clientX,startY:e.clientY,startFieldX:field.x,startFieldY:field.y};
+});
+
+document.addEventListener('mousemove',function(e){
+  if(state.dragState){
+    var ds=state.dragState;
+    var field=getField(ds.field);
+    if(!field)return;
+    var dx=(e.clientX-ds.startX)/state.zoom;
+    var dy=(e.clientY-ds.startY)/state.zoom;
+    field.x=Math.max(0,Math.min(state.canvasW-field.w,ds.startFieldX+dx));
+    field.y=Math.max(0,Math.min(state.canvasH-field.h,ds.startFieldY+dy));
+    var grid=Number($('cfg-grid').value)||0;
+    if(grid){field.x=Math.round(field.x/grid)*grid;field.y=Math.round(field.y/grid)*grid;}
+    renderCanvas();renderProps();
+  }
+  if(state.resizeState){
+    var rs=state.resizeState;
+    var field=getField(rs.field);
+    if(!field)return;
+    var dx=(e.clientX-rs.startX)/state.zoom;
+    var dy=(e.clientY-rs.startY)/state.zoom;
+    field.w=Math.max(30,Math.min(state.canvasW-field.x,rs.startW+dx));
+    field.h=Math.max(20,Math.min(state.canvasH-field.y,rs.startH+dy));
+    var grid=Number($('cfg-grid').value)||0;
+    if(grid){field.w=Math.round(field.w/grid)*grid;field.h=Math.round(field.h/grid)*grid;}
+    renderCanvas();renderProps();
+  }
+});
+
+document.addEventListener('mouseup',function(){
+  state.dragState=null;state.resizeState=null;
+});
+
+/* ═══════════════════════════════════════════════════════════
+   PROPERTIES PANEL
+   ═══════════════════════════════════════════════════════════ */
+function renderProps(){
+  var noSel=$('no-selection');
+  var body=$('props-body');
+  var field=state.selectedFieldId?getField(state.selectedFieldId):null;
+  if(!field){noSel.style.display='flex';body.style.display='none';return;}
+  noSel.style.display='none';body.style.display='';
+
+  var qrSourceOptions='<option value="">— Select Column —</option>';
+  var cols=getDataColumns();
+  cols.forEach(function(c){
+    qrSourceOptions+='<option value="'+esc(c)+'"'+(field.qrField===c?' selected':'')+'>'+esc(c)+'</option>';
+  });
+  if(!cols.length){
+    qrSourceOptions+='<option value="" disabled>No columns available — add data first</option>';
+  }
+
+  var html=''
+    +'<div class="prop-group"><div class="prop-group-title">Identity</div>'
+    +'<div class="prop-row-full"><label>Field Name</label><input id="p-name" type="text" value="'+esc(field.name)+'"></div>'
+    +'<div class="prop-row-full"><label>Field Type</label><select id="p-type">'
+    +'<option value="text"'+(field.type==='text'?' selected':'')+'>Text (Data Bound)</option>'
+    +'<option value="qr"'+(field.type==='qr'?' selected':'')+'>QR Code (Dynamic)</option>'
+    +'<option value="qrStatic"'+(field.type==='qrStatic'?' selected':'')+'>QR Code (Static)</option>'
+    +'<option value="static"'+(field.type==='static'?' selected':'')+'>Static Text</option>'
+    +'<option value="image"'+(field.type==='image'?' selected':'')+'>Image / Logo</option>'
+    +'</select></div></div>'
+
+    +'<div class="prop-group"><div class="prop-group-title">Position &amp; Size</div>'
+    +'<div class="prop-row"><label>X (px)</label><input id="p-x" type="number" value="'+Math.round(field.x)+'" min="0"></div>'
+    +'<div class="prop-row"><label>Y (px)</label><input id="p-y" type="number" value="'+Math.round(field.y)+'" min="0"></div>'
+    +'<div class="prop-row"><label>W (px)</label><input id="p-w" type="number" value="'+Math.round(field.w)+'" min="20"></div>'
+    +'<div class="prop-row"><label>H (px)</label><input id="p-h" type="number" value="'+Math.round(field.h)+'" min="16"></div>'
+    +'<div class="prop-row"><label>X (mm)</label><input id="p-xmm" type="text" value="'+pxToMm(field.x)+'" readonly style="background:#F8FAFC;"></div>'
+    +'<div class="prop-row"><label>Y (mm)</label><input id="p-ymm" type="text" value="'+pxToMm(field.y)+'" readonly style="background:#F8FAFC;"></div>'
+    +'</div>'
+
+    +'<div class="prop-group"><div class="prop-group-title">Appearance</div>'
+    +'<div class="prop-row"><label>Font Size</label><input id="p-fontsize" type="number" value="'+field.fontSize+'" min="6" max="48"></div>'
+    +'<div class="prop-row"><label>Weight</label><select id="p-weight">'
+    +'<option value="normal"'+(field.fontWeight==='normal'?' selected':'')+'>Normal</option>'
+    +'<option value="bold"'+(field.fontWeight==='bold'?' selected':'')+'>Bold</option>'
+    +'</select></div>'
+    +'<div class="prop-row"><label>Style</label><select id="p-style">'
+    +'<option value="normal"'+(field.fontStyle==='normal'?' selected':'')+'>Normal</option>'
+    +'<option value="italic"'+(field.fontStyle==='italic'?' selected':'')+'>Italic</option>'
+    +'</select></div>'
+    +'<div class="prop-row"><label>Align</label><select id="p-align">'
+    +'<option value="left"'+(field.textAlign==='left'?' selected':'')+'>Left</option>'
+    +'<option value="center"'+(field.textAlign==='center'?' selected':'')+'>Center</option>'
+    +'<option value="right"'+(field.textAlign==='right'?' selected':'')+'>Right</option>'
+    +'</select></div>'
+    +'<div class="prop-row"><label>Color</label><input id="p-color" type="color" value="'+(field.color||'#000000')+'" style="width:40px;height:26px;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer;"></div>'
+    +'<div class="prop-row"><label>BG Color</label><input id="p-bgcolor" type="color" value="'+(field.bgColor||'#ffffff')+'" style="width:40px;height:26px;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer;">'
+    +' <button id="p-bgclear" style="font-size:10px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:white;">Clear</button></div>'
+    +'</div>';
+
+  if(field.type==='qr'){
+    html+='<div class="prop-group"><div class="prop-group-title">QR Code — Dynamic</div>'
+      +'<div class="prop-row-full"><label>Encode from Column</label><select id="p-qr-field">'+qrSourceOptions+'</select></div>'
+      +'<div class="prop-row"><label>QR Size (px)</label><input id="p-qr-size" type="number" value="'+(field.qrSize||80)+'" min="20" max="200"></div>'
+      +'<div style="font-size:10px;color:var(--gray);margin-top:4px;">QR changes per row based on this column\'s value.</div>'
+      +'</div>';
+  }
+  if(field.type==='qrStatic'){
+    html+='<div class="prop-group"><div class="prop-group-title">QR Code — Static</div>'
+      +'<div class="prop-row-full"><label>Fixed Text / URL</label><input id="p-qr-static" type="text" value="'+esc(field.staticText)+'" placeholder="e.g. https://example.com"></div>'
+      +'<div class="prop-row"><label>QR Size (px)</label><input id="p-qr-size" type="number" value="'+(field.qrSize||80)+'" min="20" max="200"></div>'
+      +'<div style="font-size:10px;color:var(--gray);margin-top:4px;">Same QR code on every label. Use for brand URL, product page, etc.</div>'
+      +'</div>';
+  }
+  if(field.type==='static'){
+    html+='<div class="prop-group"><div class="prop-group-title">Static Text</div>'
+      +'<div class="prop-row-full"><label>Text</label><input id="p-static" type="text" value="'+esc(field.staticText)+'"></div>'
+      +'</div>';
+  }
+  if(field.type==='image'){
+    html+='<div class="prop-group"><div class="prop-group-title">Image / Logo</div>'
+      +'<div style="margin-bottom:8px;">'
+      +'<input type="file" id="p-image-upload" accept="image/*" style="display:none;">'
+      +'<button id="p-image-btn" class="prop-btn duplicate" type="button" style="width:100%;">Choose Image</button>'
+      +'</div>'
+      +(field.imageData?'<div style="text-align:center;margin-bottom:8px;"><img src="'+field.imageData+'" style="max-width:100%;max-height:80px;border:1px solid var(--border);border-radius:4px;"></div>'
+        +'<button id="p-image-clear" class="prop-btn delete" type="button" style="width:100%;">Remove Image</button>'
+        :'<div style="font-size:10px;color:var(--gray);text-align:center;">No image selected</div>')
+      +'</div>';
+  }
+
+  html+='<div class="prop-actions">'
+    +'<button class="prop-btn duplicate" id="p-duplicate" type="button">Duplicate</button>'
+    +'<button class="prop-btn delete" id="p-delete" type="button">Delete</button>'
+    +'</div>';
+
+  body.innerHTML=html;
+
+  /* Bind events */
+  bindProp('p-name','input',function(v){field.name=v;renderFieldList();renderCanvas();});
+  bindProp('p-type','change',function(v){
+    field.type=v;
+    if(v==='qr'||v==='qrStatic'){field.w=80;field.h=80;}
+    if(v==='static'){field.staticText=field.staticText||'Text';field.w=80;field.h=22;}
+    if(v==='text'){field.w=120;field.h=28;}
+    if(v==='image'){field.w=100;field.h=60;}
+    renderFieldList();renderCanvas();renderProps();
+  });
+  bindProp('p-x','input',function(v){field.x=Number(v)||0;renderCanvas();});
+  bindProp('p-y','input',function(v){field.y=Number(v)||0;renderCanvas();});
+  bindProp('p-w','input',function(v){field.w=Math.max(20,Number(v)||20);renderCanvas();});
+  bindProp('p-h','input',function(v){field.h=Math.max(16,Number(v)||16);renderCanvas();});
+  bindProp('p-fontsize','input',function(v){field.fontSize=Number(v)||12;renderCanvas();});
+  bindProp('p-weight','change',function(v){field.fontWeight=v;renderCanvas();});
+  bindProp('p-style','change',function(v){field.fontStyle=v;renderCanvas();});
+  bindProp('p-align','change',function(v){field.textAlign=v;renderCanvas();});
+  bindProp('p-color','input',function(v){field.color=v;renderCanvas();});
+  bindProp('p-bgcolor','input',function(v){field.bgColor=v;renderCanvas();});
+
+  var bgClear=$('p-bgclear');
+  if(bgClear)bgClear.addEventListener('click',function(){field.bgColor='';renderCanvas();renderProps();});
+
+  if(field.type==='qr'){
+    var qrSel=$('p-qr-field');
+    if(qrSel)qrSel.addEventListener('change',function(){field.qrField=this.value;renderCanvas();});
+    bindProp('p-qr-size','input',function(v){field.qrSize=Math.max(20,Number(v)||80);renderCanvas();});
+  }
+  if(field.type==='qrStatic'){
+    bindProp('p-qr-static','input',function(v){field.staticText=v;renderCanvas();});
+    bindProp('p-qr-size','input',function(v){field.qrSize=Math.max(20,Number(v)||80);renderCanvas();});
+  }
+  if(field.type==='static'){
+    bindProp('p-static','input',function(v){field.staticText=v;renderCanvas();});
+  }
+  if(field.type==='image'){
+    var imgBtn=$('p-image-btn');
+    var imgUpload=$('p-image-upload');
+    var imgClear=$('p-image-clear');
+    if(imgBtn&&imgUpload){
+      imgBtn.addEventListener('click',function(){imgUpload.click();});
+      imgUpload.addEventListener('change',function(){
+        if(!this.files||!this.files[0])return;
+        var reader=new FileReader();
+        reader.onload=function(e){
+          field.imageData=e.target.result;
+          renderCanvas();renderProps();
+          toast('Image loaded','success');
+        };
+        reader.readAsDataURL(this.files[0]);
+      });
+    }
+    if(imgClear){
+      imgClear.addEventListener('click',function(){
+        field.imageData='';
+        renderCanvas();renderProps();
+      });
+    }
+  }
+
+  var dupBtn=$('p-duplicate');
+  if(dupBtn)dupBtn.addEventListener('click',function(){duplicateField(field.id);});
+  var delBtn=$('p-delete');
+  if(delBtn)delBtn.addEventListener('click',function(){deleteField(field.id);});
+}
+
+function bindProp(id,ev,fn){
+  var el=$(id);if(!el)return;
+  el.addEventListener(ev,function(){fn(this.value);});
+}
+
+/* ═══════════════════════════════════════════════════════════
+   QR CODE GENERATOR
+   ═══════════════════════════════════════════════════════════ */
+function makeQRDataUrl(text,size){
+  if(!text)return '';
+  try{
+    var qr=qrcode(0,'M');
+    qr.addData(String(text));
+    qr.make();
+    var sz=size||80;
+    var modules=qr.getModuleCount();
+    var canvas=document.createElement('canvas');
+    canvas.width=sz;canvas.height=sz;
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,sz,sz);
+    ctx.fillStyle='#000000';
+    var step=sz/modules;
+    for(var r=0;r<modules;r++){
+      for(var c=0;c<modules;c++){
+        if(qr.isDark(r,c))ctx.fillRect(c*step,r*step,step+0.5,step+0.5);
+      }
+    }
+    return canvas.toDataURL('image/png');
+  }catch(e){return '';}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DATA MANAGEMENT — Spreadsheet-style
+   ═══════════════════════════════════════════════════════════ */
+function getDataColumns(){
+  var cols=[];
+  state.fields.forEach(function(f){
+    if(f.type==='text'){
+      if(cols.indexOf(f.name)===-1)cols.push(f.name);
+    }
+    if(f.type==='qr'&&f.qrField){
+      if(cols.indexOf(f.qrField)===-1)cols.push(f.qrField);
+    }
+  });
+  if(!cols.length){
+    state.data.forEach(function(row){
+      Object.keys(row).forEach(function(k){
+        if(k.charAt(0)==='_')return;
+        if(cols.indexOf(k)===-1)cols.push(k);
+      });
+    });
+  }
+  return cols;
+}
+
+function renderData(){
+  var wrap=$('data-table-wrap');
+  var countEl=$('data-count');
+  var cols=getDataColumns();
+  if(!cols.length){
+    wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--gray);font-size:12px;">Add fields to see data columns</div>';
+    countEl.textContent='0 rows';
+    return;
+  }
+  var totalLabels=0;
+  state.data.forEach(function(r){totalLabels+=Math.max(1,Number(r._qty)||1);});
+  countEl.textContent=state.data.length+' rows × '+cols.length+' columns'+(state.data.length?' · '+totalLabels+' labels':'');
+  if(!state.data.length){
+    state.data.push(buildEmptyRow(cols));
+  }
+  var html='<table class="data-table" id="data-grid"><thead><tr>';
+  html+='<th class="row-num"></th>';
+  html+='<th style="width:28px;"><div class="th-inner"><input type="checkbox" id="data-check-all"></div></th>';
+  html+='<th style="width:50px;"><div class="th-inner" style="font-size:10px;">Qty</div></th>';
+  cols.forEach(function(c,ci){
+    html+='<th class="col-resize" style="min-width:90px;"><div class="th-inner">'
+      +'<input class="col-rename" data-col="'+ci+'" value="'+esc(c)+'" title="Click to rename column">'
+      +'<button class="col-del" data-cdel="'+ci+'" title="Delete column">&times;</button>'
+      +'</div></th>';
+  });
+  html+='<th class="add-col-cell"><button class="add-col-btn" id="btn-add-col-inline" title="Add column">+</button></th>';
+  html+='</tr></thead><tbody>';
+  state.data.forEach(function(row,i){
+    var qty=Math.max(1,Number(row._qty)||1);
+    html+='<tr data-idx="'+i+'">';
+    html+='<td class="row-num" data-rnum="'+i+'">'+(i+1)+'</td>';
+    html+='<td class="chk-cell"><input type="checkbox" data-rowcheck="'+i+'"></td>';
+    html+='<td style="padding:2px 4px;text-align:center;"><input class="qty-input" data-qi="'+i+'" type="number" value="'+qty+'" min="1" max="999" style="width:40px;padding:3px 4px;border:1px solid var(--border);border-radius:3px;font-size:11px;text-align:center;"></td>';
+    cols.forEach(function(c,ci){
+      var val=row[c]||'';
+      html+='<td class="cell" data-ri="'+i+'" data-ci="'+ci+'" data-col="'+esc(c)+'">'
+        +'<input class="cell-editor" value="'+esc(val)+'" spellcheck="false">'
+        +'</td>';
+    });
+    html+='<td class="add-col-cell"></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+  renderCanvas();
+  attachGridEvents();
+}
+
+function buildEmptyRow(cols){
+  var row={};
+  row._qty=1;
+  cols.forEach(function(c){row[c]='';});
+  return row;
+}
+
+function attachGridEvents(){
+  var grid=$('data-grid');
+  if(!grid)return;
+
+  grid.addEventListener('focusin',function(e){
+    if(e.target.classList.contains('cell-editor')){
+      var td=e.target.closest('.cell');
+      if(td)td.classList.add('active');
+    }
+  });
+  grid.addEventListener('focusout',function(e){
+    if(e.target.classList.contains('cell-editor')){
+      var td=e.target.closest('.cell');
+      if(td)td.classList.remove('active');
+      var ri=Number(td.dataset.ri);
+      var col=td.dataset.col;
+      if(state.data[ri]!==undefined){
+        state.data[ri][col]=e.target.value;
+        renderCanvas();
+      }
+    }
+  });
+
+  grid.addEventListener('keydown',function(e){
+    if(!e.target.classList.contains('cell-editor'))return;
+    var td=e.target.closest('.cell');
+    var ri=Number(td.dataset.ri);
+    var ci=Number(td.dataset.ci);
+    var cols=getDataColumns();
+    if(e.key==='Tab'){
+      e.preventDefault();
+      var nextCI=e.shiftKey?ci-1:ci+1;
+      var nextRI=ri;
+      if(nextCI>=cols.length){nextCI=0;nextRI++;}
+      if(nextCI<0){nextCI=cols.length-1;nextRI--;}
+      if(nextRI>=0&&nextRI<state.data.length){
+        var next=grid.querySelector('[data-ri="'+nextRI+'"][data-ci="'+nextCI+'"] .cell-editor');
+        if(next)next.focus();
+      }
+    }
+    if(e.key==='Enter'){
+      e.preventDefault();
+      var nextRI=ri+1;
+      if(nextRI<state.data.length){
+        var next=grid.querySelector('[data-ri="'+nextRI+'"][data-ci="'+ci+'"] .cell-editor');
+        if(next)next.focus();
+      }
+    }
+  });
+
+  grid.addEventListener('paste',function(e){
+    if(!e.target.classList.contains('cell-editor'))return;
+    e.preventDefault();
+    var text=(e.clipboardData||window.clipboardData).getData('text');
+    if(!text)return;
+    var td=e.target.closest('.cell');
+    var startRI=Number(td.dataset.ri);
+    var startCI=Number(td.dataset.ci);
+    var cols=getDataColumns();
+    var lines=text.split(/\r?\n/).filter(function(l){return l.length>0;});
+    var pastedRows=0;
+    lines.forEach(function(line,li){
+      var cells=line.split('\t');
+      var ri=startRI+li;
+      while(ri>=state.data.length){
+        state.data.push(buildEmptyRow(cols));
+      }
+      cells.forEach(function(cellVal,ci2){
+        var colIdx=startCI+ci2;
+        if(colIdx<cols.length){
+          state.data[ri][cols[colIdx]]=cellVal.replace(/\r/g,'');
+        }
+      });
+      pastedRows++;
+    });
+    renderData();
+    toast(pastedRows+' rows pasted','success');
+    setTimeout(function(){
+      var first=grid.querySelector('[data-ri="'+startRI+'"][data-ci="'+startCI+'"] .cell-editor');
+      if(first)first.focus();
+    },50);
+  });
+
+  var checkAll=grid.querySelector('#data-check-all');
+  if(checkAll){
+    checkAll.addEventListener('change',function(){
+      var checked=this.checked;
+      grid.querySelectorAll('[data-rowcheck]').forEach(function(cb){cb.checked=checked;});
+    });
+  }
+
+  grid.querySelectorAll('.col-rename').forEach(function(input){
+    input.addEventListener('change',function(){
+      var ci=Number(this.dataset.col);
+      var oldName=getDataColumns()[ci];
+      var newName=this.value.trim();
+      if(!newName||newName===oldName)return;
+      state.data.forEach(function(row){
+        if(row[oldName]!==undefined){
+          row[newName]=row[oldName];
+          delete row[oldName];
+        }
+      });
+      var field=state.fields.find(function(f){return f.type==='text'&&f.name===oldName;});
+      if(field)field.name=newName;
+      renderData();renderFieldList();renderCanvas();
+      toast('Column renamed: '+oldName+' → '+newName,'success');
+    });
+    input.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();this.blur();}
+      if(e.key==='Escape'){this.value=getDataColumns()[Number(this.dataset.col)];this.blur();}
+    });
+  });
+
+  grid.querySelectorAll('[data-cdel]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var ci=Number(this.dataset.cdel);
+      var colName=getDataColumns()[ci];
+      if(!confirm('Delete column "'+colName+'"? This removes the column from all rows.'))return;
+      state.data.forEach(function(row){delete row[colName];});
+      var field=state.fields.find(function(f){return f.type==='text'&&f.name===colName;});
+      if(field)state.fields=state.fields.filter(function(f){return f!==field;});
+      renderData();renderFieldList();renderCanvas();
+      toast('Column deleted: '+colName,'success');
+    });
+  });
+
+  var addColBtn=grid.querySelector('#btn-add-col-inline');
+  if(addColBtn){
+    addColBtn.addEventListener('click',function(){addNewColumn();});
+  }
+
+  grid.querySelectorAll('.qty-input').forEach(function(input){
+    input.addEventListener('change',function(){
+      var ri=Number(this.dataset.qi);
+      var val=Math.max(1,Math.min(999,Number(this.value)||1));
+      this.value=val;
+      if(state.data[ri])state.data[ri]._qty=val;
+      var totalLabels=0;
+      state.data.forEach(function(r){totalLabels+=Math.max(1,Number(r._qty)||1);});
+      $('data-count').textContent=state.data.length+' rows × '+getDataColumns().length+' columns · '+totalLabels+' labels';
+    });
+    input.addEventListener('focus',function(){this.select();});
+  });
+}
+
+function addNewColumn(){
+  var existingCols=getDataColumns();
+  var dataOnlyCols=[];
+  if(state.fields.length===0){
+    state.data.forEach(function(row){
+      Object.keys(row).forEach(function(k){
+        if(k.charAt(0)==='_')return;
+        if(dataOnlyCols.indexOf(k)===-1)dataOnlyCols.push(k);
+      });
+    });
+    dataOnlyCols.forEach(function(c){
+      state.fields.push({
+        id:state.nextFieldId++,name:c,type:'text',
+        x:10,y:10+state.fields.length*30,w:120,h:28,
+        fontSize:12,fontWeight:'normal',fontStyle:'normal',textAlign:'left',
+        color:'#000000',bgColor:'',qrField:'',staticText:'',qrSize:80
+      });
+    });
+  }
+  var cols=getDataColumns();
+  var name='Column '+(cols.length+1);
+  var textFields=state.fields.filter(function(f){return f.type==='text';});
+  var newField={
+    id:state.nextFieldId++,name:name,type:'text',
+    x:10,y:10+textFields.length*30,w:120,h:28,
+    fontSize:12,fontWeight:'normal',fontStyle:'normal',textAlign:'left',
+    color:'#000000',bgColor:'',qrField:'',staticText:'',qrSize:80
+  };
+  state.fields.push(newField);
+  state.data.forEach(function(row){row[name]='';});
+  renderData();renderFieldList();renderCanvas();renderProps();
+  toast('Column added: '+name,'success');
+}
+
+$('btn-add-row').addEventListener('click',function(){
+  var cols=getDataColumns();
+  if(!cols.length){toast('Add fields first to create data rows','error');return;}
+  state.data.push(buildEmptyRow(cols));
+  renderData();
+  var grid=$('data-grid');
+  var lastRow=state.data.length-1;
+  var firstCell=grid.querySelector('[data-ri="'+lastRow+'"][data-ci="0"] .cell-editor');
+  if(firstCell)firstCell.focus();
+});
+
+$('btn-add-col').addEventListener('click',function(){addNewColumn();});
+
+$('btn-del-rows').addEventListener('click',function(){
+  var grid=$('data-grid');
+  if(!grid)return;
+  var checks=grid.querySelectorAll('[data-rowcheck]:checked');
+  if(!checks.length){toast('No rows selected','error');return;}
+  var toDel=[];
+  checks.forEach(function(cb){toDel.push(Number(cb.dataset.rowcheck));});
+  toDel.sort(function(a,b){return b-a;});
+  toDel.forEach(function(i){state.data.splice(i,1);});
+  renderData();toast(toDel.length+' rows deleted','success');
+});
+
+$('btn-select-all-data').addEventListener('click',function(){
+  var grid=$('data-grid');
+  if(grid)grid.querySelectorAll('[data-rowcheck]').forEach(function(cb){cb.checked=true;});
+});
+$('btn-deselect-all-data').addEventListener('click',function(){
+  var grid=$('data-grid');
+  if(grid)grid.querySelectorAll('[data-rowcheck]').forEach(function(cb){cb.checked=false;});
+});
+
+$('btn-paste-data').addEventListener('click',function(){
+  var cols=getDataColumns();
+  if(!cols.length){toast('Add fields first','error');return;}
+  var msg='Copy data from Excel (with headers in row 1), then click OK and press Ctrl+V in the first cell.';
+  alert(msg);
+  if(!state.data.length||Object.values(state.data[0]).some(function(v){return v!=='';})){
+    state.data.push(buildEmptyRow(cols));
+  }
+  renderData();
+  var grid=$('data-grid');
+  var lastRI=state.data.length-1;
+  var firstCell=grid.querySelector('[data-ri="'+lastRI+'"][data-ci="0"] .cell-editor');
+  if(firstCell){firstCell.focus();firstCell.select();}
+});
+
+/* ═══════════════════════════════════════════════════════════
+   EXCEL IMPORT
+   ═══════════════════════════════════════════════════════════ */
+var importData=null;
+var importCols=[];
+
+$('btn-import-excel').addEventListener('click',function(){
+  importData=null;importCols=[];
+  $('import-file').value='';
+  $('import-info').style.display='none';
+  $('import-preview').style.display='none';
+  $('import-match').style.display='none';
+  $('import-confirm').disabled=true;
+  $('import-confirm').textContent='Import Data';
+  $('import-modal').classList.add('active');
+  setTimeout(function(){$('import-file').click();},200);
+});
+$('import-close').addEventListener('click',function(){$('import-modal').classList.remove('active');});
+$('import-cancel').addEventListener('click',function(){$('import-modal').classList.remove('active');});
+
+var dropZone=$('import-drop');
+dropZone.addEventListener('click',function(e){
+  if(e.target===$('import-file'))return;
+  $('import-file').click();
+});
+dropZone.addEventListener('dragover',function(e){e.preventDefault();e.stopPropagation();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',function(e){e.preventDefault();e.stopPropagation();dropZone.classList.remove('dragover');});
+dropZone.addEventListener('drop',function(e){
+  e.preventDefault();e.stopPropagation();dropZone.classList.remove('dragover');
+  var files=e.dataTransfer&&e.dataTransfer.files;
+  if(files&&files.length)handleExcelFile(files[0]);
+});
+$('import-file').addEventListener('change',function(){
+  if(this.files&&this.files.length)handleExcelFile(this.files[0]);
+});
+
+function handleExcelFile(file){
+  if(!file.name.match(/\.xlsx?$/i)){toast('Please select an .xlsx file','error');return;}
+  if(typeof XLSX==='undefined'){toast('Excel library not loaded. Check your internet connection.','error');return;}
+  var reader=new FileReader();
+  reader.onerror=function(){toast('Failed to read file.','error');};
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var json=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!json.length){toast('Excel file is empty','error');return;}
+      importCols=Object.keys(json[0]);
+      importData=json;
+      showImportPreview(json,importCols);
+      toast(file.name+' loaded — '+json.length+' rows','success');
+    }catch(err){
+      toast('Failed to parse Excel: '+err.message,'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showImportPreview(rows,cols){
+  $('import-info').style.display='block';
+  $('import-info').innerHTML='<p style="font-size:12px;color:var(--slate);margin-bottom:8px;">Found <strong>'+rows.length+'</strong> rows with <strong>'+cols.length+'</strong> columns</p>';
+
+  var html='<table><thead><tr>';
+  cols.forEach(function(c){html+='<th>'+esc(c)+'</th>';});
+  html+='</tr></thead><tbody>';
+  var show=Math.min(rows.length,5);
+  for(var i=0;i<show;i++){
+    html+='<tr>';
+    cols.forEach(function(c){html+='<td>'+esc(String(rows[i][c]||''))+'</td>';});
+    html+='</tr>';
+  }
+  if(rows.length>5)html+='<tr><td colspan="'+cols.length+'" style="text-align:center;color:#94A3B8;">... and '+(rows.length-5)+' more rows</td></tr>';
+  html+='</tbody></table>';
+  $('import-preview').innerHTML=html;
+  $('import-preview').style.display='block';
+
+  var fieldNames=state.fields.filter(function(f){return f.type==='text';}).map(function(f){return f.name.toLowerCase();});
+  var matchHtml='<h4>Column → Field Mapping</h4>';
+  var allMatched=true;
+  cols.forEach(function(c){
+    var matched=fieldNames.indexOf(c.toLowerCase())!==-1;
+    if(!matched)allMatched=false;
+    matchHtml+='<div class="match-row'+(matched?'':' unmatched')+'">'
+      +'<span class="excel-col">'+esc(c)+'</span>'
+      +'<span class="arrow">→</span>'
+      +'<span class="field-col">'+(matched?'Matched':'No match')+'</span></div>';
+  });
+  $('import-match').innerHTML=matchHtml;
+  $('import-match').style.display='block';
+  $('import-confirm').disabled=false;
+  $('import-confirm').textContent='Import '+rows.length+' Rows';
+}
+
+$('import-confirm').addEventListener('click',function(){
+  if(!importData||!importData.length){
+    toast('No data to import. Select a file first.','error');
+    return;
+  }
+  importData.forEach(function(row){if(!row._qty)row._qty=1;});
+  state.data=state.data.concat(importData);
+  renderData();
+  $('import-modal').classList.remove('active');
+  toast(importData.length+' rows imported','success');
+  importData=null;
+});
+
+/* ═══════════════════════════════════════════════════════════
+   EXCEL TEMPLATE EXPORT
+   ═══════════════════════════════════════════════════════════ */
+$('btn-export-template').addEventListener('click',function(){
+  var cols=getDataColumns();
+  if(!cols.length){toast('Add fields first','error');return;}
+  var exampleRow={};
+  cols.forEach(function(c,i){exampleRow[c]='Example '+(i+1);});
+  var ws=XLSX.utils.json_to_sheet([exampleRow],{header:cols});
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Label Data');
+  var name='label-template';
+  XLSX.writeFile(wb,name+'.xlsx');
+  toast('Template exported with '+cols.length+' columns','success');
+});
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT — ROLL
+   ═══════════════════════════════════════════════════════════ */
+$('btn-print-roll').addEventListener('click',function(){doPrint('roll');});
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT — DESKTOP (SHEET)
+   ═══════════════════════════════════════════════════════════ */
+$('btn-print-sheet').addEventListener('click',function(){doPrint('sheet');});
+
+function doPrint(mode){
+  if(!state.fields.length){toast('Add fields to the label first','error');return;}
+  var rows=getPrintRows();
+  if(!rows.length){toast('No data to print. Add rows or import Excel.','error');return;}
+
+  var w=mmToPx(Number($('cfg-width').value)||60);
+  var h=mmToPx(Number($('cfg-height').value)||40);
+
+  var printCSS='';
+  if(mode==='sheet'){
+    var paperMargin=state.labelSettings?state.labelSettings.paperMargin:10;
+    var labelGap=state.labelSettings?state.labelSettings.labelGap:2;
+    var usableW=210-paperMargin*2;
+    var cols=Math.max(1,Math.floor(usableW/(w*25.4/96)));
+    printCSS='<style>'
+      +'@page{size:A4;margin:'+paperMargin+'mm;}'
+      +':root{--pw:'+w+'px;--ph:'+h+'px;--cols:'+cols+';--gap:'+labelGap+'mm;--paper-margin:'+paperMargin+'mm;}'
+      +'</style>';
+  } else {
+    printCSS='<style>'
+      +'@page{size:'+w+'px '+h+'px;margin:0;}'
+      +':root{--pw:'+w+'px;--ph:'+h+'px;}'
+      +'</style>';
+  }
+
+  var containerClass=mode==='sheet'?'print-sheet-wrap':'';
+  var html=printCSS+(containerClass?'<div class="'+containerClass+'">':'');
+
+  rows.forEach(function(row){
+    if(mode==='roll'){
+      html+='<div class="print-roll-page">';
+    } else {
+      html+='<div class="print-sheet-label">';
+    }
+
+    state.fields.forEach(function(f){
+      var elStyle='left:'+f.x+'px;top:'+f.y+'px;width:'+f.w+'px;height:'+f.h+'px;'
+        +'font-size:'+f.fontSize+'px;font-weight:'+f.fontWeight+';font-style:'+f.fontStyle+';'
+        +'color:'+(f.color||'#000')+';line-height:1.2;';
+      if(f.textAlign)elStyle+='text-align:'+f.textAlign+';justify-content:'+(f.textAlign==='center'?'center':f.textAlign==='right'?'flex-end':'flex-start')+';';
+      if(f.bgColor)elStyle+='background:'+f.bgColor+';padding:2px 4px;border-radius:3px;';
+
+      if(f.type==='qr'||f.type==='qrStatic'){
+        var qrVal='';
+        if(f.type==='qrStatic'){
+          qrVal=f.staticText||'';
+        } else {
+          qrVal=getRowValue(row,f.qrField);
+        }
+        var qrSrc=qrVal?makeQRDataUrl(qrVal,f.qrSize):'';
+        if(qrSrc){
+          html+='<div class="print-el" style="'+elStyle+'"><img src="'+qrSrc+'" style="width:100%;height:100%;"></div>';
+        }
+      } else if(f.type==='static'){
+        html+='<div class="print-el" style="'+elStyle+'">'+esc(f.staticText||'')+'</div>';
+      } else if(f.type==='image'){
+        if(f.imageData){
+          html+='<div class="print-el" style="'+elStyle+'"><img src="'+f.imageData+'" style="width:100%;height:100%;object-fit:contain;"></div>';
+        }
+      } else {
+        var val=getRowValue(row,f.name);
+        html+='<div class="print-el" style="'+elStyle+'">'+esc(val||'')+'</div>';
+      }
+    });
+
+    html+='</div>';
+  });
+
+  if(containerClass)html+='</div>';
+  $('print-area').innerHTML=html;
+  toast('Printing '+rows.length+' labels...','success');
+  setTimeout(function(){window.print();},300);
+}
+
+function getPrintRows(){
+  var checks=document.querySelectorAll('[data-rowcheck]:checked');
+  var source=[];
+  if(checks.length){
+    checks.forEach(function(cb){var idx=Number(cb.dataset.rowcheck);if(state.data[idx])source.push(state.data[idx]);});
+  } else {
+    source=state.data.slice();
+  }
+  var expanded=[];
+  source.forEach(function(row){
+    var qty=Math.max(1,Number(row._qty)||1);
+    for(var i=0;i<qty;i++){expanded.push(row);}
+  });
+  return expanded;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABS
+   ═══════════════════════════════════════════════════════════ */
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.tab-content').forEach(function(tc){tc.classList.remove('active');});
+    tab.classList.add('active');
+    $('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   PANEL RESIZE
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  var handle=$('panel-resize');
+  var panel=document.querySelector('.panel-right');
+  if(!handle||!panel)return;
+  var dragging=false,startX,startW;
+  handle.addEventListener('mousedown',function(e){
+    e.preventDefault();dragging=true;startX=e.clientX;startW=panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor='col-resize';
+    document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging)return;
+    var dx=e.clientX-startX;
+    var newW=Math.max(260,Math.min(window.innerWidth*0.5,startW-dx));
+    panel.style.width=newW+'px';
+  });
+  document.addEventListener('mouseup',function(){
+    if(!dragging)return;dragging=false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor='';document.body.style.userSelect='';
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   COLUMN RESIZE
+   ═══════════════════════════════════════════════════════════ */
+document.addEventListener('mousedown',function(e){
+  var th=e.target.closest('th.col-resize');
+  if(!th)return;
+  e.preventDefault();
+  var table=th.closest('.data-table');
+  var startX=e.clientX;
+  var startW=th.offsetWidth;
+  var colIdx=Array.from(th.parentNode.children).indexOf(th);
+  function onMove(ev){
+    var dx=ev.clientX-startX;
+    var newW=Math.max(50,startW+dx);
+    th.style.width=newW+'px';
+    th.style.minWidth=newW+'px';
+    var rows=table.querySelectorAll('tbody tr');
+    rows.forEach(function(tr){
+      var td=tr.children[colIdx];
+      if(td){td.style.width=newW+'px';td.style.minWidth=newW+'px';}
+    });
+  }
+  function onUp(){
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    document.body.style.cursor='';document.body.style.userSelect='';
+  }
+  document.body.style.cursor='col-resize';
+  document.body.style.userSelect='none';
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+   ═══════════════════════════════════════════════════════════ */
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA')return;
+  if(e.key==='Delete'||e.key==='Backspace'){
+    if(state.selectedFieldId){deleteField(state.selectedFieldId);e.preventDefault();}
+  }
+  if(e.key==='Escape'){
+    state.selectedFieldId=null;renderFieldList();renderCanvas();renderProps();
+    $('import-modal').classList.remove('active');
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   CANVAS CLICK DESELECT
+   ═══════════════════════════════════════════════════════════ */
+$('label-canvas').addEventListener('click',function(e){
+  if(!e.target.closest('.canvas-element')){
+    state.selectedFieldId=null;renderFieldList();renderCanvas();renderProps();
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   ZOOM
+   ═══════════════════════════════════════════════════════════ */
+var ZOOM_MIN=0.25, ZOOM_MAX=4, ZOOM_STEP=0.1;
+
+function applyZoom(){
+  var wrapper=document.querySelector('.canvas-wrapper');
+  if(wrapper)wrapper.style.transform='scale('+state.zoom+')';
+  $('zoom-level').textContent=Math.round(state.zoom*100)+'%';
+}
+
+function setZoom(z){
+  state.zoom=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,Math.round(z*100)/100));
+  applyZoom();
+}
+
+$('zoom-in').addEventListener('click',function(){setZoom(state.zoom+ZOOM_STEP);});
+$('zoom-out').addEventListener('click',function(){setZoom(state.zoom-ZOOM_STEP);});
+$('zoom-reset').addEventListener('click',function(){setZoom(1);});
+
+$('canvas-area').addEventListener('wheel',function(e){
+  if(e.ctrlKey||e.metaKey){
+    e.preventDefault();
+    var delta=e.deltaY>0?-ZOOM_STEP:ZOOM_STEP;
+    setZoom(state.zoom+delta);
+  }
+},{passive:false});
+
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA')return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='='){e.preventDefault();setZoom(state.zoom+ZOOM_STEP);}
+  if((e.ctrlKey||e.metaKey)&&e.key==='-'){e.preventDefault();setZoom(state.zoom-ZOOM_STEP);}
+  if((e.ctrlKey||e.metaKey)&&e.key==='0'){e.preventDefault();setZoom(1);}
+});
+
+/* ═══════════════════════════════════════════════════════════
+   INDEXEDDB SESSION
+   ═══════════════════════════════════════════════════════════ */
+var DB_NAME='ElenzaLabelGen';
+var DB_VERSION=1;
+var DB_STORE='sessions';
+
+function openDB(){
+  return new Promise(function(resolve,reject){
+    var req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains(DB_STORE)){
+        db.createObjectStore(DB_STORE,{keyPath:'id',autoIncrement:true});
+      }
+    };
+    req.onsuccess=function(e){resolve(e.target.result);};
+    req.onerror=function(e){reject(e.target.error);};
+  });
+}
+
+function dbGetAll(){
+  return openDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      var tx=db.transaction(DB_STORE,'readonly');
+      var store=tx.objectStore(DB_STORE);
+      var req=store.getAll();
+      req.onsuccess=function(){resolve(req.result);};
+      req.onerror=function(){reject(req.error);};
+    });
+  });
+}
+
+function dbPut(record){
+  return openDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      var tx=db.transaction(DB_STORE,'readwrite');
+      var store=tx.objectStore(DB_STORE);
+      var req=store.put(record);
+      req.onsuccess=function(){resolve(req.result);};
+      req.onerror=function(){reject(req.error);};
+    });
+  });
+}
+
+function dbDelete(id){
+  return openDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      var tx=db.transaction(DB_STORE,'readwrite');
+      var store=tx.objectStore(DB_STORE);
+      var req=store.delete(id);
+      req.onsuccess=function(){resolve();};
+      req.onerror=function(){reject(req.error);};
+    });
+  });
+}
+
+function getSessionSnapshot(){
+  return {
+    name:'',
+    savedAt:new Date().toISOString(),
+    fields:JSON.parse(JSON.stringify(state.fields)),
+    data:JSON.parse(JSON.stringify(state.data)),
+    nextFieldId:state.nextFieldId,
+    canvasW:state.canvasW,
+    canvasH:state.canvasH,
+    cfgWidth:Number($('cfg-width').value)||60,
+    cfgHeight:Number($('cfg-height').value)||40,
+    zoom:state.zoom,
+    labelSettings:state.labelSettings?JSON.parse(JSON.stringify(state.labelSettings)):null
+  };
+}
+
+function applySession(snap){
+  state.fields=snap.fields||[];
+  state.data=snap.data||[];
+  state.nextFieldId=snap.nextFieldId||1;
+  state.selectedFieldId=null;
+  state.zoom=snap.zoom||1;
+  if(snap.cfgWidth)$('cfg-width').value=snap.cfgWidth;
+  if(snap.cfgHeight)$('cfg-height').value=snap.cfgHeight;
+  if(snap.labelSettings){state.labelSettings=snap.labelSettings;applyLabelStyle();}
+  updateCanvasSize();
+  applyZoom();
+  renderFieldList();renderData();renderProps();
+  toast('Session loaded: '+snap.name,'success');
+}
+
+/* Save Session */
+$('btn-save-session').addEventListener('click',function(){
+  var snap=getSessionSnapshot();
+  var modal=$('session-modal');
+  $('session-modal-title').textContent='Save Session';
+  $('session-modal-confirm').textContent='Save';
+  $('session-modal-body').innerHTML=''
+    +'<div class="prop-row-full"><label>Session Name</label>'
+    +'<input id="session-name" type="text" value="Label Design '+(new Date().toLocaleDateString())+'" placeholder="Enter session name"></div>';
+  $('session-modal').classList.add('active');
+  setTimeout(function(){$('session-name').focus();$('session-name').select();},100);
+
+  $('session-modal-confirm').onclick=function(){
+    var name=$('session-name').value.trim()||'Untitled Session';
+    snap.name=name;
+    dbPut(snap).then(function(){
+      toast('Session saved: '+name,'success');
+      modal.classList.remove('active');
+    }).catch(function(err){toast('Save failed: '+err.message,'error');});
+  };
+});
+
+/* Load Session */
+$('btn-load-session').addEventListener('click',function(){
+  var modal=$('session-modal');
+  $('session-modal-title').textContent='Load Session';
+  $('session-modal-confirm').textContent='Load';
+  $('session-modal-body').innerHTML='<div class="session-list" id="session-list"><div class="session-empty">Loading...</div></div>';
+  $('session-modal').classList.add('active');
+
+  dbGetAll().then(function(rows){
+    var list=$('session-list');
+    if(!rows.length){list.innerHTML='<div class="session-empty">No saved sessions found.</div>';return;}
+    rows.sort(function(a,b){return (b.savedAt||'').localeCompare(a.savedAt||'');});
+    var html='';
+    rows.forEach(function(r){
+      var d=r.savedAt?new Date(r.savedAt).toLocaleString():'Unknown date';
+      var fields=(r.fields||[]).length;
+      var dataRows=(r.data||[]).length;
+      html+='<div class="session-item" data-sid="'+r.id+'">'
+        +'<div><div class="si-name">'+esc(r.name||'Untitled')+'</div>'
+        +'<div class="si-meta">'+d+' &middot; '+fields+' fields &middot; '+dataRows+' rows</div></div>'
+        +'<button class="si-del" data-sdel="'+r.id+'" title="Delete">&times;</button></div>';
+    });
+    list.innerHTML=html;
+  }).catch(function(err){
+    $('session-list').innerHTML='<div class="session-empty">Error: '+esc(err.message)+'</div>';
+  });
+
+  $('session-modal-confirm').onclick=function(){
+    var sel=document.querySelector('.session-item.active');
+    if(!sel){toast('Select a session to load','error');return;}
+    var sid=Number(sel.dataset.sid);
+    dbGetAll().then(function(rows){
+      var snap=rows.find(function(r){return r.id===sid;});
+      if(snap){applySession(snap);modal.classList.remove('active');}
+      else{toast('Session not found','error');}
+    });
+  };
+});
+
+$('session-modal-body').addEventListener('click',function(e){
+  var delBtn=e.target.closest('[data-sdel]');
+  if(delBtn){
+    e.stopPropagation();
+    var sid=Number(delBtn.dataset.sdel);
+    dbDelete(sid).then(function(){
+      var item=delBtn.closest('.session-item');
+      if(item)item.remove();
+      toast('Session deleted','success');
+    });
+    return;
+  }
+  var item=e.target.closest('.session-item');
+  if(item){
+    document.querySelectorAll('.session-item').forEach(function(i){i.classList.remove('active');});
+    item.classList.add('active');
+  }
+});
+
+/* Clear Session (factory reset) */
+$('btn-clear-session').addEventListener('click',function(){
+  if(!confirm('Clear all fields and data? This cannot be undone.'))return;
+  state.fields=[];state.data=[];state.selectedFieldId=null;state.nextFieldId=1;state.zoom=1;
+  $('cfg-width').value=60;$('cfg-height').value=40;
+  updateCanvasSize();applyZoom();renderFieldList();renderData();renderProps();
+  toast('Canvas cleared','success');
+});
+
+$('session-modal-close').addEventListener('click',function(){$('session-modal').classList.remove('active');});
+$('session-modal-cancel').addEventListener('click',function(){$('session-modal').classList.remove('active');});
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE NAV
+   ═══════════════════════════════════════════════════════════ */
+function toggleMobPanel(panel){
+  document.querySelectorAll('.panel-left,.panel-center,.panel-right').forEach(function(p){p.classList.remove('mob-active');});
+  document.querySelectorAll('.mob-nav-btn').forEach(function(b){b.classList.remove('active');});
+  if(panel==='fields'){document.querySelector('.panel-left').classList.add('mob-active');}
+  else if(panel==='canvas'){document.querySelector('.panel-center').classList.add('mob-active');}
+  else if(panel==='data'){document.querySelector('.panel-right').classList.add('mob-active');}
+  var idx={fields:0,canvas:1,data:2}[panel]||0;
+  document.querySelectorAll('.mob-nav-btn')[idx].classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LABEL SETTINGS
+   ═══════════════════════════════════════════════════════════ */
+var LS_PRESETS=[
+  {name:'Thermal 4×6',w:101.6,h:152.4,u:'mm',dpi:203,desc:'4 in × 6 in'},
+  {name:'Thermal 4×3',w:101.6,h:76.2,u:'mm',dpi:203,desc:'4 in × 3 in'},
+  {name:'Thermal 2×1',w:50.8,h:25.4,u:'mm',dpi:203,desc:'2 in × 1 in'},
+  {name:'Thermal 2.25×1.25',w:57.15,h:31.75,u:'mm',dpi:203,desc:'2.25 in × 1.25 in'},
+  {name:'Thermal 3×2',w:76.2,h:50.8,u:'mm',dpi:203,desc:'3 in × 2 in'},
+  {name:'Avery 5160',w:63.5,h:38.1,u:'mm',dpi:300,desc:'30 per sheet'},
+  {name:'Avery 5163',w:99.1,h:67.7,u:'mm',dpi:300,desc:'10 per sheet'},
+  {name:'Avery L7163',w:99.1,h:38.1,u:'mm',dpi:300,desc:'24 per sheet'},
+  {name:'Avery 8160',w:63.5,h:38.1,u:'mm',dpi:300,desc:'30 per sheet'},
+  {name:'Zebra 4×6',w:101.6,h:152.4,u:'mm',dpi:203,desc:'Direct thermal'},
+  {name:'Dymo 30252',w:89,h:36.2,u:'mm',dpi:300,desc:'Address label'},
+  {name:'UPS 4×6',w:101.6,h:152.4,u:'mm',dpi:203,desc:'Shipping label'},
+];
+var activePresetIdx=null;
+function renderPresets(){
+  var html='';
+  LS_PRESETS.forEach(function(p,i){
+    var cls='preset-btn'+(activePresetIdx===i?' active':'');
+    html+='<button class="'+cls+'" onclick="selectPreset('+i+')">';
+    html+='<div class="pz-name">'+p.name+'</div>';
+    html+='<div class="pz-size">'+p.desc+'</div>';
+    html+='<div class="pz-use">'+p.w+p.u+' × '+p.h+p.u+' @ '+p.dpi+'dpi</div>';
+    html+='</button>';
+  });
+  $('presetGrid').innerHTML=html;
+}
+function selectPreset(i){
+  activePresetIdx=i;
+  var p=LS_PRESETS[i];
+  $('lsW').value=p.w;$('lsWu').value=p.u;
+  $('lsH').value=p.h;$('lsHu').value=p.u;
+  $('lsDpi').value=p.dpi;
+  renderPresets();
+}
+function showLabelSettings(){
+  activePresetIdx=null;
+  renderPresets();
+  if(state.labelSettings){
+    if(state.labelSettings.paperMargin!=null)$('lsPaperMargin').value=state.labelSettings.paperMargin;
+    if(state.labelSettings.labelGap!=null)$('lsLabelGap').value=state.labelSettings.labelGap;
+  }
+  $('labelSettingsModal').classList.add('active');
+}
+function closeLabelSettings(){
+  $('labelSettingsModal').classList.remove('active');
+}
+function applyLabelSettings(){
+  var w=parseFloat($('lsW').value)||60,h=parseFloat($('lsH').value)||40;
+  var wu=$('lsWu').value,hu=$('lsHu').value;
+  var dpi=parseInt($('lsDpi').value)||203;
+  function toMM(v,u){
+    if(u==='mm')return v;
+    if(u==='cm')return v*10;
+    if(u==='in')return v*25.4;
+    if(u==='px')return v*(25.4/dpi);
+    return v;
+  }
+  var wMM=toMM(w,wu),hMM=toMM(h,hu);
+  if($('lsOrient').value==='landscape'){var t=wMM;wMM=hMM;hMM=t;}
+  $('cfg-width').value=Math.round(wMM*10)/10;
+  $('cfg-height').value=Math.round(hMM*10)/10;
+  var borderVal=parseFloat($('lsBorder').value)||0;
+  var borderColor=$('lsBorderColor').value||'#000000';
+  var bgColor=$('lsBg').value||'#ffffff';
+  var radius=parseInt($('lsRadius').value)||0;
+  var bleed=parseFloat($('lsBleed').value)||0;
+  var gridSize=parseInt($('lsGrid').value)||10;
+  var snap=$('lsSnap').value==='yes';
+  var paperMargin=parseFloat($('lsPaperMargin').value)||10;
+  var labelGap=parseFloat($('lsLabelGap').value)||2;
+  state.labelSettings={
+    border:borderVal,borderColor:borderColor,bg:bgColor,
+    radius:radius,bleed:bleed,dpi:dpi,
+    gridSize:gridSize,snap:snap,
+    paperMargin:paperMargin,labelGap:labelGap
+  };
+  if(gridSize!=='off'){
+    $('cfg-grid').value=String(gridSize);
+  }
+  updateCanvasSize();
+  applyLabelStyle();
+  closeLabelSettings();
+  toast('Label settings applied','success');
+}
+function applyLabelStyle(){
+  if(!state.labelSettings)return;
+  var s=state.labelSettings;
+  var c=document.getElementById('label-canvas');
+  if(!c)return;
+  c.style.border=s.border+'px solid '+s.borderColor;
+  c.style.background=s.bg;
+  c.style.borderRadius=s.radius+'px';
+  if(s.bleed>0){c.style.boxShadow='inset 0 0 0 '+s.bleed+'px rgba(255,0,0,0.15)';}
+  else{c.style.boxShadow='';}
+}
+function syncSettingsFromCanvas(){
+  $('cfg-width').addEventListener('change',function(){});
+  $('cfg-height').addEventListener('change',function(){});
+}
+if(!state.labelSettings)state.labelSettings={border:1,borderColor:'#000000',bg:'#ffffff',radius:0,bleed:0,dpi:203,gridSize:10,snap:true};
+
+/* ═══════════════════════════════════════════════════════════
+   TOUCH EVENTS FOR CANVAS
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  var area=document.getElementById('canvas-area');
+  if(!area)return;
+  var lastTouchDist=0;
+  area.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){
+      var dx=e.touches[0].clientX-e.touches[1].clientX;
+      var dy=e.touches[0].clientY-e.touches[1].clientY;
+      lastTouchDist=Math.sqrt(dx*dx+dy*dy);
+    }
+  },{passive:true});
+  area.addEventListener('touchmove',function(e){
+    if(e.touches.length===2){
+      var dx=e.touches[0].clientX-e.touches[1].clientX;
+      var dy=e.touches[0].clientY-e.touches[1].clientY;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      if(lastTouchDist>0){
+        var scale=dist/lastTouchDist;
+        var newZoom=Math.round(state.zoom*scale*100);
+        newZoom=Math.max(25,Math.min(400,newZoom));
+        state.zoom=newZoom/100;
+        applyZoom();
+      }
+      lastTouchDist=dist;
+      e.preventDefault();
+    }
+  },{passive:false});
+  area.addEventListener('touchend',function(){lastTouchDist=0;},{passive:true});
+
+  document.querySelectorAll('.field-el').forEach(function(el){
+    el.addEventListener('touchstart',function(e){
+      if(e.touches.length===1){
+        var touch=e.touches[0];
+        el.setAttribute('data-touch-start-x',touch.clientX);
+        el.setAttribute('data-touch-start-y',touch.clientY);
+        var rect=el.getBoundingClientRect();
+        el.setAttribute('data-touch-offset-x',touch.clientX-rect.left);
+        el.setAttribute('data-touch-offset-y',touch.clientY-rect.top);
+      }
+    },{passive:true});
+    el.addEventListener('touchmove',function(e){
+      if(e.touches.length===1){
+        e.preventDefault();
+        var touch=e.touches[0];
+        var areaRect=area.getBoundingClientRect();
+        var zoom=state.zoom;
+        var ox=parseFloat(el.getAttribute('data-touch-offset-x'))||0;
+        var oy=parseFloat(el.getAttribute('data-touch-offset-y'))||0;
+        var newLeft=(touch.clientX-areaRect.left-ox)/zoom;
+        var newTop=(touch.clientY-areaRect.top-oy)/zoom;
+        newLeft=Math.max(0,Math.min(parseFloat($('label-canvas').style.width)||200-newLeft,newLeft));
+        newTop=Math.max(0,Math.min(parseFloat($('label-canvas').style.height)||100-newTop,newTop));
+        el.style.left=Math.round(newLeft)+'px';
+        el.style.top=Math.round(newTop)+'px';
+      }
+    },{passive:false});
+    el.addEventListener('touchend',function(e){
+      var id=el.getAttribute('data-id');
+      if(id){
+        var f=state.fields.find(function(x){return x.id==id;});
+        if(f){
+          f.x=parseInt(el.style.left)||0;
+          f.y=parseInt(el.style.top)||0;
+          renderProps();
+        }
+      }
+    },{passive:true});
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   LABEL SETTINGS COLOR SYNC
+   ═══════════════════════════════════════════════════════════ */
+$('lsBorderColor').addEventListener('input',function(){$('lsBorderColorHex').value=this.value;});
+$('lsBorderColorHex').addEventListener('input',function(){if(/^#[0-9A-Fa-f]{6}$/.test(this.value))$('lsBorderColor').value=this.value;});
+$('lsBg').addEventListener('input',function(){$('lsBgHex').value=this.value;});
+$('lsBgHex').addEventListener('input',function(){if(/^#[0-9A-Fa-f]{6}$/.test(this.value))$('lsBg').value=this.value;});
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════ */
+updateCanvasSize();
+applyZoom();
+renderFieldList();
+renderData();
+
+window.showLabelSettings=showLabelSettings;
+window.closeLabelSettings=closeLabelSettings;
+window.applyLabelSettings=applyLabelSettings;
+window.selectPreset=selectPreset;
+window.toggleMobPanel=toggleMobPanel;
+window.doPrintRoll=function(){doPrint('roll');};
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORT / IMPORT PRESETS
+   ═══════════════════════════════════════════════════════════ */
+$('btn-export-session').addEventListener('click',function(){
+  var preset={
+    name:'Label Preset',
+    version:'1.2.0',
+    exportedAt:new Date().toISOString(),
+    labelSettings:state.labelSettings?JSON.parse(JSON.stringify(state.labelSettings)):null,
+    cfgWidth:Number($('cfg-width').value)||60,
+    cfgHeight:Number($('cfg-height').value)||40,
+    fields:JSON.parse(JSON.stringify(state.fields)),
+    data:JSON.parse(JSON.stringify(state.data))
+  };
+  var json=JSON.stringify(preset,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='label-preset-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Preset exported','success');
+});
+
+$('btn-import-session').addEventListener('click',function(){
+  $('import-file-input').click();
+});
+
+$('import-file-input').addEventListener('change',function(e){
+  var file=e.target.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var preset=JSON.parse(ev.target.result);
+      if(preset.labelSettings){state.labelSettings=preset.labelSettings;applyLabelStyle();}
+      if(preset.cfgWidth)$('cfg-width').value=preset.cfgWidth;
+      if(preset.cfgHeight)$('cfg-height').value=preset.cfgHeight;
+      if(preset.fields)state.fields=preset.fields;
+      if(preset.data)state.data=preset.data;
+      if(preset.fields)state.nextFieldId=preset.fields.reduce(function(m,f){return Math.max(m,f.id+1);},1);
+      state.selectedFieldId=null;
+      updateCanvasSize();applyZoom();renderFieldList();renderData();renderProps();
+      toast('Preset imported: '+(preset.name||file.name),'success');
+    }catch(err){
+      toast('Invalid preset file','error');
+    }
+  };
+  reader.readAsText(file);
+  this.value='';
+});
+
+})();
+</script>
+</body>
+</html>

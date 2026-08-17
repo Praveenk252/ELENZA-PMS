@@ -396,3 +396,28 @@ Fixed the reported Admin customer-type-change flow issue and directly corrected 
 - Uploaded only `/site1/script.js` for the UI fix.
 - Verified FTP read-back SHA-256 matched the uploaded script.
 - Verified public `script.js` contains the updated matching/helper logic.
+
+## 2026-08-11 — PmsApiHandler.cs restored from backup
+
+### Task completed
+
+Restored live `/site1/App_Code/PmsApiHandler.cs` from the `full-site-backup-20260811` backup because the current handler was reported as not working.
+
+### Files modified/deployed
+
+- `/site1/App_Code/PmsApiHandler.cs`
+- `docs/memory.md`
+
+### Backup and source
+
+- Backed up the live handler before restore under `backups/restore-pms-handler-20260811-173025/`.
+- Restore source: `backups/full-site-backup-20260811/App_Code/PmsApiHandler.cs`.
+- Source/read-back SHA-256: `5065FFFAAA9BE79969B8E37792D8121F1AF851BC00C4802890D73CFD40E9D1AE`.
+
+### Verification
+
+- Local C# compile check passed for the backup handler.
+- FTP read-back SHA-256 matched the uploaded file.
+- Public main page returned HTTP 200.
+- Public `api.ashx?action=session` returned HTTP 200 with JSON `authenticated:false`.
+- No database changes were made.

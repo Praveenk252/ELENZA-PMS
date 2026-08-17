@@ -44,6 +44,16 @@ tr:hover{background:#f8fafc}
 .btn-edd:hover{background:#fde68a}
 .btn-pri{background:#dbeafe;color:#1e40af;border:1px solid #60a5fa}
 .btn-pri:hover{background:#bfdbfe}
+.btn-pri-clear{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;font-size:11px}
+.btn-pri-clear:hover{background:#e2e8f0}
+.pri-badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
+.pri-badge.high{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.pri-badge.medium{background:#fef9c3;color:#854d0e;border:1px solid #fde047}
+.pri-badge.low{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+tr.row-high{background:#fecaca!important}
+tr.row-high:hover{background:#fca5a5!important}
+tr.row-medium{background:#fef08a!important}
+tr.row-medium:hover{background:#fde047!important}
 .btn-wa{background:#dcfce7;color:#166534;border:1px solid #4ade80}
 .btn-wa:hover{background:#bbf7d0}
 .wa-wrap{position:relative;display:inline-block}
@@ -70,6 +80,14 @@ tr:hover{background:#f8fafc}
 .btn-submit{background:#046bd2;color:#fff}
 .btn-submit:hover{background:#0358b0}
 .cb{width:16px;height:16px;cursor:pointer}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+.auth-quick-link-icon{font-size:18px;line-height:1}
+.auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+.auth-quick-link-desc{display:none}
+@media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
 @media(max-width:768px){.stats{grid-template-columns:repeat(5,1fr);gap:4px}.sc .n{font-size:18px}.sc .l{font-size:8px}.topbar{flex-direction:column;gap:8px;text-align:center}table{font-size:11px}th,td{padding:4px}}
 </style>
 </head>
@@ -81,6 +99,7 @@ tr:hover{background:#f8fafc}
 </div>
 <div class="wrap" id="main" style="display:none">
   <div class="stats" id="stats"></div>
+  <div style="text-align:right;margin-bottom:8px"><button class="btn-sm btn-pri" onclick="openPriorityReport()" style="margin-right:6px">Priority Report</button><button class="btn-sm btn-wa" onclick="openRemarksReport()">Remarks Report</button></div>
   <div class="tabs" id="tabBar">
     <div class="tab on" onclick="stab('dealers')">My Dealers</div>
     <div class="tab" onclick="stab('production')">In Production</div>
@@ -90,6 +109,7 @@ tr:hover{background:#f8fafc}
   <div class="frow" id="filterRow">
     <select id="ctFilter" onchange="applyFilters()"><option value="all">All Customer Types</option></select>
     <select id="otFilter" onchange="applyFilters()"><option value="all">All Order Types</option></select>
+    <select id="priFilter" onchange="applyFilters()"><option value="all">All Priorities</option><option value="High">High Priority</option><option value="Medium">Medium Priority</option><option value="Low">Low Priority</option><option value="none">No Priority</option></select>
   </div>
   <div class="sec on" id="s-dealers">
     <div class="sbox"><input type="text" id="dSearch" placeholder="Search dealers..." oninput="rDealers()"></div>
@@ -129,6 +149,19 @@ tr:hover{background:#f8fafc}
       <input type="password" id="lPass" placeholder="Password" required style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;margin-bottom:16px">
       <button type="submit" style="width:100%;padding:10px;background:#046bd2;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
     </form>
+    <div class="auth-quick-links">
+      <div class="auth-quick-links-grid">
+        <a href="qr-scanner.html" class="auth-quick-link"><span class="auth-quick-link-icon">📸</span><span class="auth-quick-link-label">QR Scanner</span><span class="auth-quick-link-desc">Scan & update orders</span></a>
+        <a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+        <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+        <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+        <a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+        <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+        <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+        <a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+        <a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+      </div>
+    </div>
     <p id="lErr" style="color:#dc2626;font-size:12px;margin-top:10px;display:none"></p>
   </div>
 </div>
@@ -158,8 +191,20 @@ tr:hover{background:#f8fafc}
     <label>Comments</label>
     <textarea id="priComments" placeholder="Priority remarks..."></textarea>
     <div class="modal-btns">
+      <button class="btn-sm btn-pri-clear" id="priClearBtn" style="display:none;margin-right:auto" onclick="clearPriority()">Clear Priority</button>
       <button class="btn-cancel" onclick="closeModal('priModal')">Cancel</button>
       <button class="btn-submit" onclick="submitPriority()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="priReportModal">
+  <div class="modal" style="max-width:700px">
+    <h3>Priority Report</h3>
+    <div style="max-height:400px;overflow-y:auto;margin-bottom:12px">
+      <table><thead><tr><th>Order #</th><th>Dealer</th><th>Customer</th><th>Priority</th><th>Remarks</th></tr></thead><tbody id="priReportBody"></tbody></table>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('priReportModal')">Close</button>
     </div>
   </div>
 </div>
@@ -186,6 +231,38 @@ tr:hover{background:#f8fafc}
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal('waUrgentModal')">Cancel</button>
       <button class="btn-submit" onclick="submitUrgentWa()">Copy & Send</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="remarksReportModal">
+  <div class="modal" style="max-width:700px">
+    <h3>Remarks Report</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn-sm btn-all" onclick="filterReport('all')" id="rrAll">All</button>
+      <button class="btn-sm btn-all" onclick="filterReport('pending')" id="rrPending">Pending</button>
+      <button class="btn-sm btn-all" onclick="filterReport('replied')" id="rrReplied">Replied</button>
+    </div>
+    <div id="rrSummary" style="font-size:12px;color:#64748b;margin-bottom:8px"></div>
+    <div style="max-height:400px;overflow-y:auto">
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid #e2e8f0">Status</th><th style="text-align:left;padding:6px;border-bottom:2px solid #e2e8f0">Requested</th><th style="text-align:left;padding:6px;border-bottom:2px solid #e2e8f0">By</th><th style="text-align:left;padding:6px;border-bottom:2px solid #e2e8f0">Orders</th><th style="text-align:left;padding:6px;border-bottom:2px solid #e2e8f0">Replied At</th><th style="text-align:left;padding:6px;border-bottom:2px solid #e2e8f0">Replied By</th><th style="text-align:left;padding:6px;border-bottom:2px solid #e2e8f0"></th></tr></thead>
+        <tbody id="rrTb"></tbody>
+      </table>
+    </div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn-cancel" onclick="closeModal('remarksReportModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="remarksSummaryModal">
+  <div class="modal" style="max-width:500px">
+    <h3>Remarks Request Summary</h3>
+    <div id="rrsBody"></div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn-cancel" onclick="closeModal('remarksSummaryModal')">Close</button>
+      <button class="btn-submit" id="rrsReminderBtn" style="display:none" onclick="sendReminder()">Reask on Group</button>
     </div>
   </div>
 </div>
@@ -224,12 +301,12 @@ function gs(o){
 }
 function bg(s){return{"In Production":'bl',Packed:'y',Dispatched:'g'}[s]||'gr'}
 function esc(h){return String(h).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function load(){api('app-state').then(function(d){S.ses=d.session||S.ses;document.getElementById('uInfo').textContent=S.ses.full_name+' | '+S.ses.role_name;var nm=S.ses.full_name.toLowerCase();S.dealers=(d.data_entry&&d.data_entry.dealers||[]).filter(function(x){return String(x.marketing_owner||'').toLowerCase()===nm});var all=[].concat(d.production.rows||[],d.planning.rows||[],d.dispatch.rows||[]);var seen={};S.orders=all.filter(function(o){var dn=String(o.dealer_name||'').toLowerCase();var m=S.dealers.some(function(dl){return String(dl.dealer_name||'').toLowerCase()===dn});if(m&&!seen[o.order_id]){seen[o.order_id]=1;return 1}return 0});var dispatchIds={};(d.dispatch.rows||[]).forEach(function(o){dispatchIds[o.order_id]=o});S.orders.forEach(function(o){if(dispatchIds[o.order_id]){var ds=String(dispatchIds[o.order_id].dispatch_status||'').toLowerCase();if(ds==='dispatched')o._dispatched=1;else o._packed=1}});S.orders.sort(function(a,b){return String(a.dealer_name||'').localeCompare(String(b.dealer_name||''))});var cts={},ots={};S.orders.forEach(function(o){var ct=o.customer_type||'';var ot=o.order_type||o.order_type_name||'';if(ct)cts[ct]=1;if(ot)ots[ot]=1});var ctSel=document.getElementById('ctFilter');ctSel.innerHTML='<option value="all">All Customer Types</option>';Object.keys(cts).sort().forEach(function(k){ctSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});var otSel=document.getElementById('otFilter');otSel.innerHTML='<option value="all">All Order Types</option>';Object.keys(ots).sort().forEach(function(k){otSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});rStats();rDealers();rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched');loadRequests()})}
+function load(){api('app-state').then(function(d){S.ses=d.session||S.ses;document.getElementById('uInfo').textContent=S.ses.full_name+' | '+S.ses.role_name;var nm=S.ses.full_name.toLowerCase();S.dealers=(d.data_entry&&d.data_entry.dealers||[]).filter(function(x){return String(x.marketing_owner||'').toLowerCase()===nm});var all=[].concat(d.production.rows||[],d.planning.rows||[],d.dispatch.rows||[]);var seen={};S.orders=all.filter(function(o){var dn=String(o.dealer_name||'').toLowerCase();var m=S.dealers.some(function(dl){return String(dl.dealer_name||'').toLowerCase()===dn});if(m&&!seen[o.order_id]){seen[o.order_id]=1;return 1}return 0});S.priorityLookup={};(d.planning.rows||[]).forEach(function(o){if(o.priority){S.priorityLookup[o.order_id]={priority:o.priority,planner_remarks:o.planner_remarks||'',priority_date:o.priority_date||''}}});var dispatchIds={};(d.dispatch.rows||[]).forEach(function(o){dispatchIds[o.order_id]=o});S.orders.forEach(function(o){if(dispatchIds[o.order_id]){var ds=String(dispatchIds[o.order_id].dispatch_status||'').toLowerCase();if(ds==='dispatched')o._dispatched=1;else o._packed=1}});S.orders.sort(function(a,b){return String(a.dealer_name||'').localeCompare(b.dealer_name||'')});var cts={},ots={};S.orders.forEach(function(o){var ct=o.customer_type||'';var ot=o.order_type||o.order_type_name||'';if(ct)cts[ct]=1;if(ot)ots[ot]=1});var ctSel=document.getElementById('ctFilter');ctSel.innerHTML='<option value="all">All Customer Types</option>';Object.keys(cts).sort().forEach(function(k){ctSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});var otSel=document.getElementById('otFilter');otSel.innerHTML='<option value="all">All Order Types</option>';Object.keys(ots).sort().forEach(function(k){otSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});rStats();rDealers();rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched');loadRequests()})}
 
 
 function loadRequests(){
   api('remarks-requests-list').then(function(r){
-    if(r.ok&&r.rows){
+    if(r.rows){
       S.requests=r.rows;
       buildRequestLookup();
       rOrdersTab('production');
@@ -249,7 +326,91 @@ function buildRequestLookup(){
     });
   });
 }
-function rStats(){var t=S.dealers.length,o=S.orders.length,ip=0,pa=0,di=0;S.orders.forEach(function(x){var s=gs(x);if(s==='In Production')ip++;else if(s==='Packed')pa++;else di++});document.getElementById('stats').innerHTML='<div class="sc"><div class="n">'+t+'</div><div class="l">My Dealers</div></div><div class="sc"><div class="n">'+o+'</div><div class="l">Total Orders</div></div><div class="sc"><div class="n">'+ip+'</div><div class="l">In Production</div></div><div class="sc"><div class="n">'+pa+'</div><div class="l">Packed</div></div><div class="sc"><div class="n">'+di+'</div><div class="l">Dispatched</div></div>'}
+var reportFilter='all';
+var pendingSummaryReq=null;
+function openRemarksReport(){
+  reportFilter='all';
+  renderReport();
+  document.getElementById('remarksReportModal').className='modal-bg on';
+}
+function filterReport(f){
+  reportFilter=f;
+  renderReport();
+}
+function renderReport(){
+  var rows=S.requests||[];
+  if(reportFilter!=='all')rows=rows.filter(function(r){return reportFilter==='replied'?r.status!=='pending':r.status===reportFilter});
+  var pending=0,replied=0;
+  (S.requests||[]).forEach(function(r){if(r.status==='pending')pending++;else replied++});
+  document.getElementById('rrSummary').innerHTML='Total: '+(S.requests||[]).length+' | Pending: <b style="color:#ca8a04">'+pending+'</b> | Replied: <b style="color:#16a34a">'+replied+'</b>';
+  var h='';
+  rows.forEach(function(r){
+    var sc=r.status==='replied'?'color:#16a34a;font-weight:600':'color:#ca8a04;font-weight:600';
+    var orderCount=(r.order_ids||'').split(',').length;
+    var replyBy=r.status==='replied'?(esc(r.replier_name||'-')):'-';
+    var remindCount=parseInt(r.reminder_count||0);
+    var remindBtn='';
+    if(r.status==='pending'&&remindCount>0)remindBtn=' <span style="color:#ca8a04;font-size:10px">Reminder #'+remindCount+'</span>';
+    h+='<tr style="cursor:pointer" onclick="openSummary('+r.request_id+')"><td style="padding:6px;border-bottom:1px solid #f1f5f9"><span style="'+sc+'">'+esc(r.status)+'</span>'+remindBtn+'</td><td style="padding:6px;border-bottom:1px solid #f1f5f9">'+esc(r.requested_at)+'</td><td style="padding:6px;border-bottom:1px solid #f1f5f9">'+esc(r.requester_name)+'</td><td style="padding:6px;border-bottom:1px solid #f1f5f9">'+orderCount+' orders</td><td style="padding:6px;border-bottom:1px solid #f1f5f9">'+esc(r.replied_at||'-')+'</td><td style="padding:6px;border-bottom:1px solid #f1f5f9">'+replyBy+'</td><td style="padding:6px;border-bottom:1px solid #f1f5f9;color:#046bd2;font-size:11px">View</td></tr>';
+  });
+  document.getElementById('rrTb').innerHTML=h||'<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No requests found</td></tr>';
+}
+function openSummary(requestId){
+  var req=S.requests.find(function(r){return r.request_id===requestId});
+  if(!req)return;
+  pendingSummaryReq=req;
+  var ids=(req.order_ids||'').split(',').map(function(s){return parseInt(s.trim())}).filter(Boolean);
+  var orderLines=[];
+  ids.forEach(function(oid){
+    var o=S.orders.find(function(x){return x.order_id===oid});
+    if(o)orderLines.push('<div style="padding:4px 0;border-bottom:1px solid #f1f5f9"><b>'+esc(o.order_number)+'</b> - '+esc(o.dealer_name||'')+' | '+esc(o.customer_name||'')+'</div>');
+    else orderLines.push('<div style="padding:4px 0;border-bottom:1px solid #f1f5f9">Order ID: '+oid+'</div>');
+  });
+  var isPending=req.status==='pending';
+  var remindCount=parseInt(req.reminder_count||0);
+  var statusHtml=isPending?'<span style="color:#ca8a04;font-weight:600">⏳ Pending</span>':'<span style="color:#16a34a;font-weight:600">✓ Replied</span>';
+  var html='<div style="margin-bottom:12px"><b>Status:</b> '+statusHtml+'</div>';
+  html+='<div style="margin-bottom:12px"><b>Requested by:</b> '+esc(req.requester_name||'-')+' on '+esc(req.requested_at)+'</div>';
+  if(!isPending){
+    html+='<div style="margin-bottom:12px"><b>Replied by:</b> '+esc(req.replier_name||'-')+'</div>';
+    html+='<div style="margin-bottom:12px"><b>Replied at:</b> '+esc(req.replied_at||'-')+'</div>';
+  }
+  if(remindCount>0){
+    html+='<div style="margin-bottom:12px"><b>Reminders sent:</b> <span style="color:#ca8a04">#'+remindCount+'</span></div>';
+  }
+  html+='<div style="margin-bottom:8px"><b>Orders ('+ids.length+'):</b></div>';
+  html+='<div style="max-height:200px;overflow-y:auto;background:#f8fafc;border-radius:6px;padding:8px">'+orderLines.join('')+'</div>';
+  document.getElementById('rrsBody').innerHTML=html;
+  document.getElementById('rrsReminderBtn').style.display=isPending?'inline-block':'none';
+  document.getElementById('rrsReminderBtn').textContent=isPending?(remindCount>0?'Send Reminder #'+(remindCount+1):'Reask on Group'):'';
+  document.getElementById('remarksSummaryModal').className='modal-bg on';
+}
+function sendReminder(){
+  if(!pendingSummaryReq)return;
+  var req=pendingSummaryReq;
+  var ids=(req.order_ids||'').split(',').map(function(s){return parseInt(s.trim())}).filter(Boolean);
+  var orderLines=[];
+  ids.forEach(function(oid){
+    var o=S.orders.find(function(x){return x.order_id===oid});
+    if(o)orderLines.push(o.order_number+' | '+fmtDate(o.confirmation_date||'-')+' | '+gs(o));
+  });
+  var remindCount=parseInt(req.reminder_count||0);
+  var newCount=remindCount+1;
+  var url=window.location.origin+'/remarks-reply.html?token='+req.token;
+  var msg='Reminder #'+newCount+': Please update status for these orders:\n\n'+orderLines.join('\n')+'\n\nRemarks here: '+url;
+  apiPost('remarks-request-reminder','request_id='+req.request_id).then(function(r){
+    if(r.ok){
+      pendingSummaryReq.reminder_count=r.reminder_count;
+      shareMsg(msg,'production');
+      toast('Reminder #'+r.reminder_count+' sent','ok');
+      loadRequests();
+      closeModal('remarksSummaryModal');
+    }else{
+      toast(r.message||'Failed','err');
+    }
+  }).catch(function(){toast('Connection error','err')});
+}
+function rStats(){var t=S.dealers.length,o=S.orders.length,ip=0,pa=0,di=0,hi=0;S.orders.forEach(function(x){var s=gs(x);if(s==='In Production')ip++;else if(s==='Packed')pa++;else di++;if(S.priorityLookup&&S.priorityLookup[x.order_id]&&S.priorityLookup[x.order_id].priority==='High')hi++});document.getElementById('stats').innerHTML='<div class="sc"><div class="n">'+t+'</div><div class="l">My Dealers</div></div><div class="sc"><div class="n">'+o+'</div><div class="l">Total Orders</div></div><div class="sc"><div class="n">'+ip+'</div><div class="l">In Production</div></div><div class="sc"><div class="n">'+pa+'</div><div class="l">Packed</div></div><div class="sc"><div class="n">'+di+'</div><div class="l">Dispatched</div></div><div class="sc" style="'+(hi>0?'border:2px solid #fca5a5;background:#fef2f2':'')+'"><div class="n" style="'+(hi>0?'color:#991b1b':'')+'">'+hi+'</div><div class="l">High Priority</div></div>'}
 function rDealers(){var q=(document.getElementById('dSearch').value||'').toLowerCase();var h='';S.dealers.forEach(function(d){var n=String(d.dealer_name||''),c=String(d.dealer_code||''),ci=String(d.city||''),co=String(d.contact_person||''),mo=String(d.mobile_number||'');if(q&&n.toLowerCase().indexOf(q)<0&&c.toLowerCase().indexOf(q)<0&&ci.toLowerCase().indexOf(q)<0)return;var cnt=S.orders.filter(function(o){return String(o.dealer_name||'').toLowerCase()===n.toLowerCase()}).length;h+='<tr><td>'+esc(c)+'</td><td>'+esc(n)+'</td><td>'+esc(ci)+'</td><td>'+esc(co)+'</td><td>'+esc(mo)+'</td><td>'+cnt+'</td></tr>'});document.getElementById('dTb').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#94a3b8">No dealers found</td></tr>'}
 function applyFilters(){rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched')}
 function rOrdersTab(tab){
@@ -257,6 +418,7 @@ function rOrdersTab(tab){
   var q=(document.getElementById(TAB_SEARCH[tab]).value||'').toLowerCase();
   var ctFilter=document.getElementById('ctFilter').value;
   var otFilter=document.getElementById('otFilter').value;
+  var priFilter=document.getElementById('priFilter').value;
   var h='';
   S.orders.forEach(function(o){
     var s=gs(o);
@@ -264,8 +426,18 @@ function rOrdersTab(tab){
     if(tab==='production' && String(o.order_class||'').toLowerCase()==='sub order')return;
     if(ctFilter!=='all' && String(o.customer_type||'')!==ctFilter)return;
     if(otFilter!=='all' && String(o.order_type||o.order_type_name||'')!==otFilter)return;
+    var pri=S.priorityLookup&&S.priorityLookup[o.order_id]?S.priorityLookup[o.order_id].priority:'';
+    if(priFilter==='High' && pri!=='High')return;
+    if(priFilter==='Medium' && pri!=='Medium')return;
+    if(priFilter==='Low' && pri!=='Low')return;
+    if(priFilter==='none' && pri)return;
     var on=String(o.order_number||''),dn=String(o.dealer_name||''),cn=String(o.customer_name||''),ty=String(o.order_type||o.order_type_name||''),ua=o.updated_at||'',cd=o.confirmation_date||'',edd=o.edd||o.sla_date||'',oid=o.order_id||'';
     if(q&&on.toLowerCase().indexOf(q)<0&&dn.toLowerCase().indexOf(q)<0&&cn.toLowerCase().indexOf(q)<0)return;
+    var priBadge='';
+    if(pri==='High')priBadge=' <span class="pri-badge high" title="High Priority">HIGH</span>';
+    else if(pri==='Medium')priBadge=' <span class="pri-badge medium" title="Medium Priority">MED</span>';
+    else if(pri==='Low')priBadge=' <span class="pri-badge low" title="Low Priority">LOW</span>';
+    var rowClass=pri==='High'?' class="row-high"':pri==='Medium'?' class="row-medium"':'';
     if(tab==='production'){
       var reqBadge='';
       if(S.requestLookup&&S.requestLookup[oid]){
@@ -275,16 +447,16 @@ function rOrdersTab(tab){
         if(hasPending)reqBadge=' <span style="color:#ca8a04;font-size:10px" title="Pending reply">⏳</span>';
         else if(hasReplied)reqBadge=' <span style="color:#16a34a;font-size:10px" title="Replied">✓</span>';
       }
-      h+='<tr><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+reqBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td><button class="btn-sm btn-edd" onclick="openEddModal('+oid+',\''+esc(on)+'\')">EDD</button> <button class="btn-sm btn-pri" onclick="openPriModal('+oid+',\''+esc(on)+'\')">Priority</button></td></tr>';
+      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+reqBadge+priBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td><button class="btn-sm btn-pri" onclick="openPriModal('+oid+',\''+esc(on)+'\')">Priority</button></td></tr>';
     } else if(tab==='packed'){
       var bq=String(o.box_count||'');
       var bb=String(o.packing_balance_box_qty||'');
-      h+='<tr><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td>'+esc(bq)+'</td><td>'+esc(bb)+'</td></tr>';
+      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+priBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td>'+esc(bq)+'</td><td>'+esc(bb)+'</td></tr>';
     } else {
-      h+='<tr><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td></tr>';
+      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+priBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td></tr>';
     }
   });
-  document.getElementById(TAB_TB[tab]).innerHTML=h||'<tr><td colspan="'+(tab==='packed'?11:9)+'" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
+  document.getElementById(TAB_TB[tab]).innerHTML=h||'<tr><td colspan="'+(tab==='production'?9:tab==='packed'?10:8)+'" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
 }
 function toggleAll(tab){var c=document.getElementById(TAB_CBALL[tab]);document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=c.checked})}
 function selectAll(tab){document.getElementById(TAB_CBALL[tab]).checked=true;document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=true})}
@@ -343,6 +515,7 @@ function genWhatsApp(tab,type){
       var msg='Please update status for these orders:\n\n'+orderTable+'\n\nRemarks here: '+url;
       shareMsg(msg,tab);
       toast('Request created','ok');
+      loadRequests();
     }).catch(function(){toast('Connection error','err')});
     return;
   } else if(type==='status'){
@@ -401,7 +574,15 @@ function submitCustomWa(){
   closeModal('waModal');
 }
 function openEddModal(oid,oname){pendingEddOrderId=oid;document.getElementById('eddOrderInfo').textContent='Order: '+oname;document.getElementById('eddNewDate').value='';document.getElementById('eddComments').value='';document.getElementById('eddModal').className='modal-bg on'}
-function openPriModal(oid,oname){pendingPriOrderId=oid;document.getElementById('priOrderInfo').textContent='Order: '+oname;document.getElementById('priLevel').value='';document.getElementById('priComments').value='';document.getElementById('priModal').className='modal-bg on'}
+function openPriModal(oid,oname){
+  pendingPriOrderId=oid;
+  document.getElementById('priOrderInfo').textContent='Order: '+oname;
+  var cur=S.priorityLookup&&S.priorityLookup[oid]?S.priorityLookup[oid]:null;
+  document.getElementById('priLevel').value=cur?cur.priority:'';
+  document.getElementById('priComments').value=cur?cur.planner_remarks:'';
+  document.getElementById('priClearBtn').style.display=cur?'inline-block':'none';
+  document.getElementById('priModal').className='modal-bg on'
+}
 function closeModal(id){document.getElementById(id).className='modal-bg'}
 document.addEventListener('click',function(e){if(!e.target.closest('.wa-wrap'))document.querySelectorAll('.wa-menu').forEach(function(m){m.className='wa-menu'})});
 function submitEddRequest(){
@@ -422,6 +603,25 @@ function submitPriority(){
     if(r.ok){toast('Priority saved','ok');closeModal('priModal');load()}
     else{toast(r.message||'Failed to save priority','err')}
   }).catch(function(){toast('Connection error','err')});
+}
+function clearPriority(){
+  apiPost('planner-save','order_id='+pendingPriOrderId+'&priority=&planner_remarks=').then(function(r){
+    if(r.ok){toast('Priority cleared','ok');closeModal('priModal');load()}
+    else{toast(r.message||'Failed','err')}
+  }).catch(function(){toast('Connection error','err')});
+}
+function openPriorityReport(){
+  var h='';
+  S.orders.forEach(function(o){
+    var pri=S.priorityLookup&&S.priorityLookup[o.order_id]?S.priorityLookup[o.order_id].priority:'';
+    if(!pri)return;
+    var remarks=S.priorityLookup[o.order_id].planner_remarks||'';
+    var priColor=pri==='High'?'#991b1b':pri==='Medium'?'#854d0e':'#1e40af';
+    var priBg=pri==='High'?'#fee2e2':pri==='Medium'?'#fef9c3':'#dbeafe';
+    h+='<tr><td>'+esc(o.order_number||'')+'</td><td>'+esc(o.dealer_name||'')+'</td><td>'+esc(o.customer_name||'')+'</td><td><span style="background:'+priBg+';color:'+priColor+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">'+esc(pri)+'</span></td><td style="font-size:11px">'+esc(remarks)+'</td></tr>';
+  });
+  document.getElementById('priReportBody').innerHTML=h||'<tr><td colspan="5" style="text-align:center;color:#94a3b8">No priority orders</td></tr>';
+  document.getElementById('priReportModal').className='modal-bg on';
 }
 </script>
 </body>

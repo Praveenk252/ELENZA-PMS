@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.OleDb;
 using System.Globalization;
@@ -22,6 +22,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     private const string CurrentDayReportKind = "CURRENT_DAY_ACTIVITY";
     private const string HourlyProductionReportKindPrefix = "HOURLY_PRODUCTION_";
     private const string DailyMachineConsolidatedReportKind = "DAILY_MACHINE_CONSOLIDATED";
+    private const string RemarksReportKind = "REMARKS_REPORT";
+    private const int RemarksReportHour = 21;
     private const string MailConfigRelativePath = "~/App_Data/smtp-settings.json";
     private const string CompatScriptRelativePath = "~/App_Data/script-live.js";
     private static readonly TimeSpan DailyReportTime = new TimeSpan(8, 0, 0);
@@ -45,7 +47,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         { "Production Planner User", new[] { "planner", "history", "reports", "settings" } },
         { "Machine User", new[] { "production", "history", "settings" } },
         { "Dispatch User", new[] { "dispatch", "history", "settings" } },
-        { "Management", new[] { "reports", "history", "settings" } }
+        { "Management", new[] { "reports", "history", "settings" } },
+        { "Dealer", new[] { "dashboard" } }
     };
 
     private static readonly HashSet<string> ProcurementStatusCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -115,6 +118,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             SetNoCache(context);
             EnsureDbReady(context);
 
+            try { RunRemarksReportSchedulerIfDue(); } catch { }
 
             var action = Value(context, "action").ToLowerInvariant();
             switch (action)
@@ -296,6 +300,15 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "marketing-dealer-update":
                     HandleMarketingDealerUpdate(context);
                     break;
+                case "scanner-state":
+                    HandleScannerState(context);
+                    break;
+                case "scanner-action-history":
+                    HandleScannerActionHistory(context);
+                    break;
+                case "dealer-dashboard":
+                    HandleDealerDashboard(context);
+                    break;
                 case "remarks-request-create":
                     HandleRemarksRequestCreate(context);
                     break;
@@ -307,6 +320,24 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     break;
                 case "remarks-requests-list":
                     HandleRemarksRequestsList(context);
+                    break;
+                case "remarks-request-reminder":
+                    HandleRemarksRequestReminder(context);
+                    break;
+                case "remarks-request-close":
+                    HandleRemarksRequestClose(context);
+                    break;
+                case "remarks-request-delete":
+                    HandleRemarksRequestDelete(context);
+                    break;
+                case "remarks-report-export":
+                    HandleRemarksReportExport(context);
+                    break;
+                case "remarks-report":
+                    HandleRemarksReport(context);
+                    break;
+                case "remarks-report-mail":
+                    HandleRemarksReportMail(context);
                     break;
                 default:
                     WriteError(context, 404, "API route not found.");
@@ -1137,7 +1168,15 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var remarks = Value(context, "remarks");
             var balanceBoxQty = N(Value(context, "balance_box_qty"));
             if (S(user, "role_name") == "Machine User" && stationName != S(user, "station_name"))
-                throw new ApiFailure(403, "Machine user can only update assigned station orders.");
+            {
+                var stn = FindMachineByName(conn, stationName);
+                if (stn != null)
+                {
+                    var assigned = QueryOne(conn, "SELECT 1 FROM tbl_user_machines WHERE user_id = ? AND machine_id = ?", I(user, "user_id"), I(stn, "machine_id"));
+                    if (assigned == null) throw new ApiFailure(403, "Machine user can only update assigned station orders.");
+                }
+                else throw new ApiFailure(403, "Machine user can only update assigned station orders.");
+            }
             if (actionCode != "COMPLETED" && actionCode != "PARTIAL_COMPLETED" && actionCode != "REJECTED")
                 throw new ApiFailure(400, "Invalid production action.");
             if (actionCode == "REJECTED" && string.IsNullOrWhiteSpace(remarks))
@@ -1170,7 +1209,15 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (!IsPackingStationName(stationName))
                 throw new ApiFailure(400, "Balance box qty save is only available for Packing or Packed station.");
             if (S(user, "role_name") == "Machine User" && stationName != S(user, "station_name"))
-                throw new ApiFailure(403, "Machine user can only update assigned station orders.");
+            {
+                var stn = FindMachineByName(conn, stationName);
+                if (stn != null)
+                {
+                    var assigned = QueryOne(conn, "SELECT 1 FROM tbl_user_machines WHERE user_id = ? AND machine_id = ?", I(user, "user_id"), I(stn, "machine_id"));
+                    if (assigned == null) throw new ApiFailure(403, "Machine user can only update assigned station orders.");
+                }
+                else throw new ApiFailure(403, "Machine user can only update assigned station orders.");
+            }
             var balanceBoxQty = N(Value(context, "balance_box_qty"));
             if (!balanceBoxQty.HasValue || balanceBoxQty.Value < 0)
                 throw new ApiFailure(400, "Balance box qty must be 0 or more.");
@@ -1854,6 +1901,10 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var roleName = Require(Value(context, "role_name"), "Role is required.");
             var assignedStation = Value(context, "assigned_station");
             var password = Value(context, "password");
+            var dealerIdValue = Value(context, "dealer_id");
+            var dealerId = 0;
+            if (!string.IsNullOrWhiteSpace(dealerIdValue)) int.TryParse(dealerIdValue, out dealerId);
+            object dealerLink = dealerId > 0 ? (object)dealerId : DBNull.Value;
             var existingByLogin = GetUserByLogin(conn, loginId);
             if (existingByLogin != null && I(existingByLogin, "user_id") != targetUserId) throw new ApiFailure(400, "Login ID already exists.");
             var role = QueryOne(conn, "SELECT role_id FROM tbl_roles WHERE role_name = ?", roleName);
@@ -1871,14 +1922,14 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var target = QueryOne(conn, "SELECT user_id, is_active, password_hash FROM tbl_users WHERE user_id = ?", targetUserId);
                 if (target == null) throw new ApiFailure(404, "User not found.");
                 var nextPassword = string.IsNullOrWhiteSpace(password) ? S(target, "password_hash") : password;
-                Execute(conn, "UPDATE tbl_users SET full_name = ?, login_id = ?, password_hash = ?, password_salt = '', password_iterations = 0, role_id = ?, assigned_station_id = ?, is_active = " + SqlBoolLiteral(B(target, "is_active")) + ", updated_at = " + SqlDateLiteral(now) + " WHERE user_id = ?",
-                    fullName, loginId, nextPassword, I(role, "role_id"), stationId, targetUserId);
+                Execute(conn, "UPDATE tbl_users SET full_name = ?, login_id = ?, password_hash = ?, password_salt = '', password_iterations = 0, role_id = ?, assigned_station_id = ?, dealer_id = ?, is_active = " + SqlBoolLiteral(B(target, "is_active")) + ", updated_at = " + SqlDateLiteral(now) + " WHERE user_id = ?",
+                    fullName, loginId, nextPassword, I(role, "role_id"), stationId, dealerLink, targetUserId);
             }
             else
             {
                 password = Require(password, "Password is required.");
-                Execute(conn, "INSERT INTO tbl_users (full_name, login_id, password_hash, password_salt, password_iterations, role_id, assigned_station_id, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, " + SqlDateLiteral(now) + ", " + SqlDateLiteral(now) + ")",
-                    fullName, loginId, password, "", 0, I(role, "role_id"), stationId);
+                Execute(conn, "INSERT INTO tbl_users (full_name, login_id, password_hash, password_salt, password_iterations, role_id, assigned_station_id, dealer_id, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, " + SqlDateLiteral(now) + ", " + SqlDateLiteral(now) + ")",
+                    fullName, loginId, password, "", 0, I(role, "role_id"), stationId, dealerLink);
             }
             WriteJson(context, Obj("ok", true));
         }
@@ -3814,6 +3865,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "CREATE TABLE tbl_mail_reports (mail_report_id COUNTER PRIMARY KEY, report_kind TEXT(60) NOT NULL, report_date DATETIME NOT NULL, recipient_list MEMO, subject_line TEXT(255), send_status TEXT(30), error_text MEMO, sent_at DATETIME, created_at DATETIME)");
         EnsureDispatchBoxSchema(conn);
         EnsureRemarksSchema(conn);
+        EnsureScannerSchema(conn);
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN customer_type_id LONG");
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN customer_type_code TEXT(50)");
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN pin_code TEXT(20)");
@@ -3821,6 +3873,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN credit_limit_lakh DOUBLE");
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN marketing_owner TEXT(120)");
         TryExecute(conn, "ALTER TABLE tbl_dealers ADD COLUMN quotation_owner TEXT(120)");
+        TryExecute(conn, "ALTER TABLE tbl_users ADD COLUMN dealer_id LONG");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN sequence_profile_id LONG");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN order_class_code TEXT(80)");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN board_qty_decimal DOUBLE");
@@ -3843,14 +3896,6 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "CREATE INDEX ix_tbl_dispatch_boxes_order ON tbl_dispatch_boxes (order_id)");
     }
 
-    private void EnsureRemarksSchema(OleDbConnection conn)
-    {
-        TryExecute(conn, "CREATE TABLE tbl_remarks_requests (request_id COUNTER PRIMARY KEY, token TEXT(32) NOT NULL, order_ids MEMO NOT NULL, requested_by LONG NOT NULL, requested_at DATETIME NOT NULL, status TEXT(20) NOT NULL, replied_by LONG, replied_at DATETIME, created_at DATETIME)");
-        TryExecute(conn, "CREATE UNIQUE INDEX ux_tbl_remarks_requests_token ON tbl_remarks_requests (token)");
-        TryExecute(conn, "CREATE TABLE tbl_remarks_replies (reply_id COUNTER PRIMARY KEY, request_id LONG NOT NULL, order_id LONG NOT NULL, remarks MEMO, replied_by LONG NOT NULL, replied_at DATETIME NOT NULL)");
-        TryExecute(conn, "CREATE INDEX ix_tbl_replies_request ON tbl_remarks_replies (request_id)");
-    }
-
     private void EnsureCoreRoles(OleDbConnection conn)
     {
         EnsureRoleRow(conn, "Admin", "data-entry");
@@ -3863,6 +3908,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         EnsureRoleRow(conn, "Optimisation User", "optimisation");
         EnsureRoleRow(conn, "Procurement User", "procurement");
         EnsureRoleRow(conn, "Production Planner User", "planner");
+        EnsureRoleRow(conn, "Dealer", "dashboard");
     }
 
     private void EnsureRoleRow(OleDbConnection conn, string roleName, string homeSection)
@@ -4141,7 +4187,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     {
         var value = context.Session["user_id"];
         if (value == null) return null;
-        return QueryOne(conn, "SELECT u.user_id, u.full_name, u.login_id, u.password_hash, u.password_salt, u.password_iterations, u.is_active, r.role_name, r.home_section, m.machine_id AS station_id, m.machine_name AS station_name FROM (tbl_users AS u INNER JOIN tbl_roles AS r ON u.role_id = r.role_id) LEFT JOIN tbl_machines AS m ON u.assigned_station_id = m.machine_id WHERE u.user_id = ?", Convert.ToInt32(value));
+        return QueryOne(conn, "SELECT u.user_id, u.full_name, u.login_id, u.password_hash, u.password_salt, u.password_iterations, u.is_active, u.dealer_id, r.role_name, r.home_section, m.machine_id AS station_id, m.machine_name AS station_name FROM (tbl_users AS u INNER JOIN tbl_roles AS r ON u.role_id = r.role_id) LEFT JOIN tbl_machines AS m ON u.assigned_station_id = m.machine_id WHERE u.user_id = ?", Convert.ToInt32(value));
     }
 
     private Dictionary<string, object> RequireLogin(HttpContext context, OleDbConnection conn)
@@ -4166,6 +4212,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             "login_id", S(user, "login_id"),
             "role_name", roleName,
             "station_name", string.IsNullOrWhiteSpace(S(user, "station_name")) ? "All Stations" : S(user, "station_name"),
+            "dealer_id", I(user, "dealer_id"),
             "sections", RoleSections.ContainsKey(roleName) ? RoleSections[roleName] : RoleSections["Admin"],
             "home_section", S(user, "home_section")
         );
@@ -5128,6 +5175,262 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         public int DailyMinute;
     }
 
+    private void EnsureRemarksSchema(OleDbConnection conn)
+    {
+        TryExecute(conn, "CREATE TABLE tbl_remarks_requests (request_id COUNTER PRIMARY KEY, token TEXT(32) NOT NULL, order_ids MEMO NOT NULL, requested_by LONG NOT NULL, requested_at DATETIME NOT NULL, status TEXT(20) NOT NULL, replied_by LONG, replied_at DATETIME, reminder_count LONG DEFAULT 0, created_at DATETIME)");
+        TryExecute(conn, "ALTER TABLE tbl_remarks_requests ADD COLUMN reminder_count LONG DEFAULT 0");
+        TryExecute(conn, "CREATE UNIQUE INDEX ux_tbl_remarks_requests_token ON tbl_remarks_requests (token)");
+        TryExecute(conn, "CREATE TABLE tbl_remarks_replies (reply_id COUNTER PRIMARY KEY, request_id LONG NOT NULL, order_id LONG NOT NULL, remarks MEMO, replied_by LONG NOT NULL, replied_at DATETIME NOT NULL)");
+        TryExecute(conn, "CREATE INDEX ix_tbl_replies_request ON tbl_remarks_replies (request_id)");
+    }
+
+    private void EnsureScannerSchema(OleDbConnection conn)
+    {
+        TryExecute(conn, "CREATE TABLE tbl_user_machines (user_machine_id COUNTER PRIMARY KEY, user_id LONG NOT NULL, machine_id LONG NOT NULL)");
+        TryExecute(conn, "CREATE INDEX ix_tbl_user_machines_user ON tbl_user_machines (user_id)");
+    }
+
+    private void HandleScannerState(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var userId = Convert.ToInt32(I(user, "user_id"));
+
+            var userMachines = new List<Dictionary<string, object>>();
+            try { userMachines = QueryAll(conn, "SELECT m.machine_id, m.machine_name FROM tbl_user_machines AS um INNER JOIN tbl_machines AS m ON um.machine_id = m.machine_id WHERE um.user_id = ?", userId); } catch { }
+            if (userMachines.Count == 0)
+            {
+                try
+                {
+                    object stationObj;
+                    if (user.TryGetValue("station_id", out stationObj) && stationObj != null && stationObj != DBNull.Value && Convert.ToInt32(stationObj) > 0)
+                    {
+                        var m = QueryOne(conn, "SELECT machine_id, machine_name FROM tbl_machines WHERE machine_id = ?", stationObj);
+                        if (m != null) userMachines.Add(m);
+                    }
+                } catch { }
+            }
+
+            var selectedMachineId = N(Value(context, "machine_id"));
+            Dictionary<string, object> selectedMachine = null;
+            if (selectedMachineId.HasValue)
+            {
+                selectedMachine = userMachines.FirstOrDefault(m => Convert.ToInt32(I(m, "machine_id")) == (int)selectedMachineId.Value);
+            }
+            if (selectedMachine == null && userMachines.Count > 0)
+            {
+                selectedMachine = userMachines[0];
+            }
+
+            var pendingOrders = new List<Dictionary<string, object>>();
+            try
+            {
+                pendingOrders = QueryAll(conn,
+                    "SELECT o.order_id, o.order_number, o.customer_name, o.confirmation_date, d.dealer_name, ot.order_type_name, o.workflow_stage_code, o.main_order, o.sub_order FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS ot ON o.order_type_id = ot.order_type_id WHERE o.workflow_stage_code <> 'QUOTATION_CREATED' AND o.workflow_stage_code <> 'ORDER_CONFIRMED' AND o.workflow_stage_code <> 'PACKED' AND o.workflow_stage_code <> 'DISPATCH_READY' AND o.workflow_stage_code <> 'DISPATCHED' ORDER BY o.order_number");
+            } catch { }
+
+            var stationByOrder = new Dictionary<int, string>();
+            try
+            {
+                var orderIds = pendingOrders.Select(o => Convert.ToInt32(I(o, "order_id"))).Where(v => v > 0).Distinct().ToList();
+                if (orderIds.Count > 0)
+                {
+                    var ids = string.Join(",", orderIds.Select(v => v.ToString()).ToArray());
+                    var queueRows = QueryAll(conn, "SELECT q.order_id, m.machine_name FROM (tbl_order_station_queue AS q INNER JOIN tbl_machines AS m ON q.station_id = m.machine_id) WHERE q.order_id IN (" + ids + ") AND q.is_visible = TRUE");
+                    foreach (var qr in queueRows)
+                    {
+                        var oid = Convert.ToInt32(I(qr, "order_id"));
+                        if (!stationByOrder.ContainsKey(oid)) stationByOrder[oid] = S(qr, "machine_name");
+                    }
+                }
+            }
+            catch { }
+
+            var orderList = pendingOrders.Select(od => {
+                var oid = Convert.ToInt32(I(od, "order_id"));
+                var station = stationByOrder.ContainsKey(oid) ? stationByOrder[oid] : S(od, "workflow_stage_code");
+                return Obj(
+                    "order_id", I(od, "order_id"),
+                    "order_number", S(od, "order_number"),
+                    "customer_name", S(od, "customer_name"),
+                    "dealer_name", S(od, "dealer_name"),
+                    "confirmation_date", S(od, "confirmation_date"),
+                    "order_type", S(od, "order_type_name"),
+                    "workflow_stage", station,
+                    "main_order", S(od, "main_order"),
+                    "sub_order", S(od, "sub_order")
+                );
+            }).ToList();
+
+            WriteJson(context, Obj(
+                "ok", true,
+                "machines", userMachines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"))).ToList(),
+                "selected_machine", selectedMachine != null ? Obj("machine_id", I(selectedMachine, "machine_id"), "machine_name", S(selectedMachine, "machine_name")) : null,
+                "orders", orderList
+            ));
+        }
+    }
+
+    private void HandleScannerActionHistory(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var machineId = N(Value(context, "machine_id"));
+            if (!machineId.HasValue && S(user, "role_name") == "Machine User")
+            {
+                var stn = FindMachineByName(conn, S(user, "station_name"));
+                if (stn != null) machineId = I(stn, "machine_id");
+            }
+            var sql = "SELECT TOP 200 h.order_id, h.action_code, h.new_status_code, h.remarks, h.acted_at, o.order_number, u.full_name AS user_name FROM ((tbl_order_history AS h LEFT JOIN tbl_orders AS o ON h.order_id = o.order_id) LEFT JOIN tbl_users AS u ON h.acted_by = u.user_id)";
+            if (machineId.HasValue) sql += " WHERE h.station_id = " + SqlIntLiteral((int)machineId.Value);
+            sql += " ORDER BY h.acted_at DESC, h.history_id DESC";
+            var rows = QueryAll(conn, sql);
+            WriteJson(context, Obj(
+                "ok", true,
+                "history", rows.Select(r => Obj(
+                    "order_id", I(r, "order_id"),
+                    "order_number", S(r, "order_number"),
+                    "action_code", S(r, "action_code"),
+                    "new_status_code", S(r, "new_status_code"),
+                    "remarks", S(r, "remarks"),
+                    "acted_at", S(r, "acted_at"),
+                    "user_name", S(r, "user_name")
+                )).ToList()
+            ));
+        }
+    }
+
+    private void HandleDealerDashboard(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var dealerId = I(user, "dealer_id");
+            if (dealerId <= 0) throw new ApiFailure(403, "Your account is not linked to a dealer.");
+            var dealer = QueryOne(conn, "SELECT * FROM tbl_dealers WHERE dealer_id = ?", dealerId);
+            if (dealer == null) throw new ApiFailure(404, "Dealer not found.");
+            var orders = QueryAll(conn, "SELECT * FROM tbl_orders WHERE dealer_id = ? ORDER BY updated_at DESC, order_id DESC", dealerId);
+            var orderIds = orders.Select(o => I(o, "order_id")).Where(v => v > 0).Distinct().ToList();
+            var historyByOrder = new Dictionary<int, List<Dictionary<string, object>>>();
+            if (orderIds.Count > 0)
+            {
+                var ids = string.Join(",", orderIds.Select(v => v.ToString()).ToArray());
+                var hist = QueryAll(conn, "SELECT h.order_id, h.acted_at, h.action_code, h.new_status_code FROM tbl_order_history AS h WHERE h.order_id IN (" + ids + ") ORDER BY h.acted_at DESC, h.history_id DESC");
+                foreach (var row in hist)
+                {
+                    var oid = I(row, "order_id");
+                    if (!historyByOrder.ContainsKey(oid)) historyByOrder[oid] = new List<Dictionary<string, object>>();
+                    historyByOrder[oid].Add(row);
+                }
+            }
+            var statusLookup = LoadStatusLookup(conn);
+            var mainOrderSet = new Dictionary<string, int>();
+            var orderList = orders.Select(r =>
+            {
+                var step = DealerTrackingStep(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"));
+                var oid = I(r, "order_id");
+                var hrows = historyByOrder.ContainsKey(oid) ? historyByOrder[oid] : new List<Dictionary<string, object>>();
+                var mo = S(r, "main_order");
+                if (!string.IsNullOrWhiteSpace(mo))
+                {
+                    if (!mainOrderSet.ContainsKey(mo)) mainOrderSet[mo] = 0;
+                    mainOrderSet[mo] = Math.Max(mainOrderSet[mo], step);
+                }
+                return Obj(
+                    "order_id", oid,
+                    "order_number", S(r, "order_number"),
+                    "customer_name", S(r, "customer_name"),
+                    "order_type", S(r, "order_type_name"),
+                    "workflow_stage_code", S(r, "workflow_stage_code"),
+                    "dispatch_status_code", S(r, "dispatch_status_code"),
+                    "workflow_stage", Label(statusLookup, "WORKFLOW", S(r, "workflow_stage_code")),
+                    "dispatch_status", Label(statusLookup, "DISPATCH", S(r, "dispatch_status_code")),
+                    "main_order", mo,
+                    "sub_order", S(r, "sub_order"),
+                    "approx_value", S(r, "approx_value"),
+                    "confirmation_date", S(r, "confirmation_date"),
+                    "updated_at", S(r, "updated_at"),
+                    "tracking_step", step,
+                    "tracking", BuildDealerTracking(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"), r, hrows)
+                );
+            }).ToList();
+            var mainOrders = mainOrderSet.Select(kvp => Obj("main_order", kvp.Key, "progress_step", kvp.Value)).ToList();
+            WriteJson(context, Obj(
+                "ok", true,
+                "dealer", Obj(
+                    "dealer_id", I(dealer, "dealer_id"),
+                    "dealer_code", S(dealer, "dealer_code"),
+                    "dealer_name", S(dealer, "dealer_name"),
+                    "company_name", S(dealer, "company_name"),
+                    "dealer_type", S(dealer, "dealer_type"),
+                    "customer_type_code", S(dealer, "customer_type_code"),
+                    "city", S(dealer, "city"),
+                    "pin_code", S(dealer, "pin_code"),
+                    "gst_number", S(dealer, "gst_number"),
+                    "contact_person", S(dealer, "contact_person"),
+                    "mobile_number", S(dealer, "mobile_number"),
+                    "whatsapp_number", S(dealer, "whatsapp_number"),
+                    "email", S(dealer, "email"),
+                    "payment_terms", S(dealer, "payment_terms"),
+                    "credit_limit_lakh", I(dealer, "credit_limit_lakh"),
+                    "marketing_owner", S(dealer, "marketing_owner"),
+                    "quotation_owner", S(dealer, "quotation_owner"),
+                    "address", S(dealer, "address"),
+                    "area", S(dealer, "area"),
+                    "remarks", S(dealer, "remarks")
+                ),
+                "main_orders", mainOrders,
+                "orders", orderList
+            ));
+        }
+    }
+
+    private static int DealerTrackingStep(string wf, string ds)
+    {
+        if (string.Equals(wf, "DISPATCHED", StringComparison.OrdinalIgnoreCase) || string.Equals(ds, "DISPATCHED", StringComparison.OrdinalIgnoreCase)) return 6;
+        if (string.Equals(wf, "PACKED", StringComparison.OrdinalIgnoreCase) || string.Equals(wf, "DISPATCH_READY", StringComparison.OrdinalIgnoreCase) || string.Equals(ds, "PARTIALLY_DISPATCHED", StringComparison.OrdinalIgnoreCase)) return 5;
+        if (string.Equals(wf, "PRODUCTION_STARTED", StringComparison.OrdinalIgnoreCase) || string.Equals(wf, "PROCUREMENT_STARTED", StringComparison.OrdinalIgnoreCase)) return 4;
+        if (string.Equals(wf, "OPTIMISATION_DONE", StringComparison.OrdinalIgnoreCase)) return 3;
+        if (string.Equals(wf, "ORDER_CONFIRMED", StringComparison.OrdinalIgnoreCase)) return 2;
+        return 1;
+    }
+
+    private static List<object> BuildDealerTracking(string wf, string ds, Dictionary<string, object> order, List<Dictionary<string, object>> history)
+    {
+        var steps = new[]
+        {
+            new { code = "QUOTATION_CREATED", label = "Quotation Created" },
+            new { code = "ORDER_CONFIRMED", label = "Order Confirmed" },
+            new { code = "OPTIMISATION_DONE", label = "Optimisation Done" },
+            new { code = "PRODUCTION_STARTED", label = "In Production" },
+            new { code = "PACKED", label = "Packed" },
+            new { code = "DISPATCHED", label = "Dispatched" }
+        };
+        var current = DealerTrackingStep(wf, ds);
+        var list = new List<object>();
+        for (int i = 0; i < steps.Length; i++)
+        {
+            int stepNo = i + 1;
+            string ts = "";
+            if (stepNo == 2) ts = S(order, "confirmation_date");
+            else if (stepNo == 3) ts = S(order, "optimisation_date");
+            else if (history != null && history.Count > 0)
+            {
+                var match = history.FirstOrDefault(h => string.Equals(S(h, "new_status_code"), steps[i].code, StringComparison.OrdinalIgnoreCase));
+                if (match != null) ts = S(match, "acted_at");
+            }
+            string state = stepNo < current ? "done" : (stepNo == current ? "current" : "pending");
+            list.Add(Obj("step", stepNo, "code", steps[i].code, "label", steps[i].label, "state", state, "timestamp", ts));
+        }
+        return list;
+    }
+
     private void HandleRemarksRequestCreate(HttpContext context)
     {
         using (var conn = OpenConnection(context))
@@ -5188,7 +5491,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (!string.IsNullOrWhiteSpace(orderRemarksRaw))
             {
                 perOrderRemarks = new Dictionary<int, string>();
-                var pairs = orderRemarksRaw.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                var pairs = orderRemarksRaw.Split(new[] { '~' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var pair in pairs)
                 {
                     var parts = pair.Split(new[] { ':' }, 2);
@@ -5200,6 +5503,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     }
                 }
             }
+            var repliedCount = 0;
             foreach (var oid in ids)
             {
                 var remarks = bulkRemarks;
@@ -5209,9 +5513,11 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 Execute(conn, "DELETE FROM tbl_remarks_replies WHERE request_id = ? AND order_id = ?", requestId, oid);
                 Execute(conn, "INSERT INTO tbl_remarks_replies (request_id, order_id, remarks, replied_by, replied_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(now) + ")",
                     requestId, oid, remarks, I(user, "user_id"));
+                repliedCount++;
             }
-            Execute(conn, "UPDATE tbl_remarks_requests SET status = 'replied', replied_by = ?, replied_at = " + SqlDateLiteral(now) + " WHERE request_id = ?",
-                I(user, "user_id"), requestId);
+            var newStatus = repliedCount >= ids.Count ? "replied" : "partial";
+            Execute(conn, "UPDATE tbl_remarks_requests SET status = ?, replied_by = ?, replied_at = " + SqlDateLiteral(now) + " WHERE request_id = ?",
+                newStatus, I(user, "user_id"), requestId);
             WriteJson(context, Obj("ok", true));
         }
     }
@@ -5222,16 +5528,402 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         {
             EnsureSchema(conn);
             var user = RequireLogin(context, conn);
-            var rows = QueryAll(conn, "SELECT * FROM tbl_remarks_requests ORDER BY created_at DESC");
+            var roleName = S(user, "role_name");
+            var rows = roleName == "Admin"
+                ? QueryAll(conn, "SELECT * FROM tbl_remarks_requests ORDER BY created_at DESC")
+                : QueryAll(conn, "SELECT * FROM tbl_remarks_requests WHERE requested_by = ? ORDER BY created_at DESC", I(user, "user_id"));
             var result = new List<object>();
             foreach (var r in rows)
             {
                 var reqBy = I(r, "requested_by");
                 var reqUser = reqBy != null ? QueryOne(conn, "SELECT full_name FROM tbl_users WHERE user_id = ?", reqBy) : null;
-                result.Add(Obj("request_id", I(r, "request_id"), "token", S(r, "token"), "order_ids", S(r, "order_ids"), "requester_name", reqUser != null ? S(reqUser, "full_name") : "", "requested_at", S(r, "requested_at"), "status", S(r, "status"), "replied_at", S(r, "replied_at")));
+                var repBy = I(r, "replied_by");
+                var repUser = repBy != null ? QueryOne(conn, "SELECT full_name FROM tbl_users WHERE user_id = ?", repBy) : null;
+                result.Add(Obj("request_id", I(r, "request_id"), "token", S(r, "token"), "order_ids", S(r, "order_ids"), "requester_name", reqUser != null ? S(reqUser, "full_name") : "", "requested_at", S(r, "requested_at"), "status", S(r, "status"), "replied_at", S(r, "replied_at"), "replier_name", repUser != null ? S(repUser, "full_name") : "", "reminder_count", I(r, "reminder_count")));
             }
             WriteJson(context, Obj("rows", result));
         }
+    }
+
+    private void HandleRemarksRequestReminder(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var requestId = IntRequired(Value(context, "request_id"), "Request ID required.");
+            var request = QueryOne(conn, "SELECT * FROM tbl_remarks_requests WHERE request_id = ?", requestId);
+            if (request == null) throw new ApiFailure(404, "Request not found.");
+            var currentCount = I(request, "reminder_count");
+            var newCount = currentCount + 1;
+            Execute(conn, "UPDATE tbl_remarks_requests SET reminder_count = ? WHERE request_id = ?", newCount, requestId);
+            WriteJson(context, Obj("ok", true, "reminder_count", newCount));
+        }
+    }
+
+    private void HandleRemarksRequestClose(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var requestId = IntRequired(Value(context, "request_id"), "Request ID required.");
+            var request = QueryOne(conn, "SELECT * FROM tbl_remarks_requests WHERE request_id = ?", requestId);
+            if (request == null) throw new ApiFailure(404, "Request not found.");
+            if (I(request, "requested_by") != I(user, "user_id") && S(user, "role_name") != "Admin")
+                throw new ApiFailure(403, "You can only close your own requests.");
+            if (S(request, "status") != "pending")
+                throw new ApiFailure(400, "Only pending requests can be closed.");
+            Execute(conn, "UPDATE tbl_remarks_requests SET status = 'closed' WHERE request_id = ?", requestId);
+            WriteJson(context, Obj("ok", true));
+        }
+    }
+
+    private void HandleRemarksRequestDelete(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var requestIdVal = N(Value(context, "request_id"));
+            if (requestIdVal.HasValue)
+            {
+                var requestId = (int)requestIdVal.Value;
+                var request = QueryOne(conn, "SELECT * FROM tbl_remarks_requests WHERE request_id = ?", requestId);
+                if (request == null) throw new ApiFailure(404, "Request not found.");
+                if (I(request, "requested_by") != I(user, "user_id") && S(user, "role_name") != "Admin")
+                    throw new ApiFailure(403, "You can only delete your own requests.");
+                if (S(request, "status") != "pending")
+                    throw new ApiFailure(400, "Only pending requests can be deleted.");
+                Execute(conn, "DELETE FROM tbl_remarks_replies WHERE request_id = ?", requestId);
+                Execute(conn, "DELETE FROM tbl_remarks_requests WHERE request_id = ?", requestId);
+            }
+            else
+            {
+                var sevenDaysAgo = DateTime.Now.AddDays(-7);
+                var oldPending = QueryAll(conn,
+                    "SELECT request_id FROM tbl_remarks_requests WHERE requested_by = ? AND status = 'pending' AND requested_at < ?",
+                    I(user, "user_id"), SqlDateLiteral(sevenDaysAgo));
+                foreach (var r in oldPending)
+                {
+                    var rid = I(r, "request_id");
+                    Execute(conn, "DELETE FROM tbl_remarks_replies WHERE request_id = ?", rid);
+                    Execute(conn, "DELETE FROM tbl_remarks_requests WHERE request_id = ?", rid);
+                }
+            }
+            WriteJson(context, Obj("ok", true));
+        }
+    }
+
+    private void HandleRemarksReportExport(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var roleName = S(user, "role_name");
+            var userId = I(user, "user_id");
+            var sevenDaysAgo = DateTime.Now.AddDays(-7);
+            var whereClause = roleName == "Admin" ? "" : " AND rr.requested_by = " + SqlIntLiteral(userId);
+            var sql = "SELECT rr.requested_at, rr.replied_at, rr.status, rr.replied_by, " +
+                       "o.order_number, d.dealer_name, o.customer_name, " +
+                       "rep.remarks, u.full_name AS replier_name " +
+                       "FROM (((tbl_remarks_requests AS rr " +
+                       "INNER JOIN tbl_remarks_replies AS rep ON rr.request_id = rep.request_id) " +
+                       "INNER JOIN tbl_orders AS o ON rep.order_id = o.order_id) " +
+                       "LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) " +
+                       "LEFT JOIN tbl_users AS u ON rep.replied_by = u.user_id " +
+                       "WHERE rr.replied_at >= " + SqlDateLiteral(sevenDaysAgo) + " " +
+                       "AND rr.status IN ('replied','partial')" + whereClause + " " +
+                       "ORDER BY rr.replied_at DESC";
+            var rows = QueryAll(conn, sql);
+            var result = new List<object>();
+            foreach (var r in rows)
+            {
+                result.Add(Obj(
+                    "requested_at", S(r, "requested_at"),
+                    "replied_at", S(r, "replied_at"),
+                    "status", S(r, "status"),
+                    "order_number", S(r, "order_number"),
+                    "dealer_name", S(r, "dealer_name"),
+                    "customer_name", S(r, "customer_name"),
+                    "reply_remarks", S(r, "remarks"),
+                    "replier_name", S(r, "replier_name")
+                ));
+            }
+            WriteJson(context, Obj("rows", result));
+        }
+    }
+
+    private void HandleRemarksReport(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var roleName = S(user, "role_name");
+            var applyUserFilter = roleName == "Marketing User";
+            var userId = I(user, "user_id");
+            List<Dictionary<string, object>> doneRows;
+            List<Dictionary<string, object>> pendingRows;
+            BuildRemarksReportData(conn, applyUserFilter, userId, out doneRows, out pendingRows);
+            WriteJson(context, Obj("done_rows", doneRows, "pending_rows", pendingRows));
+        }
+    }
+
+    private void HandleRemarksReportMail(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var force = Value(context, "force") == "1";
+            var siteRoot = ResolveSiteRoot(context);
+            string message;
+            var sent = TrySendRemarksReport(siteRoot, force, out message);
+            WriteJson(context, Obj("ok", true, "sent", sent, "message", message));
+        }
+    }
+
+    private void BuildRemarksReportData(OleDbConnection conn, bool applyUserFilter, int userId, out List<Dictionary<string, object>> doneRows, out List<Dictionary<string, object>> pendingRows)
+    {
+        doneRows = new List<Dictionary<string, object>>();
+        pendingRows = new List<Dictionary<string, object>>();
+        EnsureSchema(conn);
+
+        var todayStart = DateTime.Now.Date;
+        var doneWhere = applyUserFilter ? " AND rr.requested_by = " + SqlIntLiteral(userId) : "";
+        var doneSql = "SELECT rr.requested_at, rr.replied_at, rr.status, rr.requested_by, o.order_number, d.dealer_name, o.customer_name, rep.remarks, u.full_name AS replier_name FROM (((tbl_remarks_requests AS rr INNER JOIN tbl_remarks_replies AS rep ON rr.request_id = rep.request_id) INNER JOIN tbl_orders AS o ON rep.order_id = o.order_id) LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_users AS u ON rep.replied_by = u.user_id WHERE rr.replied_at >= " + SqlDateLiteral(todayStart) + " AND rr.status IN ('replied','partial')" + doneWhere + " ORDER BY rr.replied_at DESC";
+        foreach (var r in QueryAll(conn, doneSql))
+        {
+            var requestedBy = I(r, "requested_by");
+            var reqUser = requestedBy != 0 ? QueryOne(conn, "SELECT full_name FROM tbl_users WHERE user_id = " + requestedBy) : null;
+            doneRows.Add(Obj(
+                "requested_date", FmtDate(DT(r, "requested_at")),
+                "requested_time", FmtTime(DT(r, "requested_at")),
+                "replied_date", FmtDate(DT(r, "replied_at")),
+                "replied_time", FmtTime(DT(r, "replied_at")),
+                "status", S(r, "status"),
+                "order_number", S(r, "order_number"),
+                "dealer_name", S(r, "dealer_name"),
+                "customer_name", S(r, "customer_name"),
+                "reply_remarks", S(r, "remarks"),
+                "replier_name", S(r, "replier_name"),
+                "requester_name", reqUser != null ? S(reqUser, "full_name") : ""
+            ));
+        }
+
+        var pendWhere = applyUserFilter ? " AND rr.requested_by = " + SqlIntLiteral(userId) : "";
+        var pendSql = "SELECT rr.request_id, rr.order_ids, rr.status, rr.requested_at, rr.reminder_count, rr.requested_by FROM tbl_remarks_requests AS rr WHERE rr.status = 'pending'" + pendWhere + " ORDER BY rr.requested_at DESC";
+        foreach (var r in QueryAll(conn, pendSql))
+        {
+            var orderIdsStr = S(r, "order_ids");
+            var ids = (orderIdsStr ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => { int id; return int.TryParse(s.Trim(), out id) ? id : 0; })
+                .Where(id => id > 0).ToList();
+            Dictionary<string, object> firstOrder = null;
+            if (ids.Count > 0)
+                firstOrder = QueryOne(conn, "SELECT o.order_number, d.dealer_name, o.customer_name FROM tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id WHERE o.order_id = ?", ids[0]);
+            var requestedBy = I(r, "requested_by");
+            var reqUser = requestedBy != 0 ? QueryOne(conn, "SELECT full_name FROM tbl_users WHERE user_id = " + requestedBy) : null;
+            pendingRows.Add(Obj(
+                "requested_date", FmtDate(DT(r, "requested_at")),
+                "requested_time", FmtTime(DT(r, "requested_at")),
+                "status", S(r, "status"),
+                "order_number", firstOrder != null ? S(firstOrder, "order_number") : "",
+                "dealer_name", firstOrder != null ? S(firstOrder, "dealer_name") : "",
+                "customer_name", firstOrder != null ? S(firstOrder, "customer_name") : "",
+                "order_count", ids.Count,
+                "requester_name", reqUser != null ? S(reqUser, "full_name") : "",
+                "reminder_count", I(r, "reminder_count")
+            ));
+        }
+    }
+
+    private static string FmtDate(object value)
+    {
+        var dt = ToDateTime(value);
+        return dt.HasValue ? dt.Value.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture) : "-";
+    }
+
+    private static string FmtTime(object value)
+    {
+        var dt = ToDateTime(value);
+        return dt.HasValue ? dt.Value.ToString("hh:mm tt", CultureInfo.InvariantCulture) : "-";
+    }
+
+    private static string BuildRemarksReportHtml(List<Dictionary<string, object>> doneRows, List<Dictionary<string, object>> pendingRows, MailSettings settings, DateTime sentAt)
+    {
+        var sb = new StringBuilder();
+        sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Elenza PMS Remarks Report</title>");
+        sb.Append("<style>");
+        sb.Append("body{margin:0;background:#eef5fb;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;}");
+        sb.Append(".mail-shell{max-width:1080px;margin:0 auto;padding:24px 16px;}");
+        sb.Append(".mail-card{background:#ffffff;border:0.5px solid #d9e5f3;border-radius:24px;overflow:hidden;box-shadow:0 16px 40px rgba(4,92,180,0.08);}");
+        sb.Append(".mail-head{padding:26px 30px;background:linear-gradient(135deg,#ffffff 0%,#eaf2fb 100%);border-bottom:0.5px solid #d9e5f3;}");
+        sb.Append(".mail-body{padding:22px 30px 12px;}");
+        sb.Append(".sec-title{margin:24px 0 4px;font-size:21px;color:#0f172a;}");
+        sb.Append(".sec-sub{font-size:13px;color:#64748b;margin:0 0 12px;}");
+        sb.Append(".count-pill{padding:4px 12px;border-radius:999px;background:#e8f1fb;color:#0f6cbd;font-size:12px;font-weight:700;}");
+        sb.Append(".report-wrap{overflow-x:auto;border:0.5px solid #d9e5f3;border-radius:18px;background:#fff;}");
+        sb.Append(".report-table{width:100%;border-collapse:collapse;min-width:820px;}");
+        sb.Append(".report-head th{padding:12px 14px;text-align:left;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#1e293b;border-bottom:0.5px solid #d9e5f3;background:#f0f5fa;}");
+        sb.Append(".report-cell{padding:11px 14px;font-size:13px;color:#0f172a;border-bottom:0.5px solid #eef2f7;vertical-align:top;}");
+        sb.Append(".dt{font-weight:700;color:#0f172a;} .tm{color:#64748b;}");
+        sb.Append(".remark{color:#334155;font-size:12.5px;line-height:1.45;}");
+        sb.Append(".pill{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;}");
+        sb.Append(".pill-done{background:#e9f8ef;color:#15803d;}");
+        sb.Append(".pill-pending{background:#fff4db;color:#9a6700;}");
+        sb.Append(".empty{padding:18px;color:#94a3b8;font-size:13px;}");
+        sb.Append("@media only screen and (max-width:720px){.mail-shell{padding:10px 8px!important;}.mail-head,.mail-body{padding:18px 14px!important;}}");
+        sb.Append("</style></head><body>");
+        sb.Append("<div class=\"mail-shell\"><div class=\"mail-card\">");
+        sb.Append("<div class=\"mail-head\">");
+        sb.Append("<div style=\"font-size:13px;letter-spacing:1.4px;font-weight:700;color:#046bd2;text-transform:uppercase;\">ElenzaIndia.com</div>");
+        sb.Append("<h1 style=\"margin:10px 0 8px;font-size:30px;line-height:1.1;color:#0f172a;\">Remarks Replies Report</h1>");
+        sb.Append("<p style=\"margin:0;font-size:15px;color:#475569;\">Daily snapshot sent at " + Html(sentAt.ToString("dd MMM yyyy hh:mm tt", CultureInfo.InvariantCulture)) + " IST. Replies done today and all pending replies.</p>");
+        sb.Append("</div><div class=\"mail-body\">");
+
+        sb.Append("<h2 class=\"sec-title\">Replies Done Today <span class=\"count-pill\">" + doneRows.Count + "</span></h2>");
+        sb.Append("<p class=\"sec-sub\">All remarks replies marked done / partial since 12:00 AM IST today.</p>");
+        if (doneRows.Count == 0)
+        {
+            sb.Append("<div class=\"report-wrap\"><div class=\"empty\">No replies were completed today.</div></div>");
+        }
+        else
+        {
+            sb.Append("<div class=\"report-wrap\"><table class=\"report-table\"><thead class=\"report-head\"><tr>");
+            sb.Append("<th>Replied Date</th><th>Replied Time</th><th>Order</th><th>Dealer</th><th>Customer</th><th>Replied By</th><th>Remarks</th>");
+            sb.Append("</tr></thead><tbody>");
+            foreach (var r in doneRows)
+            {
+                sb.Append("<tr>");
+                sb.Append("<td class=\"report-cell\"><span class=\"dt\">" + Html(S(r, "replied_date")) + "</span></td>");
+                sb.Append("<td class=\"report-cell\"><span class=\"tm\">" + Html(S(r, "replied_time")) + "</span></td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "order_number")) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "dealer_name")) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "customer_name")) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "replier_name")) + "</td>");
+                sb.Append("<td class=\"report-cell\"><div class=\"remark\">" + Html(S(r, "reply_remarks")) + "</div></td>");
+                sb.Append("</tr>");
+            }
+            sb.Append("</tbody></table></div>");
+        }
+
+        sb.Append("<h2 class=\"sec-title\">Pending Replies (Open) <span class=\"count-pill\">" + pendingRows.Count + "</span></h2>");
+        sb.Append("<p class=\"sec-sub\">All remark requests awaiting a reply, from the beginning until they are answered.</p>");
+        if (pendingRows.Count == 0)
+        {
+            sb.Append("<div class=\"report-wrap\"><div class=\"empty\">No pending replies. Everything is answered.</div></div>");
+        }
+        else
+        {
+            sb.Append("<div class=\"report-wrap\"><table class=\"report-table\"><thead class=\"report-head\"><tr>");
+            sb.Append("<th>Requested Date</th><th>Requested Time</th><th>Order</th><th>Dealer</th><th>Customer</th><th>Requested By</th><th>Status</th>");
+            sb.Append("</tr></thead><tbody>");
+            foreach (var r in pendingRows)
+            {
+                var orderLabel = S(r, "order_number");
+                var count = Convert.ToInt32(r["order_count"]);
+                if (count > 1) orderLabel += " <span style=\"color:#64748b;font-size:11px;\">(+" + (count - 1) + " more)</span>";
+                sb.Append("<tr>");
+                sb.Append("<td class=\"report-cell\"><span class=\"dt\">" + Html(S(r, "requested_date")) + "</span></td>");
+                sb.Append("<td class=\"report-cell\"><span class=\"tm\">" + Html(S(r, "requested_time")) + "</span></td>");
+                sb.Append("<td class=\"report-cell\">" + Html(orderLabel) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "dealer_name")) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "customer_name")) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "requester_name")) + "</td>");
+                sb.Append("<td class=\"report-cell\"><span class=\"pill pill-pending\">Pending</span></td>");
+                sb.Append("</tr>");
+            }
+            sb.Append("</tbody></table></div>");
+        }
+
+        sb.Append("</div></div></div></body></html>");
+        return sb.ToString();
+    }
+
+    private static bool TrySendRemarksReport(string siteRoot, bool force, out string message)
+    {
+        message = "Remarks report not processed.";
+        if (!Monitor.TryEnter(MailSync))
+        {
+            message = "Mail job is already running.";
+            return false;
+        }
+        try
+        {
+            if (string.IsNullOrWhiteSpace(siteRoot))
+            {
+                message = "Site root could not be resolved.";
+                return false;
+            }
+            var settings = LoadMailSettings(siteRoot);
+            if (settings == null || !settings.Enabled)
+            {
+                message = "SMTP mail is disabled.";
+                return false;
+            }
+            var now = NowInZone(settings.TimeZoneId);
+            if (!force && now.Hour < RemarksReportHour)
+            {
+                message = "Remarks report is scheduled for 9:00 PM IST.";
+                return false;
+            }
+            var reportDate = now.Date;
+            using (var conn = OpenConnection(siteRoot))
+            {
+                new PmsApiHandler().EnsureSchema(conn);
+                if (!force && WasMailAlreadySent(conn, RemarksReportKind, reportDate))
+                {
+                    message = "Remarks report already sent today.";
+                    return false;
+                }
+                List<Dictionary<string, object>> doneRows;
+                List<Dictionary<string, object>> pendingRows;
+                new PmsApiHandler().BuildRemarksReportData(conn, false, 0, out doneRows, out pendingRows);
+                var html = BuildRemarksReportHtml(doneRows, pendingRows, settings, now);
+                var subject = "Elenza PMS Remarks Replies Report | " + reportDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+                try
+                {
+                    SendDailyReportMail(settings, subject, html);
+                    LogMailReport(conn, RemarksReportKind, reportDate, string.Join(", ", settings.ToEmails), subject, "SENT", "", now);
+                    message = "Remarks report sent to " + string.Join(", ", settings.ToEmails) + ".";
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    LogMailReport(conn, RemarksReportKind, reportDate, string.Join(", ", settings.ToEmails), subject, "FAILED", ex.Message, now);
+                    message = ex.Message;
+                    return false;
+                }
+            }
+        }
+        finally
+        {
+            Monitor.Exit(MailSync);
+        }
+    }
+
+    private static DateTime _lastRemarksSchedulerProbeUtc = DateTime.MinValue;
+    private static Timer _remarksSchedulerTimer;
+
+    public static void StartRemarksReportScheduler()
+    {
+        if (_remarksSchedulerTimer != null) return;
+        _remarksSchedulerTimer = new Timer(_ =>
+        {
+            try { RunRemarksReportSchedulerIfDue(); } catch { }
+        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
+    }
+
+    public static void RunRemarksReportSchedulerIfDue()
+    {
+        var nowUtc = DateTime.UtcNow;
+        if ((nowUtc - _lastRemarksSchedulerProbeUtc).TotalMinutes < 1) return;
+        _lastRemarksSchedulerProbeUtc = nowUtc;
+        string message;
+        try { TrySendRemarksReport(ResolveSiteRoot(null), false, out message); } catch { }
     }
 }
 

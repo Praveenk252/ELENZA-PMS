@@ -170,26 +170,33 @@ function submitRemarks(){
     if(v){perOrder.push(inp.getAttribute('data-oid')+':'+v)}
   });
   if(!bulk && !perOrder.length){toast('Enter at least one remark','err');return}
-  var orderRemarks=perOrder.join('|');
+  var orderRemarks=perOrder.join('~');
   var params='request_id='+S.request.request_id+'&remarks='+encodeURIComponent(bulk)+'&order_remarks='+encodeURIComponent(orderRemarks);
+  var btn=document.querySelector('.btn-success');
+  btn.disabled=true;btn.textContent='Saving...';
   apiPost('remarks-reply-save',params).then(function(r){
+    btn.disabled=false;btn.textContent='Share to WhatsApp & Update';
     if(!r.ok){toast(r.message||'Failed to save','err');return}
     toast('Remarks saved','ok');
     var lines=[];
-    if(bulk)lines.push('Overall: '+bulk);
+    lines.push('*Remarks Updated*');
+    lines.push('');
+    if(bulk)lines.push('*Overall:* '+bulk);
     lines.push('');
     S.orders.forEach(function(o){
-      var remark=bulk;
+      var remark='';
       perOrder.forEach(function(po){
         var parts=po.split(':');
         if(parts[0]==String(o.order_id))remark=parts.slice(1).join(':');
       });
-      lines.push(o.order_number+' | '+fmtDate(o.confirmation_date)+' | '+remark);
+      if(!remark && o.existing_remarks)remark=o.existing_remarks;
+      if(!remark && bulk)remark=bulk;
+      lines.push('*'+o.order_number+'* | '+fmtDate(o.confirmation_date)+' | '+remark);
     });
-    var msg='Remarks updated:\n\n'+lines.join('\n');
+    var msg=lines.join('\n');
     if(navigator.share){navigator.share({text:msg}).catch(function(){fallbackCopy(msg)})}
     else{fallbackCopy(msg)}
-  }).catch(function(){toast('Connection error','err')});
+  }).catch(function(){btn.disabled=false;btn.textContent='Share to WhatsApp & Update';toast('Connection error','err')});
 }
 
 function fallbackCopy(msg){var ta=document.createElement('textarea');ta.value=msg;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Copied to clipboard','ok')}catch(e){prompt('Copy this message:',msg)}document.body.removeChild(ta)}

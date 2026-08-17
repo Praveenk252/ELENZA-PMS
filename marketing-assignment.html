@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElenzaIndia - Marketing Assignment</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;color:#1e293b}
+.topbar{background:#046bd2;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:16px;font-weight:600}
+.topbar .info{font-size:13px;opacity:.9}
+.topbar .btn{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+.topbar .btn:hover{background:rgba(255,255,255,.3)}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.sc{background:#fff;border-radius:10px;padding:16px;text-align:center}
+.sc .n{font-size:28px;font-weight:700;color:#046bd2}
+.sc .l{font-size:12px;color:#64748b;margin-top:4px}
+.panel{background:#fff;border-radius:10px;padding:16px;margin-bottom:16px}
+.panel h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#1e293b}
+.bform{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bform select,.bform input{padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px}
+.bform button{padding:6px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.bform .primary{background:#046bd2;color:#fff}
+.bform .primary:hover{background:#0358b0}
+.bform .warn{background:#f59e0b;color:#fff}
+.bform .warn:hover{background:#d97706}
+.bform .danger{background:#dc2626;color:#fff}
+.bform .danger:hover{background:#b91c1c}
+.sbox{margin-bottom:12px}
+.sbox input{width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px}
+.tscroll{max-height:600px;overflow-y:auto;border-radius:8px;border:1px solid #e2e8f0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;background:#f8fafc;color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:1}
+td{padding:6px 10px;border-bottom:1px solid #f1f5f9}
+tr:hover{background:#f0f9ff}
+.msel{padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;background:#fff}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:13px;z-index:999;display:none}
+.toast.err{background:#dc2626}.toast.ok{background:#16a34a}
+.chkb{width:16px;height:16px;cursor:pointer}
+#loginOv{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f1f5f9}
+.lcard{background:#fff;padding:32px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:360px;text-align:center}
+.lcard h2{font-size:18px;margin-bottom:4px}
+.lcard p{font-size:13px;color:#64748b;margin-bottom:20px}
+.lcard input{width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;margin-bottom:10px}
+.lcard button{width:100%;padding:10px;background:#046bd2;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.lcard .err{color:#dc2626;font-size:12px;margin-top:10px;display:none}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.bform{flex-direction:column}table{font-size:12px}th,td{padding:5px 6px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Marketing Dealer Assignment</h1>
+  <div class="info" id="uInfo"></div>
+  <div><button class="btn" onclick="exportCSV()">Export CSV</button> <button class="btn" onclick="logout()">Logout</button></div>
+</div>
+<div class="wrap" id="main" style="display:none">
+  <div class="stats" id="stats"></div>
+  <div class="panel">
+    <h3>Bulk Actions</h3>
+    <div class="bform">
+      <select id="bulkAction">
+        <option value="">Select action...</option>
+        <option value="all">Assign ALL dealers to</option>
+        <option value="unassigned">Assign unassigned dealers to</option>
+        <option value="from-user">Move from user...</option>
+      </select>
+      <select id="bulkToUser"><option value="">Select marketing user...</option></select>
+      <select id="bulkFromUser" style="display:none"><option value="">From user...</option></select>
+      <button class="primary" onclick="doBulk()">Apply</button>
+      <span id="bulkMsg" style="font-size:12px;color:#64748b"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>All Dealers</h3>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="fCity" onchange="render()" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px"><option value="">All Cities</option></select>
+      <select id="fOwner" onchange="render()" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px"><option value="">All Marketing Users</option></select>
+      <input type="text" id="search" placeholder="Search by name, code, contact..." oninput="render()" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;min-width:200px">
+    </div>
+    <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+      <label style="font-size:12px;color:#64748b"><input type="checkbox" id="selAll" class="chkb" onchange="toggleAll()"> Select all</label>
+      <span id="selCount" style="font-size:12px;color:#64748b"></span>
+      <button class="warn" id="bulkSelBtn" style="display:none;font-size:12px;padding:4px 10px" onclick="bulkSelected()">Assign selected to...</button>
+      <select id="bulkSelUser" style="display:none;font-size:12px"><option value="">Select user...</option></select>
+    </div>
+    <div class="tscroll">
+      <table><thead><tr><th><input type="checkbox" id="selAllH" class="chkb" onchange="toggleAllH()"></th><th>Code</th><th>Dealer Name</th><th>City</th><th>Contact</th><th>Mobile</th><th>Type</th><th>Marketing Owner</th></tr></thead><tbody id="dTb"></tbody></table>
+    </div>
+  </div>
+</div>
+<div id="loginOv">
+  <div class="lcard">
+    <h2>ElenzaIndia Admin</h2>
+    <p>Marketing Dealer Assignment</p>
+    <form onsubmit="doLogin(event)">
+      <input type="text" id="lUser" placeholder="Admin Login ID" required>
+      <input type="password" id="lPass" placeholder="Password" required>
+      <button type="submit">Sign In</button>
+    </form>
+    <p class="err" id="lErr"></p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var S={ses:null,dealers:[],users:[],sel:new Set()};var sel=S.sel;
+function api(a){return fetch('api.ashx?action='+a,{credentials:'same-origin'}).then(function(r){return r.json()})}
+function apiPost(a,body){return fetch('api.ashx?action='+a,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){return r.json()})}
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
+function logout(){S.ses=null;document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
+function doLogin(e){e.preventDefault();var u=document.getElementById('lUser').value.trim(),p=document.getElementById('lPass').value,er=document.getElementById('lErr');er.style.display='none';api('login&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(function(r){if(!r.ok){er.textContent=r.message||'Failed';er.style.display='block';return}if(r.user.role_name!=='Admin'){er.textContent='Admin only.';er.style.display='block';return}S.ses=r.user;document.getElementById('loginOv').style.display='none';document.getElementById('main').style.display='block';document.getElementById('uInfo').textContent=r.user.full_name;load()}).catch(function(){er.textContent='Connection error';er.style.display='block'})}
+function load(){api('marketing-dealers-state').then(function(d){if(!d.ok){toast(d.message||'Error','err');return}S.dealers=d.dealers||[];S.users=d.marketing_users||[];sel.clear();var us=document.getElementById('bulkToUser');us.innerHTML='<option value="">Select marketing user...</option>';var bs=document.getElementById('bulkSelUser');bs.innerHTML='<option value="">Select user...</option>';S.users.forEach(function(u){us.innerHTML+='<option value="'+u.full_name+'">'+u.full_name+' ('+u.login_id+')</option>';bs.innerHTML+='<option value="'+u.full_name+'">'+u.full_name+'</option>'});var cities={};S.dealers.forEach(function(d){if(d.city)cities[d.city]=1});var fc=document.getElementById('fCity');fc.innerHTML='<option value="">All Cities</option>';Object.keys(cities).sort().forEach(function(c){fc.innerHTML+='<option value="'+c+'">'+c+'</option>'});var fo=document.getElementById('fOwner');fo.innerHTML='<option value="">All Marketing Users</option>';S.users.forEach(function(u){fo.innerHTML+='<option value="'+u.full_name+'">'+u.full_name+'</option>'});rStats();render()})}
+function rStats(){var t=S.dealers.length,assign=0,unassign=0;var counts={};S.dealers.forEach(function(d){var o=d.marketing_owner||'';if(o){assign++;counts[o]=(counts[o]||0)+1}else{unassign++}});var h='<div class="sc"><div class="n">'+t+'</div><div class="l">Total Dealers</div></div><div class="sc"><div class="n">'+assign+'</div><div class="l">Assigned</div></div><div class="sc"><div class="n">'+unassign+'</div><div class="l">Unassigned</div></div>';Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]}).forEach(function(k){h+='<div class="sc"><div class="n">'+counts[k]+'</div><div class="l">'+k+'</div></div>'});document.getElementById('stats').innerHTML=h}
+function render(){var q=(document.getElementById('search').value||'').toLowerCase();var fc=document.getElementById('fCity').value;var fo=document.getElementById('fOwner').value;var h='';S.dealers.forEach(function(d){var n=d.dealer_name||'',c=d.dealer_code||'',ci=d.city||'',co=d.contact_person||'',mo=d.mobile_number||'',o=d.marketing_owner||'',ty=d.customer_type_code||'';if(fc&&ci!==fc)return;if(fo&&o!==fo)return;if(q&&n.toLowerCase().indexOf(q)<0&&c.toLowerCase().indexOf(q)<0&&ci.toLowerCase().indexOf(q)<0&&o.toLowerCase().indexOf(q)<0&&mo.toLowerCase().indexOf(q)<0)return;var chk=sel.has(d.dealer_id)?'checked':'';h+='<tr><td><input type="checkbox" class="chkb" '+chk+' onchange="toggleOne('+d.dealer_id+',this.checked)"></td><td>'+c+'</td><td><a href="javascript:void(0)" onclick="openDealer('+d.dealer_id+')" style="color:#046bd2;text-decoration:none;font-weight:500;cursor:pointer">'+n+'</a></td><td>'+ci+'</td><td>'+co+'</td><td>'+mo+'</td><td>'+ty+'</td><td><select class="msel" onchange="reassign('+d.dealer_id+',this.value)"><option value="">(none)</option>';S.users.forEach(function(u){h+='<option value="'+u.full_name+'"'+(o===u.full_name?' selected':'')+'>'+u.full_name+'</option>'});h+='</select></td></tr>'});document.getElementById('dTb').innerHTML=h||'<tr><td colspan="8" style="text-align:center;color:#94a3b8">No dealers found</td></tr>';updSelCount()}
+function toggleOne(id,on){if(on)sel.add(id);else sel.delete(id);updSelCount()}
+function toggleAll(){var on=document.getElementById('selAll').checked;S.dealers.forEach(function(d){if(on)sel.add(d.dealer_id);else sel.delete(d.dealer_id)});document.getElementById('selAllH').checked=on;render()}
+function toggleAllH(){var on=document.getElementById('selAllH').checked;document.getElementById('selAll').checked=on;toggleAll()}
+function updSelCount(){var c=sel.size;document.getElementById('selCount').textContent=c?c+' selected':'';document.getElementById('bulkSelBtn').style.display=c?'inline-block':'none';document.getElementById('bulkSelUser').style.display=c?'inline-block':'none'}
+function reassign(id,owner){apiPost('marketing-dealers-reassign','mode=single&dealer_id='+id+'&marketing_owner='+encodeURIComponent(owner)).then(function(d){if(d.ok){toast('Updated','ok');rStats()}else{toast(d.message||'Failed','err');render()}}).catch(function(){toast('Network error','err');render()})}
+function doBulk(){var action=document.getElementById('bulkAction').value;var toUser=document.getElementById('bulkToUser').value;var fromUser=document.getElementById('bulkFromUser').value;if(!action){toast('Select an action','err');return}if(action!=='from-user'&&!toUser){toast('Select target user','err');return}if(action==='from-user'&&!fromUser){toast('Select source user','err');return}var body='mode='+action+'&marketing_owner='+encodeURIComponent(toUser);if(action==='from-user')body+='&from_user='+encodeURIComponent(fromUser);if(!confirm('This will update multiple dealers. Continue?'))return;document.getElementById('bulkMsg').textContent='Working...';apiPost('marketing-dealers-reassign',body).then(function(d){document.getElementById('bulkMsg').textContent='';if(d.ok){toast('Updated '+d.dealers_updated+' dealers','ok');load()}else{toast(d.message||'Failed','err')}}).catch(function(){document.getElementById('bulkMsg').textContent='';toast('Network error','err')})}
+function bulkSelected(){var toUser=document.getElementById('bulkSelUser').value;if(!toUser){toast('Select a user','err');return}if(!sel.size){toast('No dealers selected','err');return}if(!confirm('Assign '+sel.size+' dealers to '+toUser+'?'))return;var promises=[];sel.forEach(function(id){promises.push(apiPost('marketing-dealers-reassign','mode=single&dealer_id='+id+'&marketing_owner='+encodeURIComponent(toUser)))});Promise.all(promises).then(function(results){var ok=results.filter(function(r){return r.ok}).length;toast('Updated '+ok+' dealers','ok');sel.clear();load()}).catch(function(){toast('Some updates failed','err');load()})}
+document.getElementById('bulkAction').onchange=function(){document.getElementById('bulkFromUser').style.display=this.value==='from-user'?'inline-block':'none'}
+function exportCSV(){var rows=[['Code','Dealer Name','City','Contact','Mobile','Type','Marketing Owner']];S.dealers.forEach(function(d){rows.push([d.dealer_code||'',d.dealer_name||'',d.city||'',d.contact_person||'',d.mobile_number||'',d.customer_type_code||'',d.marketing_owner||''])});var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join('\n');var bom='\uFEFF';var blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dealers-marketing-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
+function openDealer(id){sessionStorage.setItem('pms_user',document.getElementById('lUser')?document.getElementById('lUser').value:'');window.open('dealer-detail.html?dealer_id='+id,'_blank')}
+</script>
+</body>
+</html>
+

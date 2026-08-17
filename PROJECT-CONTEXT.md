@@ -210,6 +210,17 @@
 - Git: `https://github.com/Praveenk252/ELENZA-PMS.git`
 - Backup skill: `.agents/skills/backup/SKILL.md` — run `backup the site` to download full FTP.
 
+## 2026-08-11 — PmsApiHandler.cs restore
+
+- Restored live `/site1/App_Code/PmsApiHandler.cs` from `backups/full-site-backup-20260811/App_Code/PmsApiHandler.cs`.
+- Reason: live API handler was reported as not working.
+- Live handler was backed up before restore under `backups/restore-pms-handler-20260811-173025/`.
+- Restore source/read-back SHA-256: `5065FFFAAA9BE79969B8E37792D8121F1AF851BC00C4802890D73CFD40E9D1AE`.
+- Verification after upload:
+  - Main site returned HTTP 200.
+  - `api.ashx?action=session` returned HTTP 200 with JSON `authenticated:false`.
+- Database was not changed.
+
 ## Key Files
 
 | File | Purpose |

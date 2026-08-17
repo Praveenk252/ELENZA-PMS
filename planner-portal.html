@@ -182,6 +182,10 @@
       font-weight:700;
       font-size:12px;
     }
+    .dt{font-weight:700;color:var(--text)}
+    .tm{color:var(--muted)}
+    .remark{color:#334155;font-size:12.5px;line-height:1.45;white-space:normal}
+    .pill-pending{background:var(--medium);color:#9a6700}
     .priority-cell{
       display:flex;
       align-items:center;
@@ -199,6 +203,14 @@
       .topbar-actions button{flex:1}
       .brand h1,.topbar h1{font-size:28px}
     }
+    .auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+    .auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+    .auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+    .auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+    .auth-quick-link-icon{font-size:18px;line-height:1}
+    .auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+    .auth-quick-link-desc{display:none}
+    @media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
   </style>
 </head>
 <body>
@@ -224,6 +236,19 @@
         </label>
         <button class="primary" type="submit">Sign In</button>
       </form>
+      <div class="auth-quick-links">
+        <div class="auth-quick-links-grid">
+          <a href="qr-scanner.html" class="auth-quick-link"><span class="auth-quick-link-icon">📸</span><span class="auth-quick-link-label">QR Scanner</span><span class="auth-quick-link-desc">Scan & update orders</span></a>
+          <a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+          <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+          <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+          <a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+          <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+          <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+          <a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+          <a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+        </div>
+      </div>
     </section>
 
     <section class="app hidden" id="app-shell">
@@ -271,6 +296,7 @@
         <button class="ghost tab-btn active" data-tab="consolidated" type="button">All Orders</button>
         <button class="ghost tab-btn" data-tab="machine" type="button">Machine Wise</button>
         <button class="ghost tab-btn" data-tab="priority" type="button">Priority Desk</button>
+        <button class="ghost tab-btn" data-tab="remarks" type="button">Remarks Reply Status</button>
       </div>
 
       <section class="panel active" data-panel="consolidated">
@@ -349,6 +375,51 @@
           </div>
         </div>
       </section>
+
+      <section class="panel" data-panel="remarks">
+        <div class="card">
+          <div class="card-head">
+            <h2>Remarks Reply Status</h2>
+            <div class="topbar-actions">
+              <button class="ghost" id="refresh-remarks" type="button">Refresh</button>
+            </div>
+          </div>
+          <h3 style="margin:6px 0 10px;font-size:17px;">Replies Done Today <span class="tag" id="remarks-done-count">0</span></h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Replied Date</th>
+                  <th>Replied Time</th>
+                  <th>Order</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Replied By</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="remarks-done-body"></tbody>
+            </table>
+          </div>
+          <h3 style="margin:22px 0 10px;font-size:17px;">Pending Replies <span class="tag" id="remarks-pending-count">0</span></h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Requested Date</th>
+                  <th>Requested Time</th>
+                  <th>Order</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Requested By</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="remarks-pending-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </section>
   </div>
 
@@ -360,7 +431,8 @@
       tab: "consolidated",
       search: "",
       status: "all",
-      priority: "all"
+      priority: "all",
+      remarksData: null
     };
 
     const refs = {
@@ -421,6 +493,8 @@
           renderTabs();
         });
       });
+      const refreshRemarksButton = document.querySelector("#refresh-remarks");
+      if (refreshRemarksButton) refreshRemarksButton.addEventListener("click", loadRemarksReport);
       refs.consolidatedBody.addEventListener("change", onPriorityChange);
       refs.consolidatedBody.addEventListener("click", onPrioritySave);
       refs.machineGroups.addEventListener("change", onPriorityChange);
@@ -526,6 +600,53 @@
     function renderTabs() {
       refs.tabButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === state.tab));
       document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === state.tab));
+      if (state.tab === "remarks") loadRemarksReport();
+    }
+
+    async function loadRemarksReport() {
+      if (!state.session) return;
+      try {
+        const result = await apiGet("remarks-report");
+        state.remarksData = result;
+        renderRemarksReport();
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    function renderRemarksReport() {
+      const data = state.remarksData || { done_rows: [], pending_rows: [] };
+      const doneRows = data.done_rows || [];
+      const pendingRows = data.pending_rows || [];
+      document.querySelector("#remarks-done-count").textContent = String(doneRows.length);
+      document.querySelector("#remarks-pending-count").textContent = String(pendingRows.length);
+
+      document.querySelector("#remarks-done-body").innerHTML = doneRows.length ? doneRows.map((row) => `
+        <tr>
+          <td class="slim-cell"><span class="dt">${escapeHtml(row.replied_date)}</span></td>
+          <td class="slim-cell"><span class="tm">${escapeHtml(row.replied_time)}</span></td>
+          <td class="order-cell wrap">${escapeHtml(row.order_number)}</td>
+          <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
+          <td class="customer-cell wrap">${escapeHtml(row.customer_name)}</td>
+          <td class="slim-cell">${escapeHtml(row.replier_name)}</td>
+          <td class="wrap"><div class="remark">${escapeHtml(row.reply_remarks)}</div></td>
+        </tr>
+      `).join("") : `<tr><td colspan="7" class="empty">No replies completed today.</td></tr>`;
+
+      document.querySelector("#remarks-pending-body").innerHTML = pendingRows.length ? pendingRows.map((row) => {
+        const orderLabel = row.order_count > 1 ? `${escapeHtml(row.order_number)} (+${row.order_count - 1} more)` : escapeHtml(row.order_number);
+        return `
+        <tr>
+          <td class="slim-cell"><span class="dt">${escapeHtml(row.requested_date)}</span></td>
+          <td class="slim-cell"><span class="tm">${escapeHtml(row.requested_time)}</span></td>
+          <td class="order-cell wrap">${orderLabel}</td>
+          <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
+          <td class="customer-cell wrap">${escapeHtml(row.customer_name)}</td>
+          <td class="slim-cell">${escapeHtml(row.requester_name)}</td>
+          <td class="slim-cell"><span class="pill pill-pending">Pending</span></td>
+        </tr>
+      `;
+      }).join("") : `<tr><td colspan="7" class="empty">No pending replies. Everything is answered.</td></tr>`;
     }
 
     function getFilteredRows() {
