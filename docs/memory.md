@@ -2,6 +2,43 @@
 
 Keep this file factual, concise, and free of credentials.
 
+## 2026-08-17 — Remarks report and marketing priority
+
+### Task completed
+
+Implemented production remarks report system and marketing portal priority feature.
+
+### Files modified/deployed
+
+- `PmsApiHandler.cs` — Added remarks report endpoints (`remarks-report`, `remarks-report-export`, `remarks-report-mail`), remarks request lifecycle (`remarks-request-create`, `remarks-request-info`, `remarks-reply-save`, `remarks-requests-list`, `remarks-request-reminder`, `remarks-request-close`, `remarks-request-delete`), remarks scheduler (`StartRemarksReportScheduler`, `RunRemarksReportSchedulerIfDue`, `TrySendRemarksReport`)
+- `Global.asax` — Added `PmsApiHandler.StartRemarksReportScheduler()` call in `Application_Start`
+- `App_Code/Timestamp.cs` — Recompilation trigger for ASP.NET
+- `marketing-portal.html` — Added priority badges (HIGH/MED/LOW), row highlighting (dark backgrounds), priority filter dropdown, Priority Report modal, modal pre-fill, Clear Priority button, High Priority count stats card
+- `remarks-reply.html` — Token-based remarks reply page
+- `planner-portal.html` — Remarks tab for viewing/managing remarks requests
+
+### Key decisions
+
+- Remarks report scheduled at 21:00 IST (hardcoded `RemarksReportHour = 21`)
+- `force=1` on `remarks-report-mail` bypasses time check and already-sent check
+- SMTP configured via `App_Data/smtp-settings.json`
+- Priority row backgrounds: High=`#fecaca` hover=`#fca5a5`, Medium=`#fef08a` hover=`#fde047`
+- App pool recompilation via `Timestamp.cs` upload to `App_Code/` (more reliable than web.config comment)
+
+### Verification
+
+- Remarks report endpoints return 200 with correct JSON
+- Remarks report mail sent successfully to configured recipients
+- Marketing portal priority badges display correctly
+- Priority filter and report modal working
+- Full site backup created: `backup/site-ftp-20260817-140546/` (43 files)
+
+### Known issues
+
+- SLA/EDD auto-calculation attempted but reverted due to compilation errors on shared hosting
+- App pool recompilation via `Timestamp.cs` does not always work — sometimes requires manual restore
+- Access/OleDb requires explicit parentheses for multiple JOINs: `FROM ((A INNER JOIN B ON ...) INNER JOIN C ON ...) LEFT JOIN D ON ...`
+
 ## 2026-08-07 — Priority Desk 15-problem fix
 
 ### Task completed

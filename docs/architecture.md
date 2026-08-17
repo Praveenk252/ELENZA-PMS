@@ -10,13 +10,17 @@ Browser
   ├─ Production planner portal
   ├─ Packing portal
   ├─ QR Label Printer
-  └─ Machine QR Scanner
+  ├─ Machine QR Scanner
+  ├─ Priority Desk
+  ├─ Remarks Reply (token-based)
+  └─ Marketing Portal
           │ same-origin HTTP + session cookie
           ▼
 ASP.NET Framework 4.8
   ├─ api.ashx
   ├─ api.aspx
-  └─ App_Code/PmsApiHandler.cs
+  ├─ App_Code/PmsApiHandler.cs
+  └─ Global.asax (scheduler)
           │ OleDb
           ▼
 App_Data/elenza_pms.accdb
@@ -47,18 +51,22 @@ This directory is a production-support workspace and contains both current and h
   README.md
   VERSIONING.md
   docs/
+  marketing-portal.html
   packing-portal.html
   planner-portal.html
   production-planner.html
+  qr-scanner.html
+  qr-printer.html
+  priority-desk.html
+  remarks-reply.html
   PmsApiHandler.cs
+  Global.asax
+  App_Code/
   api.aspx
-  *-web.config
   *.ps1
   backups/
   work/
   node_modules/
-  numerous live/readback/verify/restore snapshots
-  multiple .accdb copies
 ```
 
 Filename prefixes such as `live-`, `root-`, `ftp-`, `public-`, `verify-`, `restore-`, and `*-current` do not reliably prove that a file is the latest production version.
@@ -135,6 +143,16 @@ IIS may rewrite `planner-portal.html` to `production-planner.html`; confirm the 
 - Shows pending order count and list per station
 - Requires Admin or Machine User login
 
+### Remarks Reply
+
+`remarks-reply.html` is a token-based page for planners to reply to remarks requests. It:
+
+- Accepts `?token=...` URL parameter
+- Loads request details and associated orders
+- Allows bulk or per-order remarks entry
+- Saves replies via `remarks-reply-save` endpoint
+- Tracks replied/unreplied status per order
+
 ## Backend and API
 
 `PmsApiHandler` implements a large action dispatcher. Major endpoint groups include:
@@ -147,6 +165,9 @@ IIS may rewrite `planner-portal.html` to `production-planner.html`; confirm the 
 - Production, packing, and dispatch actions
 - Masters, machines, and users
 - Report email generation and status
+- Remarks request lifecycle and replies
+- Remarks report and email scheduling
+- Priority desk state and report
 
 Authorization is enforced in handler methods with role checks and station comparisons.
 

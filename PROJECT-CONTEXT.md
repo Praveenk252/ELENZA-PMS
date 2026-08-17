@@ -1,6 +1,36 @@
 # Elenza PMS Working Context
 
-## 2026-08-11
+## 2026-08-17
+
+### Production Remarks Request — Implemented
+
+- `remarks-request-create` creates token-based request records in `tbl_remarks_requests`.
+- `remarks-reply.html?token=...` — planner opens URL, logs in, enters remarks per order or bulk.
+- Saves to `tbl_remarks_requests` and `tbl_remarks_replies` tables.
+- `remarks-requests-list`, `remarks-request-info`, `remarks-reply-save` endpoints all working.
+- `remarks-request-reminder` sends reminder notifications.
+- `remarks-request-close` and `remarks-request-delete` manage lifecycle.
+- Replied/unreplied tracking per order.
+
+### Remarks Report — Implemented
+
+- `remarks-report` endpoint returns done/pending rows with order details.
+- `remarks-report-export` exports to Excel via server-side HTML table.
+- `remarks-report-mail` sends HTML email summary to configured recipients.
+- Scheduled daily at 21:00 IST via Global.asax Timer (`RunRemarksReportSchedulerIfDue`).
+- `force=1` parameter bypasses time check and already-sent check.
+- SMTP configured via `App_Data/smtp-settings.json` with `to_emails`, `enabled`, `host`, `port`, etc.
+
+### Marketing Portal Priority Feature — Implemented
+
+- Priority badges: HIGH (red), MED (yellow), LOW (blue) displayed on In Production tab.
+- Row highlighting: High=`#fecaca` hover=`#fca5a5`, Medium=`#fef08a` hover=`#fde047`.
+- Priority filter dropdown in toolbar (All/High/Medium/Low).
+- Priority Report modal with summary cards and per-order table.
+- Priority modal pre-fills current priority when editing.
+- Clear Priority button to remove priority assignment.
+- Stats card shows High Priority count.
+- `priority-desk-state` and `priority-report` API endpoints.
 
 ### Marketing Portal — 4-Tab Layout
 
@@ -9,7 +39,6 @@
 - Packed: added Box Qty and Balance Box columns from `packing_balance_box_qty`.
 - Dispatched: shows dispatch rows for Marketing User.
 - `planner-save` endpoint allows Marketing User role for priority setting.
-- Marketing User role sections updated to include `"dispatch"` in `PmsApiHandler.cs` and `live-api.ashx`.
 
 ### WhatsApp Messaging
 
@@ -18,41 +47,25 @@
 - All tabs have "Just copy to clipboard" checkbox (desktop only, unticked by default).
 - `navigator.share()` with clipboard fallback. Added `fallbackCopy()` using `document.execCommand('copy')` for non-HTTPS environments.
 - Date format: `fmtDate()` outputs DD-Mon-YY (e.g., 11-Aug-26). Handles any input format.
-- `submitUrgentWa()` includes selected date in message.
 
 ### EDD Change Request
 
 - EDD change request modal copies text to clipboard for WhatsApp sharing.
 
-### Priority Setting
+### App Pool Recompilation Trick
 
-- Priority modal (High/Medium/Low + comments) saves via `planner-save` API.
-
-### Login Fix
-
-- Removed `encodeURIComponent(a)` from `api()` function that was breaking login.
-
-### Stats Area
-
-- Compacted for mobile (5-column grid, smaller fonts).
+- Upload a `Timestamp.cs` file to `App_Code/` to force ASP.NET dynamic compilation.
+- Delete after recompile confirmed. This is more reliable than `web.config` comment changes.
 
 ### Backup
 
-- Full FTP site backup: `backup/site-ftp-20260811/` (all files from `[removed]/site1/`).
-- FTP host: `[removed]`, user: `[removed]`, password: `[removed]`.
+- Full FTP site backup: `backup/site-ftp-20260817-140546/` (43 files from `[removed]/site1/`).
+- FTP host: `[removed]`, user: `[removed]`.
 - Old FTP host `win1006.site4now.net` returns 530 Not logged in.
 
 ### Git
 
 - Committed and pushed to GitHub: `https://github.com/Praveenk252/ELENZA-PMS.git`
-
-### Production Remarks Request (Planned)
-
-- Marketing selects in-production orders → clicks Status Ask → creates request record with token → URL included in WhatsApp message.
-- Planner opens URL (`remarks-reply.html?token=...`), logs in, enters remarks per order or bulk.
-- Saves to `tbl_remarks_requests` and `tbl_remarks_replies` tables.
-- Tracks replied/unreplied status. Summary email to management (later phase).
-- Not yet implemented — plan finalized.
 
 ---
 
@@ -225,15 +238,16 @@
 
 | File | Purpose |
 |---|---|
-| `marketing-portal.html` | Marketing 4-tab portal (My Dealers, In Production, Packed, Dispatched) |
-| `planner-portal.html` | Planner portal (rewritten to production-planner.html) |
+| `marketing-portal.html` | Marketing 4-tab portal (My Dealers, In Production, Packed, Dispatched) with priority UI |
+| `planner-portal.html` | Planner portal with remarks tab |
 | `packing-portal.html` | Packing portal |
 | `qr-scanner.html` | Machine QR scanner |
 | `qr-printer.html` | QR label printer |
 | `priority-desk.html` | Priority desk |
+| `remarks-reply.html` | Remarks reply page (token-based URL) |
 | `PmsApiHandler.cs` | API handler (also uploaded as `App_Code/PmsApiHandler.cs`) |
-| `live-api.ashx` | Local API handler source |
-| `elenza_pms.accdb` | Access database |
+| `Global.asax` | App startup with remarks report scheduler |
+| `App_Code/Timestamp.cs` | Recompilation trigger for ASP.NET |
 
 ## Database Key Tables
 
@@ -243,5 +257,6 @@
 - `tbl_dealers` — dealer info with marketing_owner
 - `tbl_users` — users with role_id
 - `tbl_dispatch_boxes` — box tracking per order
-- `tbl_remarks_requests` — (planned) WhatsApp remarks requests
-- `tbl_remarks_replies` — (planned) Planner remarks replies
+- `tbl_remarks_requests` — WhatsApp remarks requests with token
+- `tbl_remarks_replies` — Planner remarks replies per order
+- `tbl_mail_reports` — Email send log for reports

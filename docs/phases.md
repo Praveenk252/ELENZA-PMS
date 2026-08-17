@@ -155,6 +155,9 @@ Potential work only when explicitly requested:
 
 - ~~Persistent production batches for grouping multiple orders and printing batch/order QR labels~~ — QR Label Printer page deployed (`qr-printer.html`), supports Roll/Sheet format, configurable dimensions, date range filter
 - ~~Priority assignment desk~~ — Priority Desk page deployed (`priority-desk.html`), standalone priority + packing date assignment, admin/planner roles, auto-removal on pack
+- ~~Production remarks request~~ — Implemented: token-based URL, bulk+individual remarks, replied/unreplied tracking, remarks report with email
+- ~~Marketing portal priority~~ — Implemented: badges, row highlighting, filter, report modal
+- SLA/EDD auto-calculation — Attempted but reverted (compilation issues on shared hosting). Configurable SLA days per order class/type with auto EDD on confirmation.
 - Barcode scanning
 - Inventory valuation
 - Accounting integration
