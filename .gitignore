@@ -7,6 +7,7 @@ node_modules/
 
 # Backups
 backups/
+backup/
 
 # opencode agents config
 .agents/
@@ -26,3 +27,16 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.log
+
+# Session cookies (sensitive)
+cookies*.txt
+
+# FTP scripts with hardcoded credentials
+*.ps1
+
+# Database files
+*.accdb
+*.laccdb
+
+# SMTP settings (contains passwords)
+smtp-settings.json
