@@ -46,6 +46,14 @@ tr:hover{background:#f0f9ff}
 .lcard input{width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;margin-bottom:10px}
 .lcard button{width:100%;padding:10px;background:#046bd2;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
 .lcard .err{color:#dc2626;font-size:12px;margin-top:10px;display:none}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+.auth-quick-link-icon{font-size:18px;line-height:1}
+.auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+.auth-quick-link-desc{display:none}
+@media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
 @media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.bform{flex-direction:column}table{font-size:12px}th,td{padding:5px 6px}}
 </style>
 </head>
@@ -100,6 +108,19 @@ tr:hover{background:#f0f9ff}
       <button type="submit">Sign In</button>
     </form>
     <p class="err" id="lErr"></p>
+    <div class="auth-quick-links">
+    <div class="auth-quick-links-grid">
+    <a href="qr-scanner.html" class="auth-quick-link"><span class="auth-quick-link-icon">📸</span><span class="auth-quick-link-label">QR Scanner</span><span class="auth-quick-link-desc">Scan & update orders</span></a>
+    <a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+    <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+    <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+    <a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+    <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+    <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+    <a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+    <a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+    </div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
