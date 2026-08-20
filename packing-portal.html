@@ -453,19 +453,25 @@
           const boxCount = Number(prod.box_count || 0);
           const balanceQty = Number(prod.packing_balance_box_qty || 0);
           const fullyPacked = boxCount > 0 && balanceQty === 0;
-          return orderClass !== "sub order"
+          const isSubOrder = orderClass === "sub order";
+          const subOrderWithBalance = isSubOrder && balanceQty > 0;
+          const atPackedOrDispatch = ["packed", "dispatch", "dispatched"].includes(stage) || ["packed", "dispatch", "dispatched"].includes(currentHint);
+          const hasBalance = balanceQty > 0;
+          return (isSubOrder ? subOrderWithBalance : true)
             && workflow !== "dispatched"
             && workflow !== "dispatch_ready"
-            && stage !== "packed"
-            && stage !== "dispatch"
             && stage !== "dispatched"
-            && currentHint !== "packed"
-            && currentHint !== "dispatch"
             && currentHint !== "dispatched"
+            && !(atPackedOrDispatch && !hasBalance)
             && !fullyPacked;
         });
         const historyState = await apiGet("history-state");
         state.historyRows = historyState.rows || [];
+        const dispatchRows = (appState.dispatch || {}).rows || [];
+        state.packingDates = {};
+        dispatchRows.forEach((d) => {
+          if (d.packing_ready_date) state.packingDates[String(d.order_id)] = d.packing_ready_date;
+        });
         renderLoggedIn();
       } catch (error) {
         showMessage(error.message, "error", true);
@@ -580,16 +586,23 @@
     function renderHistory() {
       const latestByOrder = new Map();
       state.historyRows.forEach((row) => {
+        const packed = Number(row.packed_boxes || 0);
+        if (packed <= 0) return;
         const key = String(row.order_id || "");
         if (key && !latestByOrder.has(key)) latestByOrder.set(key, row);
       });
-      const rows = [...latestByOrder.values()].map((row) => ({
-        confirmation_date: shortDate(row.confirmation_date || ""),
-        order_number: row.order_number || "-",
-        packed_boxes: Number(row.packed_boxes || 0),
-        balance_boxes: Number(row.balance_boxes || 0),
-        packed_date: row.acted_at || "-"
-      }));
+      const rows = [...latestByOrder.values()].map((row) => {
+        const oid = String(row.order_id || "");
+        const packedDate = state.packingDates && state.packingDates[oid] ? state.packingDates[oid] : (row.acted_at || "-");
+        return {
+          confirmation_date: shortDate(row.confirmation_date || ""),
+          order_number: row.order_number || "-",
+          packed_boxes: Number(row.packed_boxes || 0),
+          balance_boxes: Number(row.balance_boxes || 0),
+          packed_date: packedDate,
+          _sortDate: packedDate
+        };
+      }).sort((a, b) => (b._sortDate || "").localeCompare(a._sortDate || ""));
 
       refs.historyCount.textContent = `${rows.length} Rows`;
       refs.historyBody.innerHTML = rows.length ? rows.map((row) => `

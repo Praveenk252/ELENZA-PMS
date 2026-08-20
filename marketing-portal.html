@@ -129,7 +129,7 @@ tr.row-medium:hover{background:#fde047!important}
       <button class="btn-sm btn-all" onclick="selectAll('packed')">Select All</button>
       <div class="wa-wrap"><button class="btn-sm btn-wa" onclick="toggleWaMenu('packed')">WhatsApp &#9662;</button><div class="wa-menu" id="waMenu-packed"><div onclick="genWhatsApp('packed','dispatch')">Ready for Dispatch</div><div onclick="genWhatsApp('packed','boxbalance')">Box Balance</div><div onclick="genWhatsApp('packed','custom')">Custom Message</div><div class="wa-sep"></div><label class="wa-copy-opt desktop-only" onclick="event.stopPropagation()"><input type="checkbox" id="waCopy-packed" onclick="event.stopPropagation()"> Just copy to clipboard</label></div></div>
     </div>
-    <div class="tscroll"><table><thead><tr><th class="cb"><input type="checkbox" class="cb" id="pkCbAll" onchange="toggleAll('packed')"></th><th>Order #</th><th>Confirmation</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th><th>Box Qty</th><th>Balance Box</th></tr></thead><tbody id="pkTb"></tbody></table></div>
+    <div class="tscroll"><table><thead><tr><th class="cb"><input type="checkbox" class="cb" id="pkCbAll" onchange="toggleAll('packed')"></th><th>Order #</th><th>Confirmation</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th><th>Box Qty</th><th>Balance Box</th><th>Packed Date</th></tr></thead><tbody id="pkTb"></tbody></table></div>
   </div>
   <div class="sec" id="s-dispatched">
     <div class="sbox">
@@ -301,7 +301,8 @@ function gs(o){
 }
 function bg(s){return{"In Production":'bl',Packed:'y',Dispatched:'g'}[s]||'gr'}
 function esc(h){return String(h).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function load(){api('app-state').then(function(d){S.ses=d.session||S.ses;document.getElementById('uInfo').textContent=S.ses.full_name+' | '+S.ses.role_name;var nm=S.ses.full_name.toLowerCase();S.dealers=(d.data_entry&&d.data_entry.dealers||[]).filter(function(x){return String(x.marketing_owner||'').toLowerCase()===nm});var all=[].concat(d.production.rows||[],d.planning.rows||[],d.dispatch.rows||[]);var seen={};S.orders=all.filter(function(o){var dn=String(o.dealer_name||'').toLowerCase();var m=S.dealers.some(function(dl){return String(dl.dealer_name||'').toLowerCase()===dn});if(m&&!seen[o.order_id]){seen[o.order_id]=1;return 1}return 0});S.priorityLookup={};(d.planning.rows||[]).forEach(function(o){if(o.priority){S.priorityLookup[o.order_id]={priority:o.priority,planner_remarks:o.planner_remarks||'',priority_date:o.priority_date||''}}});var dispatchIds={};(d.dispatch.rows||[]).forEach(function(o){dispatchIds[o.order_id]=o});S.orders.forEach(function(o){if(dispatchIds[o.order_id]){var ds=String(dispatchIds[o.order_id].dispatch_status||'').toLowerCase();if(ds==='dispatched')o._dispatched=1;else o._packed=1}});S.orders.sort(function(a,b){return String(a.dealer_name||'').localeCompare(b.dealer_name||'')});var cts={},ots={};S.orders.forEach(function(o){var ct=o.customer_type||'';var ot=o.order_type||o.order_type_name||'';if(ct)cts[ct]=1;if(ot)ots[ot]=1});var ctSel=document.getElementById('ctFilter');ctSel.innerHTML='<option value="all">All Customer Types</option>';Object.keys(cts).sort().forEach(function(k){ctSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});var otSel=document.getElementById('otFilter');otSel.innerHTML='<option value="all">All Order Types</option>';Object.keys(ots).sort().forEach(function(k){otSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});rStats();rDealers();rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched');loadRequests()})}
+function load(){api('app-state').then(function(d){S.ses=d.session||S.ses;document.getElementById('uInfo').textContent=S.ses.full_name+' | '+S.ses.role_name;var nm=S.ses.full_name.toLowerCase();S.dealers=(d.data_entry&&d.data_entry.dealers||[]).filter(function(x){return String(x.marketing_owner||'').toLowerCase()===nm});var all=[].concat(d.production.rows||[],d.planning.rows||[],d.dispatch.rows||[]);var seen={};S.orders=all.filter(function(o){var dn=String(o.dealer_name||'').toLowerCase();var m=S.dealers.some(function(dl){return String(dl.dealer_name||'').toLowerCase()===dn});if(m&&!seen[o.order_id]){seen[o.order_id]=1;return 1}return 0});S.priorityLookup={};(d.planning.rows||[]).forEach(function(o){if(o.priority){S.priorityLookup[o.order_id]={priority:o.priority,planner_remarks:o.planner_remarks||'',priority_date:o.priority_date||''}}});var dispatchIds={};(d.dispatch.rows||[]).forEach(function(o){dispatchIds[o.order_id]=o});S.orders.forEach(function(o){if(dispatchIds[o.order_id]){var ds=String(dispatchIds[o.order_id].dispatch_status||'').toLowerCase();if(ds==='dispatched')o._dispatched=1;else o._packed=1}});S.orders.sort(function(a,b){return String(a.dealer_name||'').localeCompare(b.dealer_name||'')});var cts={},ots={};S.orders.forEach(function(o){var ct=o.customer_type||'';var ot=o.order_type||o.order_type_name||'';if(ct)cts[ct]=1;if(ot)ots[ot]=1});var ctSel=document.getElementById('ctFilter');ctSel.innerHTML='<option value="all">All Customer Types</option>';Object.keys(cts).sort().forEach(function(k){ctSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});var otSel=document.getElementById('otFilter');otSel.innerHTML='<option value="all">All Order Types</option>';Object.keys(ots).sort().forEach(function(k){otSel.innerHTML+='<option value="'+esc(k)+'">'+esc(k)+'</option>'});rStats();rDealers();rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched');loadRequests();loadPackedDates()})}
+function loadPackedDates(){api('history-state').then(function(h){S.packedDates={};(h.rows||[]).forEach(function(r){var oid=String(r.order_id||'');var st=String(r.station_name||'').toLowerCase();if((st==='packed'||st==='dispatch')&&r.acted_at){if(!S.packedDates[oid]||r.acted_at>S.packedDates[oid])S.packedDates[oid]=r.acted_at}});rOrdersTab('packed')}).catch(function(){})}
 
 
 function loadRequests(){
@@ -420,10 +421,10 @@ function rOrdersTab(tab){
   var otFilter=document.getElementById('otFilter').value;
   var priFilter=document.getElementById('priFilter').value;
   var h='';
+  var rows=[];
   S.orders.forEach(function(o){
     var s=gs(o);
     if(s!==target)return;
-    if(tab==='production' && String(o.order_class||'').toLowerCase()==='sub order')return;
     if(ctFilter!=='all' && String(o.customer_type||'')!==ctFilter)return;
     if(otFilter!=='all' && String(o.order_type||o.order_type_name||'')!==otFilter)return;
     var pri=S.priorityLookup&&S.priorityLookup[o.order_id]?S.priorityLookup[o.order_id].priority:'';
@@ -431,32 +432,38 @@ function rOrdersTab(tab){
     if(priFilter==='Medium' && pri!=='Medium')return;
     if(priFilter==='Low' && pri!=='Low')return;
     if(priFilter==='none' && pri)return;
-    var on=String(o.order_number||''),dn=String(o.dealer_name||''),cn=String(o.customer_name||''),ty=String(o.order_type||o.order_type_name||''),ua=o.updated_at||'',cd=o.confirmation_date||'',edd=o.edd||o.sla_date||'',oid=o.order_id||'';
+    var on=String(o.order_number||''),dn=String(o.dealer_name||''),cn=String(o.customer_name||''),ty=String(o.order_type||o.order_type_name||''),cd=o.confirmation_date||'',edd=o.edd||o.sla_date||'',oid=o.order_id||'';
     if(q&&on.toLowerCase().indexOf(q)<0&&dn.toLowerCase().indexOf(q)<0&&cn.toLowerCase().indexOf(q)<0)return;
+    var pdSort=S.packedDates&&S.packedDates[String(oid)]?S.packedDates[String(oid)]:'';
+    rows.push({o:o,s:s,pri:pri,on:on,dn:dn,cn:cn,ty:ty,cd:cd,edd:edd,oid:oid,pdSort:pdSort});
+  });
+  if(tab==='packed')rows.sort(function(a,b){return (b.pdSort||'').localeCompare(a.pdSort||'')});
+  rows.forEach(function(r){
     var priBadge='';
-    if(pri==='High')priBadge=' <span class="pri-badge high" title="High Priority">HIGH</span>';
-    else if(pri==='Medium')priBadge=' <span class="pri-badge medium" title="Medium Priority">MED</span>';
-    else if(pri==='Low')priBadge=' <span class="pri-badge low" title="Low Priority">LOW</span>';
-    var rowClass=pri==='High'?' class="row-high"':pri==='Medium'?' class="row-medium"':'';
+    if(r.pri==='High')priBadge=' <span class="pri-badge high" title="High Priority">HIGH</span>';
+    else if(r.pri==='Medium')priBadge=' <span class="pri-badge medium" title="Medium Priority">MED</span>';
+    else if(r.pri==='Low')priBadge=' <span class="pri-badge low" title="Low Priority">LOW</span>';
+    var rowClass=r.pri==='High'?' class="row-high"':r.pri==='Medium'?' class="row-medium"':'';
     if(tab==='production'){
       var reqBadge='';
-      if(S.requestLookup&&S.requestLookup[oid]){
-        var reqs=S.requestLookup[oid];
-        var hasPending=reqs.some(function(r){return r.status==='pending'});
-        var hasReplied=reqs.some(function(r){return r.status==='replied'});
+      if(S.requestLookup&&S.requestLookup[r.oid]){
+        var reqs=S.requestLookup[r.oid];
+        var hasPending=reqs.some(function(x){return x.status==='pending'});
+        var hasReplied=reqs.some(function(x){return x.status==='replied'});
         if(hasPending)reqBadge=' <span style="color:#ca8a04;font-size:10px" title="Pending reply">⏳</span>';
         else if(hasReplied)reqBadge=' <span style="color:#16a34a;font-size:10px" title="Replied">✓</span>';
       }
-      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+reqBadge+priBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td><button class="btn-sm btn-pri" onclick="openPriModal('+oid+',\''+esc(on)+'\')">Priority</button></td></tr>';
+      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+r.oid+'" data-tab="'+tab+'"></td><td>'+esc(r.on)+reqBadge+priBadge+'</td><td>'+esc(r.cd)+'</td><td>'+esc(r.ty)+'</td><td>'+esc(r.dn)+'</td><td>'+esc(r.cn)+'</td><td><span class="b '+bg(r.s)+'">'+esc(r.s)+'</span></td><td>'+esc(r.edd)+'</td><td><button class="btn-sm btn-pri" onclick="openPriModal('+r.oid+',\''+esc(r.on)+'\')">Priority</button></td></tr>';
     } else if(tab==='packed'){
-      var bq=String(o.box_count||'');
-      var bb=String(o.packing_balance_box_qty||'');
-      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+priBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td><td>'+esc(bq)+'</td><td>'+esc(bb)+'</td></tr>';
+      var bq=String(r.o.box_count||'');
+      var bb=String(r.o.packing_balance_box_qty||'');
+      var pd=r.pdSort?fmtDate(r.pdSort):'-';
+      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+r.oid+'" data-tab="'+tab+'"></td><td>'+esc(r.on)+priBadge+'</td><td>'+esc(r.cd)+'</td><td>'+esc(r.ty)+'</td><td>'+esc(r.dn)+'</td><td>'+esc(r.cn)+'</td><td><span class="b '+bg(r.s)+'">'+esc(r.s)+'</span></td><td>'+esc(r.edd)+'</td><td>'+esc(bq)+'</td><td>'+esc(bb)+'</td><td>'+esc(pd)+'</td></tr>';
     } else {
-      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+oid+'" data-tab="'+tab+'"></td><td>'+esc(on)+priBadge+'</td><td>'+esc(cd)+'</td><td>'+esc(ty)+'</td><td>'+esc(dn)+'</td><td>'+esc(cn)+'</td><td><span class="b '+bg(s)+'">'+esc(s)+'</span></td><td>'+esc(edd)+'</td></tr>';
+      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+r.oid+'" data-tab="'+tab+'"></td><td>'+esc(r.on)+priBadge+'</td><td>'+esc(r.cd)+'</td><td>'+esc(r.ty)+'</td><td>'+esc(r.dn)+'</td><td>'+esc(r.cn)+'</td><td><span class="b '+bg(r.s)+'">'+esc(r.s)+'</span></td><td>'+esc(r.edd)+'</td></tr>';
     }
   });
-  document.getElementById(TAB_TB[tab]).innerHTML=h||'<tr><td colspan="'+(tab==='production'?9:tab==='packed'?10:8)+'" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
+  document.getElementById(TAB_TB[tab]).innerHTML=h||'<tr><td colspan="'+(tab==='production'?9:tab==='packed'?11:8)+'" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
 }
 function toggleAll(tab){var c=document.getElementById(TAB_CBALL[tab]);document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=c.checked})}
 function selectAll(tab){document.getElementById(TAB_CBALL[tab]).checked=true;document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=true})}

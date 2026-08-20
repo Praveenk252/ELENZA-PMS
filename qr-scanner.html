@@ -339,16 +339,19 @@ function renderPendingList(){
   if(stationEl)stationEl.textContent=currentMachineName||'—';
   if(hs)hs.textContent=currentMachineName||'this station';
   if(!list)return;
-  if(!allOrders.length){list.innerHTML='<div class="empty">No orders pending</div>';if(countEl)countEl.textContent='0';return;}
+  var filtered=allOrders.filter(function(o){
+    return (o.workflow_stage||'').toLowerCase()===currentMachineName.toLowerCase();
+  });
+  if(!filtered.length){list.innerHTML='<div class="empty">No orders pending at '+escHtml(currentMachineName)+'</div>';if(countEl)countEl.textContent='0';return;}
   var h='';
-  allOrders.forEach(function(o){
+  filtered.forEach(function(o){
     var num=o.order_number||('Order #'+o.order_id);
     h+='<div class="item" data-id="'+o.order_id+'">';
     h+='<span class="order">'+escHtml(num)+'</span>';
     h+='<span class="dealer">'+escHtml(o.order_type||'')+'</span></div>';
   });
   list.innerHTML=h;
-  if(countEl)countEl.textContent=allOrders.length;
+  if(countEl)countEl.textContent=filtered.length;
   Array.prototype.forEach.call(list.querySelectorAll('.item'),function(el){
     el.onclick=function(){
       var id=parseInt(el.getAttribute('data-id'),10);
@@ -366,6 +369,7 @@ function filterOrderCombo(q){
   var dd=document.getElementById('orderComboDropdown');
   q=(q||'').trim().toLowerCase();
   var matches=allOrders.filter(function(o){
+    if((o.workflow_stage||'').toLowerCase()!==currentMachineName.toLowerCase())return false;
     if(!q)return true;
     var hay=(o.order_number||'')+' '+(o.main_order||'')+' '+(o.customer_name||'');
     return hay.toLowerCase().indexOf(q)>=0;
@@ -465,13 +469,13 @@ loadScannerState();
 }
 
 function findOrderById(id){
-return allOrders.find(function(o){return o.order_id===id;});
+return allOrders.find(function(o){return o.order_id===id && (o.workflow_stage||'').toLowerCase()===currentMachineName.toLowerCase();});
 }
 
 function findOrderByNumber(num){
 var n=(num||'').trim().toLowerCase();
 return allOrders.find(function(o){
-return (o.order_number||'').toLowerCase()===n;
+return (o.order_number||'').toLowerCase()===n && (o.workflow_stage||'').toLowerCase()===currentMachineName.toLowerCase();
 });
 }
 

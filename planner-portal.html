@@ -874,37 +874,61 @@
       node.style.color = tone === "error" ? "#b42318" : "var(--green)";
     }
 
+    function calcDelay(row) {
+      const cd = String(row.confirmation_date || "").trim();
+      if (!cd || !cd.match(/^\d{4}-\d{2}-\d{2}/)) return "";
+      const confirmDate = new Date(cd.slice(0, 10));
+      const today = new Date();
+      const diffDays = Math.floor((today - confirmDate) / (1000 * 60 * 60 * 24));
+      const orderType = String(row.order_type || row.order_type_name || "").toLowerCase();
+      let slaDays = 8;
+      if (orderType.includes("pu") || orderType.includes("production")) slaDays = 15;
+      if (orderType.includes("snag")) slaDays = 2;
+      if (diffDays > slaDays) return `Delay by ${diffDays - slaDays} days`;
+      return "";
+    }
+
     function plannerExportRows(rows) {
-      return rows.map((row) => ({
-        "Confirmation Date": shortDate(row.confirmation_date || ""),
-        "Order Number": row.order_number || "",
-        "Dealer": row.dealer_name || "",
-        "Customer": customerLabel(row.customer_name),
-        "Customer Type": row.customer_type || "",
-        "Order Type": row.order_type || "",
-        "Order Class": row.order_class || "",
-        "Panel Qty": row.panel_qty || "",
-        "Board Qty": row.board_qty || "",
-        "Current Stage": row.planner_stage_label || "",
-        "Priority": row.priority || "",
-        "EDD": shortDate(row.edd || "")
-      }));
+      return rows.map((row) => {
+        const delay = calcDelay(row);
+        const orderNum = row.order_number || "";
+        return {
+          "Confirmation Date": shortDate(row.confirmation_date || ""),
+          "Order Number": orderNum,
+          "Dealer": row.dealer_name || "",
+          "Customer": customerLabel(row.customer_name),
+          "Customer Type": row.customer_type || "",
+          "Order Type": row.order_type || row.order_type_name || "",
+          "Order Class": row.order_class || "",
+          "Panel Qty": row.panel_qty || "",
+          "Board Qty": row.board_qty || "",
+          "Current Stage": row.planner_stage_label || "",
+          "Priority": row.priority || "",
+          "EDD": shortDate(row.edd || ""),
+          "Status": delay
+        };
+      });
     }
 
     function machineExportRows(rows, station) {
-      return rows.map((row) => ({
-        "Machine": station || "",
-        "Confirmation Date": shortDate(row.confirmation_date || ""),
-        "Order Number": row.order_number || "",
-        "Dealer": row.dealer_name || "",
-        "Customer": customerLabel(row.customer_name),
-        "Customer Type": row.customer_type || "",
-        "Order Class": row.order_class || "",
-        "Panel Qty": row.panel_qty || "",
-        "Board Qty": row.board_qty || "",
-        "Stage": row.planner_stage_label || "",
-        "Priority": row.priority || ""
-      }));
+      return rows.map((row) => {
+        const delay = calcDelay(row);
+        return {
+          "Machine": station || "",
+          "Confirmation Date": shortDate(row.confirmation_date || ""),
+          "Order Number": row.order_number || "",
+          "Dealer": row.dealer_name || "",
+          "Customer": customerLabel(row.customer_name),
+          "Customer Type": row.customer_type || "",
+          "Order Type": row.order_type || row.order_type_name || "",
+          "Order Class": row.order_class || "",
+          "Panel Qty": row.panel_qty || "",
+          "Board Qty": row.board_qty || "",
+          "Stage": row.planner_stage_label || "",
+          "Priority": row.priority || "",
+          "Status": delay
+        };
+      });
     }
 
     function shortDate(value) {
@@ -934,9 +958,94 @@
         return;
       }
       const workbook = XLSX.utils.book_new();
+
+      const thinBorder = [
+        { top: { style: "thin", color: { rgb: "B0B0B0" } } },
+        { bottom: { style: "thin", color: { rgb: "B0B0B0" } } },
+        { left: { style: "thin", color: { rgb: "B0B0B0" } } },
+        { right: { style: "thin", color: { rgb: "B0B0B0" } } }
+      ];
+
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11, name: "Calibri" },
+        fill: { fgColor: { rgb: "1E3A5F" } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: thinBorder
+      };
+
+      const groupStyle = {
+        font: { bold: true, color: { rgb: "1E3A5F" }, sz: 11, name: "Calibri" },
+        fill: { fgColor: { rgb: "D6E4F0" } },
+        alignment: { vertical: "center" },
+        border: thinBorder
+      };
+
+      const rowEven = {
+        fill: { fgColor: { rgb: "F2F7FB" } },
+        border: thinBorder,
+        alignment: { vertical: "center", wrapText: true }
+      };
+
+      const rowOdd = {
+        border: thinBorder,
+        alignment: { vertical: "center", wrapText: true }
+      };
+
+      const highPriStyle = {
+        fill: { fgColor: { rgb: "FECDD3" } },
+        border: thinBorder,
+        alignment: { vertical: "center", wrapText: true },
+        font: { color: { rgb: "9B1C1C" }, sz: 10, name: "Calibri" }
+      };
+
       sheets.forEach((sheet) => {
         const safeName = String(sheet.name || "Sheet1").replace(/[\\/?*\\[\\]:]/g, " ").slice(0, 31) || "Sheet1";
-        const worksheet = XLSX.utils.json_to_sheet(sheet.rows.length ? sheet.rows : [{ "No Data": "" }]);
+        const rows = sheet.rows.length ? sheet.rows : [{ "No Data": "" }];
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+
+        const keys = Object.keys(rows[0] || {});
+
+        // Header row
+        keys.forEach((key, ci) => {
+          const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
+          if (worksheet[addr]) worksheet[addr].s = headerStyle;
+        });
+
+        // Data rows
+        let dataRowIdx = 0;
+        rows.forEach((row, ri) => {
+          if (ri === 0) return;
+          const isGroupRow = keys.some(k => String(row[k] || "").startsWith("---"));
+          const isHighPri = String(row["Priority"] || "").toLowerCase() === "high";
+          keys.forEach((key, ci) => {
+            const addr = XLSX.utils.encode_cell({ r: ri, c: ci });
+            if (worksheet[addr]) {
+              if (isGroupRow) {
+                worksheet[addr].s = groupStyle;
+              } else if (isHighPri) {
+                worksheet[addr].s = highPriStyle;
+              } else {
+                worksheet[addr].s = dataRowIdx % 2 === 0 ? rowEven : rowOdd;
+              }
+            }
+          });
+          if (!isGroupRow) dataRowIdx++;
+        });
+
+        // Auto-width
+        const colWidths = keys.map((key) => {
+          let maxLen = key.length;
+          rows.forEach((row) => {
+            const val = String(row[key] || "");
+            if (val.length > maxLen) maxLen = val.length;
+          });
+          return { wch: Math.min(maxLen + 4, 45) };
+        });
+        worksheet["!cols"] = colWidths;
+
+        // Freeze header row
+        worksheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+
         XLSX.utils.book_append_sheet(workbook, worksheet, safeName);
       });
       XLSX.writeFile(workbook, fileName);
@@ -944,9 +1053,74 @@
 
     function exportConsolidatedExcel() {
       const rows = getFilteredRows();
-      downloadWorkbook(`WIP Orders Dated ${exportDateStamp()}.xlsx`, [
-        { name: "All Orders", rows: plannerExportRows(rows) }
-      ]);
+      const sheets = [];
+
+      // 1. Consolidated sheet
+      sheets.push({ name: "All Orders", rows: plannerExportRows(rows.sort((a, b) => {
+        const da = a.confirmation_date || "";
+        const db = b.confirmation_date || "";
+        return da.localeCompare(db);
+      })) });
+
+      // 2. Customer Type sheets with machine grouping
+      const ctGroups = new Map();
+      rows.forEach((row) => {
+        const ct = String(row.customer_type || "Unknown").trim();
+        if (!ctGroups.has(ct)) ctGroups.set(ct, []);
+        ctGroups.get(ct).push(row);
+      });
+
+      Array.from(ctGroups.entries()).sort((a, b) => a[0].localeCompare(b[0])).forEach(([ct, ctRows]) => {
+        ctRows.sort((a, b) => (a.confirmation_date || "").localeCompare(b.confirmation_date || ""));
+
+        const machineGroups = new Map();
+        ctRows.forEach((row) => {
+          const stations = String(row.visible_stations || "-").split(",").map(s => s.trim()).filter(Boolean);
+          if (stations.length === 0) stations.push("Unassigned");
+          stations.forEach((station) => {
+            if (!machineGroups.has(station)) machineGroups.set(station, []);
+            machineGroups.get(station).push(row);
+          });
+        });
+
+        const ctSheetRows = [];
+        Array.from(machineGroups.entries()).forEach(([machine, machineRows]) => {
+          ctSheetRows.push({ "Machine": `--- ${machine} ---`, "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Current Stage": "", "Priority": "", "EDD": "", "Status": "" });
+          machineRows.forEach((row) => {
+            ctSheetRows.push({
+              "Machine": machine,
+              "Confirmation Date": shortDate(row.confirmation_date || ""),
+              "Order Number": row.order_number || "",
+              "Dealer": row.dealer_name || "",
+              "Customer": customerLabel(row.customer_name),
+              "Customer Type": row.customer_type || "",
+              "Order Type": row.order_type || row.order_type_name || "",
+              "Order Class": row.order_class || "",
+              "Panel Qty": row.panel_qty || "",
+              "Board Qty": row.board_qty || "",
+              "Current Stage": row.planner_stage_label || "",
+              "Priority": row.priority || "",
+              "EDD": shortDate(row.edd || ""),
+              "Status": calcDelay(row)
+            });
+          });
+        });
+
+        const sheetName = ct.slice(0, 31).replace(/[\\/?*[\]:]/g, " ");
+        sheets.push({ name: sheetName, rows: ctSheetRows });
+      });
+
+      // 3. High Priority sheet (main orders only)
+      const highPriorityRows = rows.filter(r => r.priority === "High" && String(r.order_class || "").toLowerCase() !== "sub order")
+        .sort((a, b) => (a.confirmation_date || "").localeCompare(b.confirmation_date || ""));
+      sheets.push({ name: "High Priority", rows: plannerExportRows(highPriorityRows) });
+
+      // 4. Medium Priority sheet (main orders only)
+      const medPriorityRows = rows.filter(r => r.priority === "Medium" && String(r.order_class || "").toLowerCase() !== "sub order")
+        .sort((a, b) => (a.confirmation_date || "").localeCompare(b.confirmation_date || ""));
+      sheets.push({ name: "Medium Priority", rows: plannerExportRows(medPriorityRows) });
+
+      downloadWorkbook(`WIP Orders Dated ${exportDateStamp()}.xlsx`, sheets);
     }
 
     function exportMachineExcel() {

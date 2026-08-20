@@ -339,6 +339,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "remarks-report-mail":
                     HandleRemarksReportMail(context);
                     break;
+                case "station-update":
+                    HandleStationUpdate(context);
+                    break;
+                case "station-state":
+                    HandleStationState(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -1490,6 +1496,15 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 Execute(conn, "DELETE FROM tbl_dispatch_boxes WHERE order_id = ? AND box_no > ?", orderId, boxQty);
             }
             Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Packing Box Qty Saved", currentCount.ToString(CultureInfo.InvariantCulture), boxQty.ToString(CultureInfo.InvariantCulture), "", I(station, "machine_id"));
+            try { Execute(conn, "UPDATE tbl_orders SET packing_ready_date = " + SqlDateLiteral(DateTime.Now) + " WHERE order_id = ? AND (packing_ready_date IS NULL OR packing_ready_date = '')", orderId); } catch { }
+            try
+            {
+                var balanceQty = boxQty;
+                var existingBoxes = QueryAll(conn, "SELECT * FROM tbl_dispatch_boxes WHERE order_id = ?", orderId);
+                AddHistory(conn, orderId, I(station, "machine_id"), "PACKING_UPDATED", boxQty.ToString(CultureInfo.InvariantCulture), "PENDING", null, I(station, "machine_id"),
+                    "Packing: " + boxQty + " boxes, balance: " + balanceQty, I(user, "user_id"));
+            }
+            catch { }
             WriteJson(context, Obj("ok", true, "box_count", boxQty));
         }
     }
@@ -2628,7 +2643,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 .OrderBy(r => I(r, "box_no"))
                 .Select(r => Obj("box_no", I(r, "box_no"), "state", S(r, "box_state")))
                 .ToList();
-            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "packing_ready_date", FormatDateTime(DT(order, "updated_at")), "dispatch_status", Label(statusLookup, "DISPATCH", S(order, "dispatch_status_code")), "remarks", stationRemarks.ContainsKey("Dispatch") ? Convert.ToString(stationRemarks["Dispatch"]) : "", "vehicle_details", S(order, "dispatch_vehicle_details"), "box_count", boxes.Count, "boxes", boxes, "dispatch_balance_box_qty", D(order, "dispatch_balance_box_qty")));
+            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "packing_ready_date", FormatDateTime(DT(order, "packing_ready_date") ?? DT(order, "updated_at")), "dispatch_status", Label(statusLookup, "DISPATCH", S(order, "dispatch_status_code")), "remarks", stationRemarks.ContainsKey("Dispatch") ? Convert.ToString(stationRemarks["Dispatch"]) : "", "vehicle_details", S(order, "dispatch_vehicle_details"), "box_count", boxes.Count, "boxes", boxes, "dispatch_balance_box_qty", D(order, "dispatch_balance_box_qty")));
         }
         return Obj("rows", rows);
     }
@@ -3894,6 +3909,14 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     {
         TryExecute(conn, "CREATE TABLE tbl_dispatch_boxes (dispatch_box_id COUNTER PRIMARY KEY, order_id LONG NOT NULL, box_no LONG NOT NULL, box_state TEXT(40) NOT NULL, updated_by LONG, updated_at DATETIME, created_at DATETIME)");
         TryExecute(conn, "CREATE INDEX ix_tbl_dispatch_boxes_order ON tbl_dispatch_boxes (order_id)");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_ready_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN cutting_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN edgebanding_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN drilling_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN hot_press_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN qc_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packed_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN dispatch_date DATETIME");
     }
 
     private void EnsureCoreRoles(OleDbConnection conn)
@@ -5301,6 +5324,79 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     "acted_at", S(r, "acted_at"),
                     "user_name", S(r, "user_name")
                 )).ToList()
+            ));
+        }
+    }
+
+    private void HandleStationUpdate(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var stationName = Require(Value(context, "station_name"), "Station is required.").Trim();
+            var now = DateTime.Now;
+            var order = FindOrderById(conn, orderId);
+            if (order == null) throw new ApiFailure(404, "Order not found.");
+            var station = FindMachineByName(conn, stationName);
+            if (station == null) throw new ApiFailure(404, "Station not found.");
+            var dateCol = stationName.ToLower().Replace(" ", "_") + "_date";
+            try { Execute(conn, "UPDATE tbl_orders SET " + dateCol + " = " + SqlDateLiteral(now) + ", updated_at = " + SqlDateLiteral(now) + ", updated_by = ? WHERE order_id = ?", I(user, "user_id"), orderId); } catch { }
+            try
+            {
+                var existingQueue = QueryOne(conn, "SELECT queue_id FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, I(station, "machine_id"));
+                if (existingQueue == null)
+                {
+                    Execute(conn, "INSERT INTO tbl_order_station_queue (order_id, station_id, is_visible, created_at) VALUES (?, ?, TRUE, " + SqlDateLiteral(now) + ")", orderId, I(station, "machine_id"));
+                }
+            } catch { }
+            Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Station Updated", stationName, stationName + " date recorded", "", I(station, "machine_id"));
+            AddHistory(conn, orderId, I(station, "machine_id"), "COMPLETED", "", "IN_PROGRESS", null, null, stationName + " date recorded", I(user, "user_id"));
+            WriteJson(context, Obj("ok", true, "message", stationName + " updated on " + now.ToString("dd-MMM-yyyy HH:mm")));
+        }
+    }
+
+    private void HandleStationState(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var stationName = Require(Value(context, "station_name"), "Station is required.").Trim();
+            var station = FindMachineByName(conn, stationName);
+            if (station == null) throw new ApiFailure(404, "Station not found.");
+            var orders = QueryAll(conn,
+                "SELECT o.order_id, o.order_number, o.customer_name, o.dealer_id, o.confirmation_date, o.workflow_stage_code, d.dealer_name FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) WHERE o.workflow_stage_code <> 'QUOTATION_CREATED' AND o.workflow_stage_code <> 'ORDER_CONFIRMED' AND o.workflow_stage_code <> 'PACKED' AND o.workflow_stage_code <> 'DISPATCH_READY' AND o.workflow_stage_code <> 'DISPATCHED' ORDER BY o.order_number");
+            var result = orders.Select(o => {
+                return Obj(
+                    "order_id", I(o, "order_id"),
+                    "order_number", S(o, "order_number"),
+                    "customer_name", S(o, "customer_name"),
+                    "dealer_name", S(o, "dealer_name"),
+                    "confirmation_date", S(o, "confirmation_date"),
+                    "workflow_stage", S(o, "workflow_stage_code"),
+                    "station_date", ""
+                );
+            }).ToList();
+            var stationId = Convert.ToInt32(I(station, "machine_id"));
+            var historySql = "SELECT TOP 200 h.order_id, h.action_code, h.new_status_code, h.remarks, h.acted_at, o.order_number, u.full_name AS user_name FROM ((tbl_order_history AS h LEFT JOIN tbl_orders AS o ON h.order_id = o.order_id) LEFT JOIN tbl_users AS u ON h.acted_by = u.user_id) WHERE h.station_id = " + stationId.ToString() + " ORDER BY h.acted_at DESC, h.history_id DESC";
+            var history = QueryAll(conn, historySql);
+            var histResult = history.Select(h => Obj(
+                "order_id", I(h, "order_id"),
+                "order_number", S(h, "order_number"),
+                "action_code", S(h, "action_code"),
+                "remarks", S(h, "remarks"),
+                "acted_at", S(h, "acted_at"),
+                "user_name", S(h, "user_name")
+            )).ToList();
+            WriteJson(context, Obj(
+                "ok", true,
+                "station_name", stationName,
+                "orders", result,
+                "history", histResult
             ));
         }
     }
