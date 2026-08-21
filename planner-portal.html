@@ -1085,7 +1085,7 @@
 
         const ctSheetRows = [];
         Array.from(machineGroups.entries()).forEach(([machine, machineRows]) => {
-          ctSheetRows.push({ "Machine": `--- ${machine} ---", "Priority": "", "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Visible Stations": "", "EDD": "", "Status": "" });
+          ctSheetRows.push({ "Machine": `--- ${machine} ---`, "Priority": "", "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Visible Stations": "", "EDD": "", "Status": "" });
           machineRows.forEach((row) => {
             ctSheetRows.push({
               "Machine": machine,
