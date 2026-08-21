@@ -902,7 +902,7 @@
           "Order Class": row.order_class || "",
           "Panel Qty": row.panel_qty || "",
           "Board Qty": row.board_qty || "",
-          "Current Stage": row.planner_stage_label || "",
+          "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
           "Priority": row.priority || "",
           "EDD": shortDate(row.edd || ""),
           "Status": delay
@@ -924,7 +924,7 @@
           "Order Class": row.order_class || "",
           "Panel Qty": row.panel_qty || "",
           "Board Qty": row.board_qty || "",
-          "Stage": row.planner_stage_label || "",
+          "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
           "Priority": row.priority || "",
           "Status": delay
         };
@@ -1085,7 +1085,7 @@
 
         const ctSheetRows = [];
         Array.from(machineGroups.entries()).forEach(([machine, machineRows]) => {
-          ctSheetRows.push({ "Machine": `--- ${machine} ---`, "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Current Stage": "", "Priority": "", "EDD": "", "Status": "" });
+          ctSheetRows.push({ "Machine": `--- ${machine} ---`, "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Visible Stations": "", "Priority": "", "EDD": "", "Status": "" });
           machineRows.forEach((row) => {
             ctSheetRows.push({
               "Machine": machine,
@@ -1098,7 +1098,7 @@
               "Order Class": row.order_class || "",
               "Panel Qty": row.panel_qty || "",
               "Board Qty": row.board_qty || "",
-              "Current Stage": row.planner_stage_label || "",
+              "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
               "Priority": row.priority || "",
               "EDD": shortDate(row.edd || ""),
               "Status": calcDelay(row)
