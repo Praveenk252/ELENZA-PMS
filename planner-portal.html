@@ -709,10 +709,12 @@
     function renderMachineWise(rows) {
       const groups = new Map();
       rows.forEach((row) => {
-        String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean).forEach((station) => {
-          if (!groups.has(station)) groups.set(station, []);
-          groups.get(station).push(row);
-        });
+        const stations = String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean);
+        const currentStation = stations.length > 0 ? stations[stations.length - 1] : "";
+        if (currentStation) {
+          if (!groups.has(currentStation)) groups.set(currentStation, []);
+          groups.get(currentStation).push(row);
+        }
       });
       refs.machineCount.textContent = `${groups.size} Machines`;
       if (!groups.size) {
@@ -1076,11 +1078,9 @@
         const machineGroups = new Map();
         ctRows.forEach((row) => {
           const stations = String(row.visible_stations || "-").split(",").map(s => s.trim()).filter(Boolean);
-          if (stations.length === 0) stations.push("Unassigned");
-          stations.forEach((station) => {
-            if (!machineGroups.has(station)) machineGroups.set(station, []);
-            machineGroups.get(station).push(row);
-          });
+          const currentStation = stations.length > 0 ? stations[stations.length - 1] : "Unassigned";
+          if (!machineGroups.has(currentStation)) machineGroups.set(currentStation, []);
+          machineGroups.get(currentStation).push(row);
         });
 
         const ctSheetRows = [];
@@ -1127,10 +1127,12 @@
       const rows = getFilteredRows();
       const groups = new Map();
       rows.forEach((row) => {
-        String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean).forEach((station) => {
-          if (!groups.has(station)) groups.set(station, []);
-          groups.get(station).push(row);
-        });
+        const stations = String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean);
+        const currentStation = stations.length > 0 ? stations[stations.length - 1] : "";
+        if (currentStation) {
+          if (!groups.has(currentStation)) groups.set(currentStation, []);
+          groups.get(currentStation).push(row);
+        }
       });
       const sheets = Array.from(groups.entries()).map(([station, stationRows]) => ({
         name: station,
