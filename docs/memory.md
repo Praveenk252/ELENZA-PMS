@@ -1,8 +1,46 @@
-# Engineering Memory
+﻿# Engineering Memory
 
 Keep this file factual, concise, and free of credentials.
 
-## 2026-08-17 — Remarks report and marketing priority
+## 2026-08-21 â€” Station workflow, Drilling 2 merge, QC crash fix
+
+### Task completed
+
+Deployed station-based workflow (`stations.html`), merged Drilling 2 into Drilling, fixed the QC crash in `station-ready-orders`, and replaced all QR Scanner quick-links with Stations links.
+
+### Files modified/deployed
+
+- `PmsApiHandler.cs` + `App_Code/PmsApiHandler.cs` â€” removed "Drilling 2" from `StationSequenceOrder` and `StationDateColMap`; added Packed/Dispatched filtering to `HandleStationState`; "Drilling 2" â†’ "Drilling" normalization in `HandleStationUpdate`/`HandleStationState`
+- `App_Code/Timestamp.cs` â€” recompile trigger bumped to `2026-08-21 17:12:00.000`
+- `stations.html` â€” new per-station workspace (Update Status / Orders at Station / History tabs)
+- `index.html`, `dealer-detail.html`, `marketing-assignment.html`, `marketing-portal.html`, `packing-portal.html`, `packing-portal-live-check.html`, `planner-portal.html`, `priority-desk.html`, `qr-printer.html`, `remarks-reply.html` â€” QR Scanner quick-link replaced with Stations link (ðŸ­, stations.html)
+- `planner-portal.html` â€” Machine Wise grouping by highest sequence_no; helpers `normalizeStationName()`, `highestSequenceStation()`; priority column 2nd in exports; "Visible Stations" replaces planner stage column
+
+### Key decisions
+
+- Drilling(4) and Drilling 2(5) are the SAME physical station per user confirmation; both users (`mxdr`, `mndr`) write to one logical "Drilling" station
+- `drilling2_date` column does not exist in Access DB; mapping it caused OleDb "No value given for one or more required parameters" at QC
+- Updated `StationSequenceOrder`: Hot Press, Cutting, Edgebanding, Drilling, QC, Packed, Dispatch
+- Updated `StationDateColMap`: hot_press_date, cutting_date, edgebanding_date, drilling_date, qc_date, packed_date, dispatch_date
+- Packed/Dispatched orders must never appear in any station dropdown or ready list
+- Planner dictation: user types login IDs directly â€” never assume/invent them
+- FTP uploads via `FtpWebRequest` (PowerShell `Invoke-WebRequest` does not support FTP)
+
+### Verification
+
+- `station-ready-orders` tested with session cookie for all stations: Hot Press 278, Cutting 2, Edgebanding 1, Drilling 0, QC 1 â€” QC no longer errors
+- All station user logins verified PASS (ct, hp, eb1, mxdr, mndr, qc1)
+- Station updates from Cutting, Hot Press, Edgebanding, Drilling correctly set planner status to "In Production"
+- All 10 HTML pages uploaded via FTP; recompilation triggered via Timestamp.cs
+- Full site backup before changes: `backup/site-ftp-20260821-142516.zip` (41 files)
+- Git commits pushed through `b1cac31`
+
+### Known issues
+
+- `station-ready-orders` returns low counts for Cutting/Edgebanding/Drilling because most legacy orders lack station date columns (batch/packing flows never set them). Data completeness issue, not code bug. Possible future fix: migrate data or use `visible_stations` field.
+- Endpoint requires session cookie auth (not username/password params) â€” test scripts must login first with `-SessionVariable`.
+
+## 2026-08-17 â€” Remarks report and marketing priority
 
 ### Task completed
 
@@ -10,12 +48,12 @@ Implemented production remarks report system and marketing portal priority featu
 
 ### Files modified/deployed
 
-- `PmsApiHandler.cs` — Added remarks report endpoints (`remarks-report`, `remarks-report-export`, `remarks-report-mail`), remarks request lifecycle (`remarks-request-create`, `remarks-request-info`, `remarks-reply-save`, `remarks-requests-list`, `remarks-request-reminder`, `remarks-request-close`, `remarks-request-delete`), remarks scheduler (`StartRemarksReportScheduler`, `RunRemarksReportSchedulerIfDue`, `TrySendRemarksReport`)
-- `Global.asax` — Added `PmsApiHandler.StartRemarksReportScheduler()` call in `Application_Start`
-- `App_Code/Timestamp.cs` — Recompilation trigger for ASP.NET
-- `marketing-portal.html` — Added priority badges (HIGH/MED/LOW), row highlighting (dark backgrounds), priority filter dropdown, Priority Report modal, modal pre-fill, Clear Priority button, High Priority count stats card
-- `remarks-reply.html` — Token-based remarks reply page
-- `planner-portal.html` — Remarks tab for viewing/managing remarks requests
+- `PmsApiHandler.cs` â€” Added remarks report endpoints (`remarks-report`, `remarks-report-export`, `remarks-report-mail`), remarks request lifecycle (`remarks-request-create`, `remarks-request-info`, `remarks-reply-save`, `remarks-requests-list`, `remarks-request-reminder`, `remarks-request-close`, `remarks-request-delete`), remarks scheduler (`StartRemarksReportScheduler`, `RunRemarksReportSchedulerIfDue`, `TrySendRemarksReport`)
+- `Global.asax` â€” Added `PmsApiHandler.StartRemarksReportScheduler()` call in `Application_Start`
+- `App_Code/Timestamp.cs` â€” Recompilation trigger for ASP.NET
+- `marketing-portal.html` â€” Added priority badges (HIGH/MED/LOW), row highlighting (dark backgrounds), priority filter dropdown, Priority Report modal, modal pre-fill, Clear Priority button, High Priority count stats card
+- `remarks-reply.html` â€” Token-based remarks reply page
+- `planner-portal.html` â€” Remarks tab for viewing/managing remarks requests
 
 ### Key decisions
 
@@ -36,10 +74,10 @@ Implemented production remarks report system and marketing portal priority featu
 ### Known issues
 
 - SLA/EDD auto-calculation attempted but reverted due to compilation errors on shared hosting
-- App pool recompilation via `Timestamp.cs` does not always work — sometimes requires manual restore
+- App pool recompilation via `Timestamp.cs` does not always work â€” sometimes requires manual restore
 - Access/OleDb requires explicit parentheses for multiple JOINs: `FROM ((A INNER JOIN B ON ...) INNER JOIN C ON ...) LEFT JOIN D ON ...`
 
-## 2026-08-07 — Priority Desk 15-problem fix
+## 2026-08-07 â€” Priority Desk 15-problem fix
 
 ### Task completed
 
@@ -47,33 +85,33 @@ Identified and fixed 15 problems in `priority-desk.html`. Backed up original to 
 
 ### Fixes applied
 
-1. `toggleSelectAll` — now selects from filtered list, not raw `allOrders[0]`
-2. `selectAll` checkbox — properly toggles selection state
-3. Loading spinner — shows while API data loads (CSS spinner animation)
-4. Session validation — `validateSession()` calls `/api.ashx?action=session` on restore from sessionStorage
-5. Auto-refresh paused — interval skips refresh while action panel is open
-6. Escape key — closes action panel when open
-7. Enter key — saves priority from action panel
-8. API error messages — `loadOrders` catch now shows `e.message` to user
-9. Order count indicator — shows "X of Y orders" in desk view toolbar
-10. Report date defaults — auto-fills today's date when switching to report view
-11. Report summary — adds "No Date" and "No Remarks" count cards
-12. Report remarks tooltip — adds `title` attribute to remarks cell in report table
-13. Mobile responsive — action panel details grid stacks to single column, toolbar stacks vertically
-14. savePriority validation — warns if priority is High but packing date is empty
-15. Logout cleanup — clears `refreshTimer`, `filteredOrders`, removes keydown listener
+1. `toggleSelectAll` â€” now selects from filtered list, not raw `allOrders[0]`
+2. `selectAll` checkbox â€” properly toggles selection state
+3. Loading spinner â€” shows while API data loads (CSS spinner animation)
+4. Session validation â€” `validateSession()` calls `/api.ashx?action=session` on restore from sessionStorage
+5. Auto-refresh paused â€” interval skips refresh while action panel is open
+6. Escape key â€” closes action panel when open
+7. Enter key â€” saves priority from action panel
+8. API error messages â€” `loadOrders` catch now shows `e.message` to user
+9. Order count indicator â€” shows "X of Y orders" in desk view toolbar
+10. Report date defaults â€” auto-fills today's date when switching to report view
+11. Report summary â€” adds "No Date" and "No Remarks" count cards
+12. Report remarks tooltip â€” adds `title` attribute to remarks cell in report table
+13. Mobile responsive â€” action panel details grid stacks to single column, toolbar stacks vertically
+14. savePriority validation â€” warns if priority is High but packing date is empty
+15. Logout cleanup â€” clears `refreshTimer`, `filteredOrders`, removes keydown listener
 
 ### Files modified
 
-- `priority-desk.html` — all 15 fixes
-- `backups/priority-desk-backup-20260807/priority-desk.html` — backup (21KB)
+- `priority-desk.html` â€” all 15 fixes
+- `backups/priority-desk-backup-20260807/priority-desk.html` â€” backup (21KB)
 
 ### Verification
 
 - JS syntax validated with `node --check`
 - Deployed to Site 1, returns HTTP 200 (23,619 bytes)
 
-## 2026-08-07 — Packing portal fixes and history improvements
+## 2026-08-07 â€” Packing portal fixes and history improvements
 
 ### Task completed
 
@@ -81,22 +119,22 @@ Fixed multiple packing portal issues for user `pk` (Machine User, station "Packe
 
 ### Files modified
 
-- `PmsApiHandler.cs` — `packing-boxes-set` and `production-balance-save` now allow both "Packing" and "Packed" stations; `EnsurePackingQueueEntryForPortal` falls back through Packing → Packed → user's station; `BuildHistoryStandaloneState` joins tbl_dealers for customer_name, includes confirmation_date, packed_boxes (from tbl_dispatch_boxes), balance_boxes (from tbl_orders); `IsHistoryVisibleToUser` changed to `return true` for Machine User (station filter was too restrictive)
-- `packing-portal.html` — Planning rows filtered by prodLookup to exclude fully packed orders (box_count > 0 AND balance = 0); history table headers updated to Order no / Customer Name / Confirmation Date / Pack Qty / Balance Qty; station_name filter removed from history rows
+- `PmsApiHandler.cs` â€” `packing-boxes-set` and `production-balance-save` now allow both "Packing" and "Packed" stations; `EnsurePackingQueueEntryForPortal` falls back through Packing â†’ Packed â†’ user's station; `BuildHistoryStandaloneState` joins tbl_dealers for customer_name, includes confirmation_date, packed_boxes (from tbl_dispatch_boxes), balance_boxes (from tbl_orders); `IsHistoryVisibleToUser` changed to `return true` for Machine User (station filter was too restrictive)
+- `packing-portal.html` â€” Planning rows filtered by prodLookup to exclude fully packed orders (box_count > 0 AND balance = 0); history table headers updated to Order no / Customer Name / Confirmation Date / Pack Qty / Balance Qty; station_name filter removed from history rows
 
 ### Key decisions
 
 - `packing_balance_box_qty` read from `tbl_orders` (not `tbl_production_planner`) via main query
 - Machine User history visibility changed to `return true` because `station_name` from `VisibleStationNames` uses "-" as placeholder, failing station-match logic
-- Planning rows do not carry `box_count` or `packing_balance_box_qty` — used production rows lookup (prodLookup) to filter fully packed
+- Planning rows do not carry `box_count` or `packing_balance_box_qty` â€” used production rows lookup (prodLookup) to filter fully packed
 - History grouped to one latest row per order, preserving API newest-first order
 
 ### Verification
 
 - Local `PmsApiHandler.cs` compiles cleanly (no `balanceLookup` references remain)
-- **Note:** Live API currently returns 500 for `history-state` and `app-state` — likely the deployed version has stale code; requires redeploy via `deploy-qr-scanner.ps1` or manual FTP upload of PmsApiHandler.cs
+- **Note:** Live API currently returns 500 for `history-state` and `app-state` â€” likely the deployed version has stale code; requires redeploy via `deploy-qr-scanner.ps1` or manual FTP upload of PmsApiHandler.cs
 
-## 2026-08-07 — Priority Desk deployed
+## 2026-08-07 â€” Priority Desk deployed
 
 ### Task completed
 
@@ -104,13 +142,13 @@ Built and deployed Priority Desk page to Site 1. Added `priority_date` column to
 
 ### Files modified
 
-- `PmsApiHandler.cs` — Added `priority_date` schema, planner-save support, new API actions
-- `priority-desk.html` — New standalone page for priority assignment
-- `index.html` — Added Priority Desk Quick Access link
-- `styles.css` — Updated quick link styles
-- `PROJECT-CONTEXT.md` — Added Priority Desk entry
-- `docs/phases.md` — Updated future roadmap
-- `docs/memory.md` — This entry
+- `PmsApiHandler.cs` â€” Added `priority_date` schema, planner-save support, new API actions
+- `priority-desk.html` â€” New standalone page for priority assignment
+- `index.html` â€” Added Priority Desk Quick Access link
+- `styles.css` â€” Updated quick link styles
+- `PROJECT-CONTEXT.md` â€” Added Priority Desk entry
+- `docs/phases.md` â€” Updated future roadmap
+- `docs/memory.md` â€” This entry
 
 ### Key decisions
 
@@ -118,16 +156,16 @@ Built and deployed Priority Desk page to Site 1. Added `priority_date` column to
 - Uses existing `tbl_production_planner` table with new `priority_date` column
 - Manual packing date pick (not auto-populated)
 - Auto-removal when packed (workflow_stage_code=DISPATCH_READY)
-- Fixed API typo: `BuildStatusLookup` → `LoadStatusLookup` in both new handlers
+- Fixed API typo: `BuildStatusLookup` â†’ `LoadStatusLookup` in both new handlers
 
 ### Verification
 
 - API returns 200 for `priority-desk-state` and `priority-report`
-- Priority Desk page loads at `http://[removed]-site1.ktempurl.com/priority-desk.html`
+- Priority Desk page loads at `https://<live-host>/priority-desk.html`
 - Login page has Priority Desk Quick Access link
 - Test login: `admin.user` / `1` or `planner.user` / `1`
 
-## 2026-07-23 — Project Blueprint established
+## 2026-07-23 â€” Project Blueprint established
 
 ### Task completed
 
@@ -183,7 +221,7 @@ Applied the `project-blueprint` documentation-first workflow to the Elenza PMS p
 
 After every future coding task, update this file with date, task, modified files, verification, decisions, known issues, and remaining work.
 
-## 2026-07-23 — Deployment and admin runbook
+## 2026-07-23 â€” Deployment and admin runbook
 
 ### Task completed
 
@@ -199,7 +237,7 @@ Connection coordinates and login identifiers may be documented. FTP passwords, a
 - Confirmed the referenced private deployment scripts exist.
 - Confirmed no password value was added to `docs/`.
 
-## 2026-07-24 — Production quantity columns
+## 2026-07-24 â€” Production quantity columns
 
 ### Task completed
 
@@ -231,7 +269,7 @@ Added `Panel Qty` and `Board Qty` visibility to local production pending/planner
 - Confirm the live canonical `script.js` source before deployment because this workspace contains multiple readbacks and snapshots.
 - Implement production batches and QR printing only after approving the required schema/API scope.
 
-## 2026-07-30 — Adishwar customer type database correction
+## 2026-07-30 â€” Adishwar customer type database correction
 
 ### Task completed
 
@@ -263,7 +301,7 @@ Changed the live Site 1 database so dealer `Adishwar` uses customer type `ADM`.
 - The script reads FTP credentials from the existing private deployment script and does not store credentials in documentation.
 - Existing orders were updated because `tbl_orders` stores `customer_type_id` separately from `tbl_dealers`.
 
-## 2026-07-30 — Planner export filename cleanup
+## 2026-07-30 â€” Planner export filename cleanup
 
 ### Task completed
 
@@ -293,7 +331,7 @@ Renamed the live planner portal export filenames to use readable WIP/date-based 
 - Verified FTP read-back SHA-256 matched the uploaded file.
 - Verified the public planner URL returns HTTP 200 and contains the new WIP filename logic.
 
-## 2026-07-30 — Admin dealer customer-type change UI
+## 2026-07-30 â€” Admin dealer customer-type change UI
 
 ### Task completed
 
@@ -309,7 +347,7 @@ Added an Admin-side tool for changing a dealer's customer type from the UI inste
 
 ### Behavior
 
-- Admin → Masters now includes `Dealer Customer Type Change`.
+- Admin â†’ Masters now includes `Dealer Customer Type Change`.
 - Admin can select an active dealer and an active customer type from existing dropdown data.
 - Saving updates the dealer master row and existing orders linked to that dealer.
 - The save endpoint requires Admin role.
@@ -331,7 +369,7 @@ Added an Admin-side tool for changing a dealer's customer type from the UI inste
 - No customer type was changed through this deployment.
 - To set `M/S KADIWA STUDIO` to `KADIWA`, first ensure `KADIWA` exists in Customer Type Master, then use the new Admin tool.
 
-## 2026-08-05 — Machine QR Scanner
+## 2026-08-05 â€” Machine QR Scanner
 
 ### Task completed
 
@@ -339,15 +377,15 @@ Built and deployed a machine QR scanner page for factory floor order scanning. E
 
 ### Files modified/deployed
 
-- `qr-scanner.html` — deployed to Site 1
-- `deploy-qr-scanner.ps1` — deployment script
+- `qr-scanner.html` â€” deployed to Site 1
+- `deploy-qr-scanner.ps1` â€” deployment script
 - `docs/memory.md`
 
 ### Behavior
 
 - Single page with tabs for Hot Press, Cutting, Edgebanding, Drilling, QC.
-- External QR scanner acts as keyboard (HID) — hidden input always focused.
-- Scan order QR → auto-prompt action panel with Completed / Partial / Rejected buttons.
+- External QR scanner acts as keyboard (HID) â€” hidden input always focused.
+- Scan order QR â†’ auto-prompt action panel with Completed / Partial / Rejected buttons.
 - Partial and Rejected require mandatory remarks before submission.
 - Uses existing `production-action` API endpoint with `order_id`, `station_name`, `action_code`, `remarks`.
 - Auto-refresh order list every 30 seconds.
@@ -364,7 +402,7 @@ Built and deployed a machine QR scanner page for factory floor order scanning. E
 - Deployed qr-scanner.html to Site 1.
 - Deploy script saved locally.
 
-## 2026-08-05 — QR Label Printer and pitch deck
+## 2026-08-05 â€” QR Label Printer and pitch deck
 
 ### Task completed
 
@@ -372,14 +410,14 @@ Built and deployed a QR Label Printer page for printing QR code labels for order
 
 ### Files modified/deployed
 
-- `qr-printer.html` — deployed to Site 1
-- `ElenzaPMS_PitchDeck.pptx` — generated via `generate_pitch.py`
+- `qr-printer.html` â€” deployed to Site 1
+- `ElenzaPMS_PitchDeck.pptx` â€” generated via `generate_pitch.py`
 - `docs/memory.md`
 
 ### Behavior
 
 - QR Printer allows selecting orders and printing QR code labels in Roll or Sheet format.
-- Label dimensions are configurable (default 60×40 mm).
+- Label dimensions are configurable (default 60Ã—40 mm).
 - QR encodes order number only; label text shows order number.
 - Orders loaded from `data_entry.quotations`, `planning.rows`, and `production.rows`.
 - Dispatched/Packed/Hold orders excluded.
@@ -400,7 +438,7 @@ Built and deployed a QR Label Printer page for printing QR code labels for order
 - Removed 10 old backups from `backups/` directory.
 - Retained 2 most recent backups: `site1-live-backup-20260805` and `project-backup-20260805-151617`.
 
-## 2026-07-30 — KADIWA dealer correction and UI logout fix
+## 2026-07-30 â€” KADIWA dealer correction and UI logout fix
 
 ### Task completed
 
@@ -434,7 +472,7 @@ Fixed the reported Admin customer-type-change flow issue and directly corrected 
 - Verified FTP read-back SHA-256 matched the uploaded script.
 - Verified public `script.js` contains the updated matching/helper logic.
 
-## 2026-08-11 — PmsApiHandler.cs restored from backup
+## 2026-08-11 â€” PmsApiHandler.cs restored from backup
 
 ### Task completed
 

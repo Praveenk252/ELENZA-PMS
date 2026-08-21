@@ -1,18 +1,73 @@
-# Elenza PMS Working Context
+﻿# Elenza PMS Working Context
+
+## 2026-08-21
+
+### Station-Based Workflow â€” Implemented
+
+- New `stations.html` page: per-station workspace for Hot Press, Cutting, Edgebanding, Drilling, QC.
+- Machine users log in and land on their assigned station automatically.
+- Tabs: Update Status, Orders at Station (`station-ready-orders`), History.
+- Replaces QR Scanner as the primary factory-floor interface.
+
+### Drilling 2 â†’ Drilling Normalization
+
+- Machines table has both Drilling(4) and Drilling 2(5); users confirmed they are the SAME station.
+- Backend normalizes "Drilling 2" â†’ "Drilling" in `HandleStationUpdate` and `HandleStationState`.
+- Frontend `normalizeStationName()` in planner-portal.html does the same.
+- Users `mxdr` (Maxi Drill) and `mndr` both write to the single "Drilling" logical station.
+- Removed "Drilling 2" from `StationSequenceOrder` and `StationDateColMap` â€” fixed QC crash ("No value given for one or more required parameters") caused by mapping to nonexistent `drilling2_date` column.
+
+### Machine Wise Grouping by Highest Sequence
+
+- `planner-portal.html` Machine Wise view groups each order under its highest-sequence machine (from `state.masters.machines.sequence_no`).
+- Helpers: `normalizeStationName()`, `highestSequenceStation()`.
+- Applied to `renderMachineWise()`, `exportMachineExcel()`, customer-type export, `exportSingleMachineExcel()`.
+- Priority column is 2nd (after Machine) in Excel exports; planner stage column replaced by "Visible Stations".
+
+### Packed/Dispatched Filtering
+
+- `HandleScannerState`: removes orders whose resolved station is Packed/Dispatched.
+- `HandleStationState`: queries queue table for Packed/Dispatch entries with `is_visible = TRUE` and filters them.
+- Packing portal uses `EnsureQueueState(..., "PENDING", ...)` + `ClearAllQueueVisibility` + `AutoCompletePlannerPreviousStations` (sets `is_visible = false` on previous stations).
+
+### QR Scanner Links â†’ Stations
+
+- All 10 pages updated: index.html, dealer-detail.html, marketing-assignment.html, marketing-portal.html, packing-portal.html, packing-portal-live-check.html, planner-portal.html, priority-desk.html, qr-printer.html, remarks-reply.html.
+- Quick-link now points to `stations.html` (ðŸ­ icon, "Stations", "Station workflow").
+- `qr-scanner.html` file still exists on server but no longer linked from any nav.
+
+### Station Ready Orders Endpoint Status
+
+- Fixed: QC no longer errors (was OleDb crash on `drilling2_date`).
+- Verified counts after fix: Hot Press 278, Cutting 2, Edgebanding 1, Drilling 0, QC 1.
+- Known limitation: low counts because most orders lack station date columns â€” only `HandleStationUpdate` sets them; batch/packing flows skip them. Data completeness issue, not a code bug.
+
+### Backup & Git
+
+- Full FTP backup: `backup/site-ftp-20260821-142516.zip` (41 files).
+- Commits pushed through `b1cac31` ("Fix station-ready-orders QC crash, replace QR Scanner links with Stations across all pages").
+- Files uploaded via FTP: PmsApiHandler.cs (both copies), App_Code/Timestamp.cs (recompile trigger `2026-08-21 17:12:00.000`), index.html + 9 other HTML files.
+
+### User Logins Verified
+
+- Station users: ct (Cutting), hp (Hot Press), eb1 (Edgebanding), mxdr/mndr (Drilling), qc1 (QC) â€” all PASS.
+- Station updates from Cutting, Hot Press, Edgebanding, Drilling correctly move planner status to "In Production".
+
+---
 
 ## 2026-08-17
 
-### Production Remarks Request — Implemented
+### Production Remarks Request â€” Implemented
 
 - `remarks-request-create` creates token-based request records in `tbl_remarks_requests`.
-- `remarks-reply.html?token=...` — planner opens URL, logs in, enters remarks per order or bulk.
+- `remarks-reply.html?token=...` â€” planner opens URL, logs in, enters remarks per order or bulk.
 - Saves to `tbl_remarks_requests` and `tbl_remarks_replies` tables.
 - `remarks-requests-list`, `remarks-request-info`, `remarks-reply-save` endpoints all working.
 - `remarks-request-reminder` sends reminder notifications.
 - `remarks-request-close` and `remarks-request-delete` manage lifecycle.
 - Replied/unreplied tracking per order.
 
-### Remarks Report — Implemented
+### Remarks Report â€” Implemented
 
 - `remarks-report` endpoint returns done/pending rows with order details.
 - `remarks-report-export` exports to Excel via server-side HTML table.
@@ -21,7 +76,7 @@
 - `force=1` parameter bypasses time check and already-sent check.
 - SMTP configured via `App_Data/smtp-settings.json` with `to_emails`, `enabled`, `host`, `port`, etc.
 
-### Marketing Portal Priority Feature — Implemented
+### Marketing Portal Priority Feature â€” Implemented
 
 - Priority badges: HIGH (red), MED (yellow), LOW (blue) displayed on In Production tab.
 - Row highlighting: High=`#fecaca` hover=`#fca5a5`, Medium=`#fef08a` hover=`#fde047`.
@@ -32,7 +87,7 @@
 - Stats card shows High Priority count.
 - `priority-desk-state` and `priority-report` API endpoints.
 
-### Marketing Portal — 4-Tab Layout
+### Marketing Portal â€” 4-Tab Layout
 
 - Rebuilt `marketing-portal.html` with 4 tabs: My Dealers, In Production, Packed, Dispatched.
 - In Production: sorted by dealer, sub-orders excluded, columns (Checkbox, Order #, Confirmation, Order Type, Dealer, Customer, Status, EDD, Actions).
@@ -59,8 +114,8 @@
 
 ### Backup
 
-- Full FTP site backup: `backup/site-ftp-20260817-140546/` (43 files from `[removed]/site1/`).
-- FTP host: `[removed]`, user: `[removed]`.
+- Full FTP site backup taken (43 files from the live server root).
+- FTP host/user/password are stored locally only and intentionally omitted from this repo.
 - Old FTP host `win1006.site4now.net` returns 530 Not logged in.
 
 ### Git
@@ -75,22 +130,22 @@
 
 - Built and deployed `qr-scanner.html` to Site 1.
 - Single-page machine scanner with tabs for Hot Press, Cutting, Edgebanding, Drilling, QC.
-- External QR scanner acts as keyboard input — hidden field always focused.
-- Scan order QR → auto-prompt action panel (Completed / Partial / Rejected).
+- External QR scanner acts as keyboard input â€” hidden field always focused.
+- Scan order QR â†’ auto-prompt action panel (Completed / Partial / Rejected).
 - Partial and Rejected require mandatory remarks.
 - Auto-refresh order list every 30 seconds.
 - Pending order count and list per station.
 - Uses existing `production-action` API endpoint.
-- Public URL: `http://[removed]-site1.ktempurl.com/qr-scanner.html`
+- Public URL: `https://<live-host>/qr-scanner.html`
 
 ### Packing Portal
 
 - Box qty entry is only available for Packing.
-- Packing portal URL: `http://[removed]-site1.ktempurl.com/packing-portal.html`
+- Packing portal URL: `https://<live-host>/packing-portal.html`
 - Packing username: `pk`
 - Fixed `packing-boxes-set` server-side check: now allows both "Packing" and "Packed" stations.
 - Fixed `production-balance-save` server-side check: now allows both "Packing" and "Packed" stations.
-- Fixed `EnsurePackingQueueEntryForPortal`: allows "Packed" station, falls back through Packing → Packed → user's station.
+- Fixed `EnsurePackingQueueEntryForPortal`: allows "Packed" station, falls back through Packing â†’ Packed â†’ user's station.
 - Fixed Machine User history visibility: changed `IsHistoryVisibleToUser` to `return true` (station filter was too restrictive with "-" placeholder).
 - Fixed history API `BuildHistoryStandaloneState`: populates `VisibleStationNames`, joins `tbl_dealers` for customer_name, includes confirmation_date, packed_boxes (from `tbl_dispatch_boxes`), balance_boxes (from `tbl_orders`).
 - Packing portal dropdown excludes fully packed orders (box_count > 0 AND balance = 0) using prodLookup from production rows.
@@ -117,7 +172,7 @@
 - Modified `HandlePlannerSave` to accept and persist `priority_date`.
 - Added `priority_date` to `BuildPlanningRow` output.
 - Accessible to Admin and Production Planner User roles.
-- Public URL: `http://[removed]-site1.ktempurl.com/priority-desk.html`
+- Public URL: `https://<live-host>/priority-desk.html`
 - 15-problem fix applied: toggleSelectAll, session validation, loading spinner, auto-refresh pause, Escape/Enter keys, error display, order count, report date defaults, report summary cards, report remarks tooltip, mobile responsive, save validation, logout cleanup.
 - Backup at `backups/priority-desk-backup-20260807/`.
 
@@ -131,10 +186,10 @@
 - Sorted by quotation date (newest first).
 - Date range filter with From/To pickers.
 - QR generated status tracked in `localStorage` (`elenza_qr_generated`).
-- Default label size: 60×40 mm, QR 120 px, font 12 px.
+- Default label size: 60Ã—40 mm, QR 120 px, font 12 px.
 - Uses `qrcode-generator` library (sync canvas-based) instead of `qrcodejs` (async, unreliable).
 - Fixed `@media print` CSS (was `visibility:hidden`, now `display:none` for non-print elements).
-- Public URL: `http://[removed]-site1.ktempurl.com/qr-printer.html`
+- Public URL: `https://<live-host>/qr-printer.html`
 
 ### Pitch Deck
 
@@ -215,15 +270,15 @@
 
 ## Hosting & Deployment
 
-- Active FTP/site: `[removed]`, user `[removed]`, website root `/site1`.
-- Public URL: `http://[removed]-site1.ktempurl.com/`.
-- Old FTP host `win1006.site4now.net` returns 530 Not logged in — do not use.
+- Active FTP/site: credentials stored locally only, website root `/site1`.
+- Public URL: `https://<live-host>/`.
+- Old FTP host `win1006.site4now.net` returns 530 Not logged in â€” do not use.
 - Database: `App_Data/elenza_pms.accdb` on Site 1.
 - API handler: `App_Code/PmsApiHandler.cs` (required by `api.aspx`).
 - Git: `https://github.com/Praveenk252/ELENZA-PMS.git`
-- Backup skill: `.agents/skills/backup/SKILL.md` — run `backup the site` to download full FTP.
+- Backup skill: `.agents/skills/backup/SKILL.md` â€” run `backup the site` to download full FTP.
 
-## 2026-08-11 — PmsApiHandler.cs restore
+## 2026-08-11 â€” PmsApiHandler.cs restore
 
 - Restored live `/site1/App_Code/PmsApiHandler.cs` from `backups/full-site-backup-20260811/App_Code/PmsApiHandler.cs`.
 - Reason: live API handler was reported as not working.
@@ -239,9 +294,10 @@
 | File | Purpose |
 |---|---|
 | `marketing-portal.html` | Marketing 4-tab portal (My Dealers, In Production, Packed, Dispatched) with priority UI |
-| `planner-portal.html` | Planner portal with remarks tab |
+| `planner-portal.html` | Planner portal with remarks tab; Machine Wise grouping by highest sequence |
+| `stations.html` | Station workflow page (Hot Press, Cutting, Edgebanding, Drilling, QC) |
 | `packing-portal.html` | Packing portal |
-| `qr-scanner.html` | Machine QR scanner |
+| `qr-scanner.html` | Machine QR scanner (legacy â€” no longer linked from nav) |
 | `qr-printer.html` | QR label printer |
 | `priority-desk.html` | Priority desk |
 | `remarks-reply.html` | Remarks reply page (token-based URL) |
@@ -251,12 +307,12 @@
 
 ## Database Key Tables
 
-- `tbl_orders` — orders with workflow_stage_code, dispatch_status_code, packing_balance_box_qty, dispatch_balance_box_qty
-- `tbl_production_planner` — planner priority, EDD (sla_date), priority, priority_date, planner_remarks
-- `tbl_order_station_queue` — station queue with status, remarks
-- `tbl_dealers` — dealer info with marketing_owner
-- `tbl_users` — users with role_id
-- `tbl_dispatch_boxes` — box tracking per order
-- `tbl_remarks_requests` — WhatsApp remarks requests with token
-- `tbl_remarks_replies` — Planner remarks replies per order
-- `tbl_mail_reports` — Email send log for reports
+- `tbl_orders` â€” orders with workflow_stage_code, dispatch_status_code, packing_balance_box_qty, dispatch_balance_box_qty
+- `tbl_production_planner` â€” planner priority, EDD (sla_date), priority, priority_date, planner_remarks
+- `tbl_order_station_queue` â€” station queue with status, remarks
+- `tbl_dealers` â€” dealer info with marketing_owner
+- `tbl_users` â€” users with role_id
+- `tbl_dispatch_boxes` â€” box tracking per order
+- `tbl_remarks_requests` â€” WhatsApp remarks requests with token
+- `tbl_remarks_replies` â€” Planner remarks replies per order
+- `tbl_mail_reports` â€” Email send log for reports

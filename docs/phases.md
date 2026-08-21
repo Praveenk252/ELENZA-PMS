@@ -22,7 +22,7 @@ Completion criteria:
 - Core users can perform daily operational work.
 - Production movement and final dispatch are recorded.
 
-## Phase 2 — Production planner
+## Phase 2 — Production planner and station workflow
 
 **Status:** Implemented with ongoing fixes
 
@@ -30,11 +30,14 @@ Scope:
 
 - Separate planner workspace
 - One current stage
-- Machine-wise views
+- Machine-wise views grouped by each order's highest-sequence machine
 - Board quantity and panel quantity visibility in planner and production pending views
 - Priority assignment
 - Planner movement, assignment, resequencing, and reapproval
 - Filter-aware exports
+- Station-based workflow page (`stations.html`) for Hot Press, Cutting, Edgebanding, Drilling, QC
+- Drilling 2 merged into Drilling (same logical station)
+- Packed/Dispatched orders excluded from station queues and ready lists
 
 Completion criteria:
 
@@ -42,6 +45,7 @@ Completion criteria:
 - Machine and priority exports match filtered rows.
 - Current stage is singular and consistent.
 - Board and panel quantities are visible anywhere production teams review pending work.
+- Station users see only their own station's pending and completed work.
 
 ## Phase 3 — Packing and dispatch hardening
 
@@ -157,7 +161,10 @@ Potential work only when explicitly requested:
 - ~~Priority assignment desk~~ — Priority Desk page deployed (`priority-desk.html`), standalone priority + packing date assignment, admin/planner roles, auto-removal on pack
 - ~~Production remarks request~~ — Implemented: token-based URL, bulk+individual remarks, replied/unreplied tracking, remarks report with email
 - ~~Marketing portal priority~~ — Implemented: badges, row highlighting, filter, report modal
-- SLA/EDD auto-calculation — Attempted but reverted (compilation issues on shared hosting). Configurable SLA days per order class/type with auto EDD on confirmation.
+- ~~Station-based workflow~~ — Implemented 2026-08-21: `stations.html` per-station workspace; QR Scanner links replaced everywhere; Drilling 2 merged into Drilling
+- ~~Machine-wise grouping by highest sequence~~ — Implemented 2026-08-21 in planner-portal.html exports and views
+- Station-ready-orders data backfill — legacy orders lack station date columns; low counts on Cutting/Edgebanding/Drilling. Needs data migration or alternative tracking approach.
+- SLA/EDD auto-calculation — Attempted but reverted (compilation issues on shared hosting)
 - Barcode scanning
 - Inventory valuation
 - Accounting integration

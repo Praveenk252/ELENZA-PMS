@@ -106,6 +106,15 @@ Recommended hierarchy:
 - Completed packing orders leave the active queue but remain in history.
 - Use the session's assigned station while supporting the current `Packing`/`Packed` compatibility.
 
+## Station workflow rules
+
+- The station page (`stations.html`) shows one station at a time; machine users land on their assigned station.
+- Tabs: Update Status, Orders at Station, History.
+- Packed/Dispatched orders must never appear in station lists.
+- Drilling and Drilling 2 display as a single "Drilling" station everywhere (user-facing label normalization).
+- Ready-order lists show only orders whose previous stations are complete; show count badge next to tab label.
+- Status actions use the same Completed / Partial / Rejected semantics as the legacy scanner, with mandatory remarks for Partial/Rejected.
+
 ## Responsive behavior
 
 - Desktop: two-column label/control forms are acceptable.

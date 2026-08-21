@@ -1,4 +1,4 @@
-# Architecture
+﻿# Architecture
 
 ## System shape
 
@@ -6,23 +6,24 @@ Elenza PMS is a server-rendered/static-browser application with a single ASP.NET
 
 ```text
 Browser
-  ├─ Main HTML/CSS/JavaScript workspace
-  ├─ Production planner portal
-  ├─ Packing portal
-  ├─ QR Label Printer
-  ├─ Machine QR Scanner
-  ├─ Priority Desk
-  ├─ Remarks Reply (token-based)
-  └─ Marketing Portal
-          │ same-origin HTTP + session cookie
-          ▼
+  â”œâ”€ Main HTML/CSS/JavaScript workspace
+  â”œâ”€ Production planner portal
+  â”œâ”€ Packing portal
+  â”œâ”€ Station workflow page (per-station)
+  â”œâ”€ QR Label Printer
+  â”œâ”€ Machine QR Scanner (legacy, unlinked)
+  â”œâ”€ Priority Desk
+  â”œâ”€ Remarks Reply (token-based)
+  â””â”€ Marketing Portal
+          â”‚ same-origin HTTP + session cookie
+          â–¼
 ASP.NET Framework 4.8
-  ├─ api.ashx
-  ├─ api.aspx
-  ├─ App_Code/PmsApiHandler.cs
-  └─ Global.asax (scheduler)
-          │ OleDb
-          ▼
+  â”œâ”€ api.ashx
+  â”œâ”€ api.aspx
+  â”œâ”€ App_Code/PmsApiHandler.cs
+  â””â”€ Global.asax (scheduler)
+          â”‚ OleDb
+          â–¼
 App_Data/elenza_pms.accdb
 ```
 
@@ -122,16 +123,28 @@ IIS may rewrite `planner-portal.html` to `production-planner.html`; confirm the 
 - Loads orders from multiple API sources (`data_entry.quotations`, `planning.rows`, `production.rows`)
 - Excludes Dispatched/Packed/Hold orders
 - Supports Roll and Sheet label formats
-- Configurable label dimensions (default 60×40 mm)
+- Configurable label dimensions (default 60Ã—40 mm)
 - QR encodes order number; label text shows order number
 - Date range filter with From/To pickers
 - Tracks QR generated status in `localStorage`
 - Uses `qrcode-generator` library for sync canvas-based QR rendering
 - Sorted by quotation date (newest first)
 
-### Machine QR Scanner
+### Station workflow
 
-`qr-scanner.html` is a single-page machine scanner for factory floor use. It:
+`stations.html` is the primary factory-floor interface (replaced QR Scanner links in 2026-08). It:
+
+- Provides a per-station workspace for Hot Press, Cutting, Edgebanding, Drilling, QC
+- Lands machine users on their assigned station automatically
+- Tabs: Update Status, Orders at Station, History
+- Orders at Station uses the `station-ready-orders` endpoint (orders whose previous stations are complete but current station is pending)
+- Packed/Dispatched orders never appear in station dropdowns or ready lists
+- "Drilling 2" is normalized to "Drilling" server-side and client-side; both drilling users write to one logical station
+- Requires Admin or Machine User login
+
+### Machine QR Scanner (legacy)
+
+`qr-scanner.html` remains deployed but is no longer linked from any navigation. It:
 
 - Provides tabs for Hot Press, Cutting, Edgebanding, Drilling, QC
 - Accepts external QR scanner input (scanner acts as keyboard/HID device)
@@ -140,8 +153,6 @@ IIS may rewrite `planner-portal.html` to `production-planner.html`; confirm the 
 - Partial and Rejected require mandatory remarks
 - Uses existing `production-action` API endpoint
 - Auto-refreshes order list every 30 seconds
-- Shows pending order count and list per station
-- Requires Admin or Machine User login
 
 ### Remarks Reply
 
@@ -163,6 +174,7 @@ IIS may rewrite `planner-portal.html` to `production-planner.html`; confirm the 
 - Confirmation, optimisation, and procurement
 - Planner movement, priority, sequence, and station actions
 - Production, packing, and dispatch actions
+- Station workflow: `station-state`, `station-update`, `station-ready-orders`, `scanner-state`
 - Masters, machines, and users
 - Report email generation and status
 - Remarks request lifecycle and replies
@@ -211,13 +223,13 @@ The API contains schema-readiness and compatibility logic. Schema changes can oc
 
 ```text
 Quotation
-  → Confirmed
-  → Optimised
-  → Procurement / Material Received
-  → Production sequence
-  → Packing / Packed
-  → Dispatch
-  → Dispatched
+  â†’ Confirmed
+  â†’ Optimised
+  â†’ Procurement / Material Received
+  â†’ Production sequence
+  â†’ Packing / Packed
+  â†’ Dispatch
+  â†’ Dispatched
 ```
 
 Sequence profiles determine station order. Station queue visibility supports partial completion, while planner-stage calculation provides one current displayed stage.
@@ -238,9 +250,9 @@ Do not assume a local `web.config` variant is active. Read back the active Site 
 ## Deployment and rollback
 
 - Active target: Site 1
-- Public URL: `http://[removed]-site1.ktempurl.com/`
-- FTP host: `[removed]`
-- FTP account: `[removed]`
+- Public URL: `https://<live-host>/`
+- FTP host: stored locally only (omitted from repo)
+- FTP account: stored locally only (omitted from repo)
 - FTP mode used by existing tooling: passive binary FTP
 - Deployment root: `/site1`
 - Markdown files must not be uploaded.

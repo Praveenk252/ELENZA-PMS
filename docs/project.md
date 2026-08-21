@@ -110,6 +110,14 @@ The active production deployment is Site 1 at the public URL recorded in `PROJEC
 
 Recent live work includes:
 
+- Station-based workflow page (`stations.html`) for Hot Press, Cutting, Edgebanding, Drilling, QC — primary factory-floor interface
+- Drilling 2 merged into Drilling (same logical station; both drilling users write to one station)
+- QC crash fixed in `station-ready-orders` (nonexistent `drilling2_date` mapping removed)
+- Packed/Dispatched orders excluded from all station queues and ready lists
+- QR Scanner quick-links replaced with Stations links across all pages
+- Planner Machine Wise grouping by each order's highest-sequence machine
+- Production remarks request system with token-based reply URLs and scheduled email report
+- Marketing portal priority feature (badges, filter, report modal)
 - Planner stage mapping and exports
 - Packing portal authorization for the live `Packed` station label
 - Packing save compatibility without changing the database
@@ -127,7 +135,8 @@ Recent live work includes:
 1. Consolidate the mixed support workspace into a canonical source tree.
 2. Synchronize the latest live API and `App_Code` files into version-controlled local sources.
 3. Add repeatable automated tests for authentication, station authorization, and production movement.
-4. Remove legacy snapshots only after verified retention and rollback policy.
-5. Resolve documented history-query debt across all roles.
-6. Harden production configuration by disabling detailed errors and debug compilation after diagnostics are complete.
+4. Backfill or migrate legacy order station-date data so `station-ready-orders` covers all in-production orders.
+5. Remove legacy snapshots only after verified retention and rollback policy.
+6. Resolve documented history-query debt across all roles.
+7. Harden production configuration by disabling detailed errors and debug compilation after diagnostics are complete.
 

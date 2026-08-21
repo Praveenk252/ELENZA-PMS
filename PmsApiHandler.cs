@@ -180,6 +180,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "planner-save":
                     HandlePlannerSave(context);
                     break;
+                case "qty-save":
+                    HandleQtySave(context);
+                    break;
                 case "planner-move":
                     HandlePlannerMove(context);
                     break;
@@ -499,7 +502,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 { "report_date_from", Value(context, "report_date_from") },
                 { "report_date_to", Value(context, "report_date_to") },
                 { "report_sort", Value(context, "report_sort", "updated-desc") },
-                { "selected_order_id", Value(context, "selected_order_id") }
+                { "selected_order_id", Value(context, "selected_order_id") },
+                { "deep_state", Value(context, "deep_state") },
+                { "deep_section", Value(context, "deep_section") }
             };
             WriteJson(context, BuildAppState(conn, user, filters));
         }
@@ -1273,6 +1278,46 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             try
             {
                 Audit(conn, I(user, "user_id"), "Production Planner", "Order", S(order, "order_number"), "Planner Updated", "", string.Join(" | ", new[] { string.IsNullOrWhiteSpace(urgency) ? "-" : urgency, string.IsNullOrWhiteSpace(priority) ? "-" : priority, priorityDate.HasValue ? priorityDate.Value.ToString("yyyy-MM-dd") : "-", string.IsNullOrWhiteSpace(plannerRemarks) ? "-" : plannerRemarks }), plannerRemarks, null);
+            }
+            catch
+            {
+            }
+            WriteJson(context, Obj("ok", true));
+        }
+    }
+
+    private void HandleQtySave(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var boardRaw = Require(Value(context, "board_qty"), "Board Qty is required.");
+            var panelRaw = Require(Value(context, "panel_qty"), "Panel Qty is required.");
+            decimal boardQty;
+            decimal panelQty;
+            if (!decimal.TryParse(boardRaw, NumberStyles.Number, CultureInfo.InvariantCulture, out boardQty) || boardQty < 0)
+                throw new ApiFailure(400, "Board Qty must be a number greater than or equal to 0.");
+            if (!decimal.TryParse(panelRaw, NumberStyles.Number, CultureInfo.InvariantCulture, out panelQty) || panelQty < 0)
+                throw new ApiFailure(400, "Panel Qty must be a number greater than or equal to 0.");
+            var order = FindOrderById(conn, orderId);
+            if (order == null) throw new ApiFailure(404, "Order not found.");
+            var oldBoards = D(order, "board_qty_decimal") > 0 ? D(order, "board_qty_decimal") : I(order, "number_of_boards");
+            var oldPanels = D(order, "panel_qty");
+            var now = DateTime.Now;
+            Execute(conn, "UPDATE tbl_orders SET number_of_boards = ?, board_qty_decimal = ?, panel_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(now) + " WHERE order_id = ?",
+                (int)Math.Round(boardQty, 0, MidpointRounding.AwayFromZero),
+                boardQty,
+                panelQty,
+                I(user, "user_id"),
+                orderId);
+            try
+            {
+                Audit(conn, I(user, "user_id"), "Production Planner", "Order", S(order, "order_number"), "Board/Panel Qty Updated",
+                    string.Format(CultureInfo.InvariantCulture, "{0:0.##} / {1:0.##}", oldBoards, oldPanels),
+                    string.Format(CultureInfo.InvariantCulture, "{0:0.##} / {1:0.##}", boardQty, panelQty),
+                    "", null);
             }
             catch
             {
@@ -2680,7 +2725,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (stationFilter != "all" && !((List<string>)order["visible_stations"]).Contains(stationFilter) && !(stationFilter == "Correction Queue" && B(order, "correction_queue"))) continue;
             if (!string.IsNullOrWhiteSpace(dateFrom) && string.CompareOrdinal(orderDate, dateFrom) < 0) continue;
             if (!string.IsNullOrWhiteSpace(dateTo) && string.CompareOrdinal(orderDate, dateTo) > 0) continue;
-            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "workflow_stage", workflowStage, "visible_stations", visibleStations, "last_action", S(order, "last_action"), "updated_at", FormatDateTime(DT(order, "updated_at")), "updated_sort", DateSortKey(DT(order, "updated_at")), "dispatch_status", dispatchStatus));
+            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "workflow_stage", workflowStage, "visible_stations", visibleStations, "last_action", S(order, "last_action"), "updated_at", FormatDateTime(DT(order, "updated_at")), "updated_sort", DateSortKey(DT(order, "updated_at")), "dispatch_status", dispatchStatus, "panel_qty", D(order, "panel_qty") > 0 ? D(order, "panel_qty").ToString("0.##", CultureInfo.InvariantCulture) : "", "board_qty", D(order, "number_of_boards") > 0 ? D(order, "number_of_boards").ToString("0.##", CultureInfo.InvariantCulture) : ""));
         }
 
         rows = SortReportRows(rows, sortKey);
@@ -2825,7 +2870,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
 
     private Dictionary<string, object> BuildHistoryState(OleDbConnection conn, Dictionary<string, object> user, List<Dictionary<string, object>> orders, Dictionary<string, Dictionary<string, string>> statusLookup, int selectedOrderId)
     {
-        var rows = QueryAll(conn, "SELECT TOP 180 h.order_id, h.acted_at, h.acted_by, h.station_id, h.action_code, h.remarks, h.from_station_id, h.to_station_id, h.old_status_code, h.new_status_code, u.full_name AS acted_by_name, s.machine_name AS station_name FROM (tbl_order_history AS h LEFT JOIN tbl_users AS u ON h.acted_by = u.user_id) LEFT JOIN tbl_machines AS s ON h.station_id = s.machine_id ORDER BY h.acted_at DESC, h.history_id DESC");
+        var rows = QueryAll(conn, "SELECT TOP 180 h.order_id, h.acted_at, h.acted_by, h.station_id, h.action_code, h.remarks, h.from_station_id, h.to_station_id, h.previous_status_code, h.new_status_code, u.full_name AS acted_by_name, s.machine_name AS station_name FROM (tbl_order_history AS h LEFT JOIN tbl_users AS u ON h.acted_by = u.user_id) LEFT JOIN tbl_machines AS s ON h.station_id = s.machine_id ORDER BY h.acted_at DESC, h.history_id DESC");
         var visibleOrders = orders.ToDictionary(o => I(o, "order_id"));
         var filtered = new List<Dictionary<string, object>>();
         foreach (var row in rows)

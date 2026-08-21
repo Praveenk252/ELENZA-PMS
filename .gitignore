@@ -40,3 +40,21 @@ cookies*.txt
 
 # SMTP settings (contains passwords)
 smtp-settings.json
+
+# Local test staging site
+work/
+
+# Temp/scratch files
+*.bak
+*.bak-*
+*.broken-sla
+*.pre-sla
+*.restored
+live-*
+temp-*.cs
+temp_error.html
+test-*.mjs
+test-results/
+planner-screenshot.png
+package.json
+package-lock.json

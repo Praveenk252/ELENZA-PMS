@@ -194,6 +194,9 @@
     }
     .mini-select{min-width:120px;padding:10px 12px;border-radius:12px}
     .mini-btn{padding:10px 12px;border-radius:12px;background:var(--blue-soft)}
+    .qty-cell{display:flex;align-items:center;gap:6px}
+    .qty-input{width:76px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);font-size:13px;text-align:right}
+    .qty-input:focus{outline:2px solid var(--blue);outline-offset:-1px}
     .empty{padding:20px;color:var(--muted)}
     .hidden{display:none!important}
     @media (max-width: 900px){
@@ -725,8 +728,7 @@
           <td class="slim-cell">${escapeHtml(row.customer_type || "-")}</td>
           <td class="slim-cell">${escapeHtml(row.order_type)}</td>
           <td class="slim-cell">${escapeHtml(row.order_class || "-")}</td>
-          <td class="slim-cell">${escapeHtml(qtyLabel(row.panel_qty))}</td>
-          <td class="slim-cell">${escapeHtml(qtyLabel(row.board_qty))}</td>
+          ${renderQtyEditor(row)}
           <td class="stage-cell"><span class="pill">${escapeHtml(row.planner_stage_label)}</span></td>
           <td>${renderPriorityEditor(row)}</td>
           <td class="slim-cell">${escapeHtml(shortDate(row.edd || "-"))}</td>
@@ -782,8 +784,7 @@
                     <td class="customer-cell wrap">${escapeHtml(customerLabel(row.customer_name))}</td>
                     <td class="slim-cell">${escapeHtml(row.customer_type || "-")}</td>
                     <td class="slim-cell">${escapeHtml(row.order_class || "-")}</td>
-                    <td class="slim-cell">${escapeHtml(qtyLabel(row.panel_qty))}</td>
-                    <td class="slim-cell">${escapeHtml(qtyLabel(row.board_qty))}</td>
+                    ${renderQtyEditor(row)}
                     <td class="stage-cell">${escapeHtml(row.planner_stage_label)}</td>
                     <td>${renderPriorityEditor(row)}</td>
                   </tr>
@@ -810,8 +811,7 @@
           <td class="customer-cell wrap">${escapeHtml(customerLabel(row.customer_name))}</td>
           <td class="slim-cell">${escapeHtml(row.customer_type || "-")}</td>
           <td class="slim-cell">${escapeHtml(row.order_class || "-")}</td>
-          <td class="slim-cell">${escapeHtml(qtyLabel(row.panel_qty))}</td>
-          <td class="slim-cell">${escapeHtml(qtyLabel(row.board_qty))}</td>
+          ${renderQtyEditor(row)}
           <td class="stage-cell">${escapeHtml(row.planner_stage_label)}</td>
           <td>${renderPriorityEditor(row)}</td>
         </tr>
@@ -829,6 +829,15 @@
       `;
     }
 
+    function renderQtyEditor(row) {
+      const panel = String(row.panel_qty ?? "").trim();
+      const board = String(row.board_qty ?? "").trim();
+      return `
+        <td class="slim-cell"><input class="qty-input" type="number" min="0" step="0.01" inputmode="decimal" data-qty-panel="${row.order_id}" value="${escapeHtml(panel)}" aria-label="Panel Qty for ${escapeHtml(row.order_number)}"></td>
+        <td class="slim-cell"><div class="qty-cell"><input class="qty-input" type="number" min="0" step="0.01" inputmode="decimal" data-qty-board="${row.order_id}" value="${escapeHtml(board)}" aria-label="Board Qty for ${escapeHtml(row.order_number)}"><button class="mini-btn" type="button" data-qty-save="${row.order_id}" title="Save quantities">Save</button></div></td>
+      `;
+    }
+
     function onPriorityChange(event) {
       const select = event.target.closest("[data-priority-edit]");
       if (!select) return;
@@ -841,6 +850,11 @@
       const exportMachineButton = event.target.closest("[data-export-machine]");
       if (exportMachineButton) {
         exportSingleMachineExcel(exportMachineButton.dataset.exportMachine || "");
+        return;
+      }
+      const qtyButton = event.target.closest("[data-qty-save]");
+      if (qtyButton) {
+        await onQtySave(qtyButton);
         return;
       }
       const button = event.target.closest("[data-priority-save]");
@@ -860,6 +874,35 @@
         showMessage(`Priority updated for ${row.order_number}.`, "success");
       } catch (error) {
         showMessage(error.message, "error");
+      }
+    }
+
+    async function onQtySave(button) {
+      const orderId = Number(button.dataset.qtySave);
+      const row = state.planningRows.find((item) => item.order_id === orderId);
+      if (!row) return;
+      const panelInput = document.querySelector(`[data-qty-panel="${orderId}"]`);
+      const boardInput = document.querySelector(`[data-qty-board="${orderId}"]`);
+      if (!panelInput || !boardInput) return;
+      const panel = panelInput.value.trim();
+      const board = boardInput.value.trim();
+      if (panel === "" || board === "") {
+        showMessage("Enter both Board Qty and Panel Qty before saving.", "error");
+        return;
+      }
+      if (Number(panel) < 0 || Number(board) < 0 || Number.isNaN(Number(panel)) || Number.isNaN(Number(board))) {
+        showMessage("Quantities must be numbers greater than or equal to 0.", "error");
+        return;
+      }
+      button.disabled = true;
+      try {
+        await apiPost("qty-save", { order_id: orderId, board_qty: board, panel_qty: panel });
+        await loadPlannerState();
+        showMessage(`Quantities updated for ${row.order_number}.`, "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+      } finally {
+        button.disabled = false;
       }
     }
 
