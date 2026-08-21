@@ -915,6 +915,7 @@
         const delay = calcDelay(row);
         return {
           "Machine": station || "",
+          "Priority": row.priority || "",
           "Confirmation Date": shortDate(row.confirmation_date || ""),
           "Order Number": row.order_number || "",
           "Dealer": row.dealer_name || "",
@@ -925,7 +926,6 @@
           "Panel Qty": row.panel_qty || "",
           "Board Qty": row.board_qty || "",
           "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
-          "Priority": row.priority || "",
           "Status": delay
         };
       });
@@ -1085,10 +1085,11 @@
 
         const ctSheetRows = [];
         Array.from(machineGroups.entries()).forEach(([machine, machineRows]) => {
-          ctSheetRows.push({ "Machine": `--- ${machine} ---`, "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Visible Stations": "", "Priority": "", "EDD": "", "Status": "" });
+          ctSheetRows.push({ "Machine": `--- ${machine} ---", "Priority": "", "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Visible Stations": "", "EDD": "", "Status": "" });
           machineRows.forEach((row) => {
             ctSheetRows.push({
               "Machine": machine,
+              "Priority": row.priority || "",
               "Confirmation Date": shortDate(row.confirmation_date || ""),
               "Order Number": row.order_number || "",
               "Dealer": row.dealer_name || "",
@@ -1099,7 +1100,6 @@
               "Panel Qty": row.panel_qty || "",
               "Board Qty": row.board_qty || "",
               "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
-              "Priority": row.priority || "",
               "EDD": shortDate(row.edd || ""),
               "Status": calcDelay(row)
             });
