@@ -5355,21 +5355,16 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (order == null) throw new ApiFailure(404, "Order not found.");
             var station = FindMachineByName(conn, stationName);
             if (station == null) throw new ApiFailure(404, "Station not found.");
+            var stationId = Convert.ToInt32(I(station, "machine_id"));
+            var userId = I(user, "user_id");
             var dateCol = ResolveStationDateColumn(stationName);
             if (dateCol != null)
             {
-                try { Execute(conn, "UPDATE tbl_orders SET " + dateCol + " = " + SqlDateLiteral(now) + ", updated_at = " + SqlDateLiteral(now) + ", updated_by = ? WHERE order_id = ?", I(user, "user_id"), orderId); } catch { }
+                try { Execute(conn, "UPDATE tbl_orders SET " + dateCol + " = " + SqlDateLiteral(now) + ", updated_at = " + SqlDateLiteral(now) + ", updated_by = ? WHERE order_id = ?", userId, orderId); } catch { }
             }
-            try
-            {
-                var existingQueue = QueryOne(conn, "SELECT queue_id FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, I(station, "machine_id"));
-                if (existingQueue == null)
-                {
-                    Execute(conn, "INSERT INTO tbl_order_station_queue (order_id, station_id, is_visible, created_at) VALUES (?, ?, TRUE, " + SqlDateLiteral(now) + ")", orderId, I(station, "machine_id"));
-                }
-            } catch { }
-            Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Station Updated", stationName, stationName + " date recorded", "", I(station, "machine_id"));
-            AddHistory(conn, orderId, I(station, "machine_id"), "COMPLETED", "", "IN_PROGRESS", null, null, stationName + " date recorded", I(user, "user_id"));
+            EnsureQueueState(conn, orderId, stationId, "COMPLETED", true, stationName + " completed", userId);
+            Audit(conn, userId, "Production", "Order", S(order, "order_number"), "Station Updated", stationName, stationName + " date recorded", "", stationId);
+            AddHistory(conn, orderId, stationId, "COMPLETED", "", "IN_PROGRESS", null, null, stationName + " date recorded", userId);
             WriteJson(context, Obj("ok", true, "message", stationName + " updated on " + now.ToString("dd-MMM-yyyy HH:mm")));
         }
     }
