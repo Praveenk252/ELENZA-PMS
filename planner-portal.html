@@ -432,7 +432,8 @@
       search: "",
       status: "all",
       priority: "all",
-      remarksData: null
+      remarksData: null,
+      masters: {}
     };
 
     const refs = {
@@ -551,6 +552,7 @@
       try {
         const result = await apiGet("app-state");
         state.session = result.session || state.session;
+        state.masters = result.masters || {};
         state.planningRows = normalizeRows(result.planning?.rows || []);
         hydrateStatusFilter(state.planningRows);
         renderLoggedIn();
@@ -559,19 +561,45 @@
       }
     }
 
+    function normalizeStationName(name) {
+      if (name === "Drilling 2") return "Drilling";
+      return name;
+    }
+
+    function highestSequenceStation(visibleStations) {
+      const machines = state.masters.machines || [];
+      const seqMap = new Map();
+      machines.forEach((m) => { seqMap.set(m.name, m.sequence_no); });
+      const stations = String(visibleStations || "-").split(",").map((s) => s.trim()).filter(Boolean);
+      if (!stations.length) return "";
+      let best = stations[0];
+      let bestSeq = seqMap.get(best) || 0;
+      stations.forEach((s) => {
+        const seq = seqMap.get(s) || 0;
+        if (seq > bestSeq) { best = s; bestSeq = seq; }
+      });
+      return normalizeStationName(best);
+    }
+
     function normalizeRows(rows) {
       return rows
         .filter((row) => row && String(row.dispatch_status || "").toLowerCase() !== "dispatched")
-        .map((row) => ({
-          ...row,
-          priority: String(row.priority || "").trim(),
-          planner_stage_label: row.planner_stage_label || row.workflow_stage || "",
-          visible_stations: row.visible_stations || "-",
-          dealer_name: row.dealer_name || "-",
-          customer_name: row.customer_name || "-",
-          order_type: row.order_type || "-",
-          edd: row.edd || row.sla_date || ""
-        }));
+        .map((row) => {
+          const rawStations = row.visible_stations || "-";
+          const normalizedStations = Array.isArray(rawStations)
+            ? rawStations.map(normalizeStationName)
+            : String(rawStations).split(",").map((s) => normalizeStationName(s.trim())).filter(Boolean);
+          return {
+            ...row,
+            priority: String(row.priority || "").trim(),
+            planner_stage_label: row.planner_stage_label || row.workflow_stage || "",
+            visible_stations: normalizedStations,
+            dealer_name: row.dealer_name || "-",
+            customer_name: row.customer_name || "-",
+            order_type: row.order_type || "-",
+            edd: row.edd || row.sla_date || ""
+          };
+        });
     }
 
     function hydrateStatusFilter(rows) {
@@ -709,8 +737,7 @@
     function renderMachineWise(rows) {
       const groups = new Map();
       rows.forEach((row) => {
-        const stations = String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean);
-        const currentStation = stations.length > 0 ? stations[stations.length - 1] : "";
+        const currentStation = highestSequenceStation(row.visible_stations);
         if (currentStation) {
           if (!groups.has(currentStation)) groups.set(currentStation, []);
           groups.get(currentStation).push(row);
@@ -1077,8 +1104,7 @@
 
         const machineGroups = new Map();
         ctRows.forEach((row) => {
-          const stations = String(row.visible_stations || "-").split(",").map(s => s.trim()).filter(Boolean);
-          const currentStation = stations.length > 0 ? stations[stations.length - 1] : "Unassigned";
+          const currentStation = highestSequenceStation(row.visible_stations) || "Unassigned";
           if (!machineGroups.has(currentStation)) machineGroups.set(currentStation, []);
           machineGroups.get(currentStation).push(row);
         });
@@ -1127,8 +1153,7 @@
       const rows = getFilteredRows();
       const groups = new Map();
       rows.forEach((row) => {
-        const stations = String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean);
-        const currentStation = stations.length > 0 ? stations[stations.length - 1] : "";
+        const currentStation = highestSequenceStation(row.visible_stations);
         if (currentStation) {
           if (!groups.has(currentStation)) groups.set(currentStation, []);
           groups.get(currentStation).push(row);
@@ -1142,9 +1167,7 @@
     }
 
     function exportSingleMachineExcel(station) {
-      const rows = getFilteredRows().filter((row) =>
-        String(row.visible_stations || "-").split(",").map((item) => item.trim()).filter(Boolean).includes(station)
-      );
+      const rows = getFilteredRows().filter((row) => highestSequenceStation(row.visible_stations) === station);
       downloadWorkbook(`${station || "Machine"} WIP Orders Dated ${exportDateStamp()}.xlsx`, [
         { name: station || "Machine", rows: machineExportRows(rows.sort(comparePriorityThenOrder), station) }
       ]);

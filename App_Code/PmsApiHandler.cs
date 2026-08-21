@@ -5265,8 +5265,11 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     foreach (var qr in queueRows)
                     {
                         var oid = Convert.ToInt32(I(qr, "order_id"));
-                        if (!stationByOrder.ContainsKey(oid)) stationByOrder[oid] = S(qr, "machine_name");
+                        var machineName = S(qr, "machine_name");
+                        if (!stationByOrder.ContainsKey(oid)) stationByOrder[oid] = machineName;
                     }
+                    var packedDispatchOrders = stationByOrder.Where(kv => kv.Value == "Packed" || kv.Value == "Dispatch").Select(kv => kv.Key).ToList();
+                    foreach (var oid in packedDispatchOrders) stationByOrder.Remove(oid);
                 }
             }
             catch { }
@@ -5350,6 +5353,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             EnsureRole(user, "Admin", "Machine User");
             var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
             var stationName = Require(Value(context, "station_name"), "Station is required.").Trim();
+            if (stationName == "Drilling 2") stationName = "Drilling";
             var now = DateTime.Now;
             var order = FindOrderById(conn, orderId);
             if (order == null) throw new ApiFailure(404, "Order not found.");
@@ -5377,6 +5381,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var user = RequireLogin(context, conn);
             EnsureRole(user, "Admin", "Machine User");
             var stationName = Require(Value(context, "station_name"), "Station is required.").Trim();
+            if (stationName == "Drilling 2") stationName = "Drilling";
             var station = FindMachineByName(conn, stationName);
             if (station == null) throw new ApiFailure(404, "Station not found.");
             var dateCol = ResolveStationDateColumn(stationName);
