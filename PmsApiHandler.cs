@@ -2552,7 +2552,11 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var pendingOnly = stationStatuses.Values.All(v => string.Equals(v, "PENDING", StringComparison.OrdinalIgnoreCase));
             if (pendingOnly) return "material";
         }
-        if (visibleStations.Any(v => v != "Dispatch")) return "production";
+        if (visibleStations.Any(v => v != "Dispatch"))
+        {
+            var activeStations = visibleStations.Where(v => v != "Dispatch").ToList();
+            return activeStations.Count > 0 ? activeStations.Last() : "production";
+        }
         return "neutral";
     }
 
@@ -2624,7 +2628,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             case "production": return "In Production";
             case "packed": return "Packed";
             case "qc": return "QC";
-            default: return "Planning";
+            default: return stageKey;
         }
     }
 
