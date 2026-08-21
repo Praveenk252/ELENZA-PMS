@@ -345,6 +345,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "station-state":
                     HandleStationState(context);
                     break;
+                case "station-ready-orders":
+                    HandleStationReadyOrders(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -5429,6 +5432,77 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 "station_name", stationName,
                 "orders", result,
                 "history", histResult
+            ));
+        }
+    }
+
+    private static readonly string[] StationSequenceOrder = { "Hot Press", "Cutting", "Edgebanding", "Drilling", "QC", "Packed", "Dispatch" };
+    private static readonly Dictionary<string, string> StationDateColMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Hot Press", "hot_press_date" },
+        { "Cutting", "cutting_date" },
+        { "Edgebanding", "edgebanding_date" },
+        { "Drilling", "drilling_date" },
+        { "QC", "qc_date" },
+        { "Packed", "packed_date" },
+        { "Dispatch", "dispatch_date" }
+    };
+
+    private void HandleStationReadyOrders(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var stationName = Require(Value(context, "station_name"), "Station is required.").Trim();
+            if (stationName == "Drilling 2") stationName = "Drilling";
+            var station = FindMachineByName(conn, stationName);
+            if (station == null) throw new ApiFailure(404, "Station not found.");
+
+            var stationIndex = Array.IndexOf(StationSequenceOrder, stationName);
+            var prevStations = stationIndex > 0 ? StationSequenceOrder.Take(stationIndex).ToList() : new List<string>();
+
+            var dateConditions = new List<string>();
+            foreach (var ps in prevStations)
+            {
+                string col;
+                if (StationDateColMap.TryGetValue(ps, out col))
+                    dateConditions.Add("o.[" + col + "] IS NOT NULL");
+            }
+
+            var currentCol = StationDateColMap.ContainsKey(stationName) ? StationDateColMap[stationName] : null;
+            string whereClause;
+            if (dateConditions.Count > 0 && currentCol != null)
+                whereClause = "(" + string.Join(" AND ", dateConditions) + ") AND (o.[" + currentCol + "] IS NULL)";
+            else if (dateConditions.Count > 0)
+                whereClause = "(" + string.Join(" AND ", dateConditions) + ")";
+            else if (currentCol != null)
+                whereClause = "(o.[" + currentCol + "] IS NULL)";
+            else
+                whereClause = "1=1";
+
+            var dateSelect = currentCol != null ? ", o.[" + currentCol + "] AS station_date" : ", NULL AS station_date";
+            var orders = QueryAll(conn,
+                "SELECT o.order_id, o.order_number, o.customer_name, o.dealer_id, o.confirmation_date, o.workflow_stage_code, d.dealer_name" + dateSelect +
+                " FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) WHERE o.workflow_stage_code <> 'QUOTATION_CREATED' AND o.workflow_stage_code <> 'ORDER_CONFIRMED' AND o.workflow_stage_code <> 'PACKED' AND o.workflow_stage_code <> 'DISPATCH_READY' AND o.workflow_stage_code <> 'DISPATCHED' AND " + whereClause + " ORDER BY o.order_number");
+
+            var result = orders.Select(o => {
+                return Obj(
+                    "order_id", I(o, "order_id"),
+                    "order_number", S(o, "order_number"),
+                    "customer_name", S(o, "customer_name"),
+                    "dealer_name", S(o, "dealer_name"),
+                    "confirmation_date", S(o, "confirmation_date"),
+                    "workflow_stage", S(o, "workflow_stage_code"),
+                    "station_date", S(o, "station_date")
+                );
+            }).ToList();
+
+            WriteJson(context, Obj(
+                "ok", true,
+                "station_name", stationName,
+                "orders", result
             ));
         }
     }

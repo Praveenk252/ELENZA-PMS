@@ -191,6 +191,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 var API='/api.ashx';
 var currentUser=null;
 var allOrders=[];
+var readyOrders=[];
 var selectedOrder=null;
 var currentStation='';
 
@@ -226,7 +227,7 @@ function showError(msg){
 
 function doLogout(){
   sessionStorage.removeItem('station_session');
-  currentUser=null;allOrders=[];selectedOrder=null;
+  currentUser=null;allOrders=[];readyOrders=[];selectedOrder=null;
   document.getElementById('appShell').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
 }
@@ -251,25 +252,32 @@ function showView(view){
 function loadState(){
   if(!currentUser)return;
   var url=API+'?action=station-state&station_name='+encodeURIComponent(currentStation);
+  var readyUrl=API+'?action=station-ready-orders&station_name='+encodeURIComponent(currentStation);
   fetch(url,{credentials:'same-origin'})
   .then(function(r){return r.json();})
   .then(function(d){
     if(d.error){showToast(d.error,'error');return;}
     allOrders=d.orders||[];
-    renderPendingList();
     renderHistory(d.history||[]);
-    document.getElementById('pendingCount').textContent=allOrders.length;
     filterCombo('');
+    return fetch(readyUrl,{credentials:'same-origin'});
+  })
+  .then(function(r){return r?r.json():null;})
+  .then(function(d){
+    if(d&&d.orders){
+      readyOrders=d.orders||[];
+      renderReadyOrders();
+    }
   })
   .catch(function(){showToast('Failed to load state','error');});
 }
 
-function renderPendingList(){
+function renderReadyOrders(){
   var list=document.getElementById('pendingList');
   if(!list)return;
-  if(!allOrders.length){list.innerHTML='<div class="empty">No orders pending at '+escHtml(currentStation)+'</div>';return;}
+  if(!readyOrders.length){list.innerHTML='<div class="empty">No orders ready at '+escHtml(currentStation)+'</div>';return;}
   var h='';
-  allOrders.forEach(function(o){
+  readyOrders.forEach(function(o){
     var num=o.order_number||('Order #'+o.order_id);
     var dateHtml=o.station_date?'<span class="station-date">'+escHtml(shortDate(o.station_date))+'</span>':'<span class="no-date">Not updated</span>';
     h+='<div class="item" data-id="'+o.order_id+'">';
@@ -277,6 +285,7 @@ function renderPendingList(){
     h+=dateHtml+'</div>';
   });
   list.innerHTML=h;
+  document.getElementById('pendingCount').textContent=readyOrders.length;
   Array.prototype.forEach.call(list.querySelectorAll('.item'),function(el){
     el.onclick=function(){
       var id=parseInt(el.getAttribute('data-id'),10);
