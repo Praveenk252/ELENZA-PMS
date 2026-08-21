@@ -5388,7 +5388,21 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var dateSelect = dateCol != null ? ", o.[" + dateCol + "] AS station_date" : ", NULL AS station_date";
             var orders = QueryAll(conn,
                 "SELECT o.order_id, o.order_number, o.customer_name, o.dealer_id, o.confirmation_date, o.workflow_stage_code, d.dealer_name" + dateSelect + " FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) WHERE o.workflow_stage_code <> 'QUOTATION_CREATED' AND o.workflow_stage_code <> 'ORDER_CONFIRMED' AND o.workflow_stage_code <> 'PACKED' AND o.workflow_stage_code <> 'DISPATCH_READY' AND o.workflow_stage_code <> 'DISPATCHED' ORDER BY o.order_number");
-            var result = orders.Select(o => {
+
+            var packedOrderIds = new HashSet<int>();
+            try
+            {
+                var orderIds = orders.Select(o => Convert.ToInt32(I(o, "order_id"))).Where(v => v > 0).Distinct().ToList();
+                if (orderIds.Count > 0)
+                {
+                    var ids = string.Join(",", orderIds.Select(v => v.ToString()).ToArray());
+                    var packedRows = QueryAll(conn, "SELECT q.order_id FROM tbl_order_station_queue AS q INNER JOIN tbl_machines AS m ON q.station_id = m.machine_id WHERE q.order_id IN (" + ids + ") AND q.is_visible = TRUE AND (m.machine_name = 'Packed' OR m.machine_name = 'Dispatch')");
+                    foreach (var pr in packedRows) packedOrderIds.Add(Convert.ToInt32(I(pr, "order_id")));
+                }
+            }
+            catch { }
+
+            var result = orders.Where(o => !packedOrderIds.Contains(Convert.ToInt32(I(o, "order_id")))).Select(o => {
                 return Obj(
                     "order_id", I(o, "order_id"),
                     "order_number", S(o, "order_number"),
