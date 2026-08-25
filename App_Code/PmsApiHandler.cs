@@ -9,6 +9,7 @@ using System.Net.Mail;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.IO.Compression;
 using System.Web;
 using System.Web.Script.Serialization;
 using System.Web.SessionState;
@@ -183,6 +184,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "qty-save":
                     HandleQtySave(context);
                     break;
+                case "backup-download":
+                    HandleBackupDownload(context);
+                    break;
                 case "planner-move":
                     HandlePlannerMove(context);
                     break;
@@ -344,6 +348,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     break;
                 case "station-update":
                     HandleStationUpdate(context);
+                    break;
+                case "station-gate":
+                    HandleStationGate(context);
                     break;
                 case "station-state":
                     HandleStationState(context);
@@ -1205,7 +1212,20 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var queueEntry = QueryOne(conn, "SELECT * FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ? AND is_visible = TRUE", orderId, I(station, "machine_id"));
             if (queueEntry == null && IsPackingStationName(stationName))
                 queueEntry = EnsurePackingQueueEntryForPortal(conn, user, order, station);
-            if (queueEntry == null) throw new ApiFailure(400, "This order is not visible in the selected station.");
+            if (queueEntry == null)
+            {
+                foreach (var s in ResolveOrderSequenceStations(conn, order))
+                {
+                    var nm = S(s, "machine_name");
+                    if (string.Equals(nm, stationName, StringComparison.OrdinalIgnoreCase)) break;
+                    var dc = ResolveStationDateColumn(nm);
+                    if (dc == null) continue;
+                    if (QueryOne(conn, "SELECT order_id FROM tbl_orders WHERE order_id = ? AND [" + dc + "] IS NULL", orderId) != null)
+                        throw new ApiFailure(400, "This order is not visible in the selected station.");
+                }
+                EnsureQueueState(conn, orderId, I(station, "machine_id"), "PENDING", true, "", I(user, "user_id"));
+                queueEntry = QueryOne(conn, "SELECT * FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, I(station, "machine_id"));
+            }
 
             ApplyProductionAction(conn, user, order, station, queueEntry, actionCode, remarks, balanceBoxQty);
             WriteJson(context, Obj("ok", true));
@@ -1323,6 +1343,52 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             {
             }
             WriteJson(context, Obj("ok", true));
+        }
+    }
+
+    private void HandleBackupDownload(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin");
+        }
+        var root = HostingEnvironment.MapPath("~/");
+        if (root == null || !Directory.Exists(root)) throw new ApiFailure(500, "Site root not found.");
+        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+        {
+            AddFolderToZip(zip, root, "");
+        }
+        context.Response.ContentType = "application/zip";
+        context.Response.AddHeader("Content-Disposition", "attachment; filename=elenza-site-backup-" + stamp + ".zip");
+        context.Response.BinaryWrite(ms.ToArray());
+    }
+
+    private void AddFolderToZip(ZipArchive zip, string physicalDir, string entryPrefix)
+    {
+        foreach (var file in Directory.GetFiles(physicalDir))
+        {
+            ZipArchiveEntry entry;
+            try { entry = zip.CreateEntry(entryPrefix + Path.GetFileName(file), CompressionLevel.Optimal); }
+            catch { continue; }
+            try
+            {
+                using (var src = File.OpenRead(file))
+                using (var dst = entry.Open())
+                {
+                    src.CopyTo(dst);
+                }
+            }
+            catch
+            {
+                // file locked or vanished mid-backup; skip it
+            }
+        }
+        foreach (var dir in Directory.GetDirectories(physicalDir))
+        {
+            AddFolderToZip(zip, dir, entryPrefix + Path.GetFileName(dir) + "/");
         }
     }
 
@@ -3011,6 +3077,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
 
         if (actionCode == "COMPLETED")
         {
+            var blockedBy = PartialUpstreamStations(conn, order, stationName);
+            if (blockedBy.Count > 0)
+                throw new ApiFailure(400, "Cannot mark completed - " + string.Join(", ", blockedBy) + " is still partial.");
             EnsureQueueState(conn, I(order, "order_id"), I(station, "machine_id"), "COMPLETED", false, remarks, I(user, "user_id"));
             if (nextStation != null) PreserveOrActivateNextStation(conn, I(order, "order_id"), I(nextStation, "station_id"), I(user, "user_id"));
             if (IsPackingStationName(stationName))
@@ -5402,6 +5471,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
             var stationName = Require(Value(context, "station_name"), "Station is required.").Trim();
             if (stationName == "Drilling 2") stationName = "Drilling";
+            var actionCode = Value(context, "action_code").Trim().ToUpperInvariant();
+            if (string.IsNullOrEmpty(actionCode)) actionCode = "COMPLETED";
+            var remarks = Value(context, "remarks");
             var now = DateTime.Now;
             var order = FindOrderById(conn, orderId);
             if (order == null) throw new ApiFailure(404, "Order not found.");
@@ -5409,6 +5481,39 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (station == null) throw new ApiFailure(404, "Station not found.");
             var stationId = Convert.ToInt32(I(station, "machine_id"));
             var userId = I(user, "user_id");
+
+            if (actionCode == "PARTIAL_COMPLETED")
+            {
+                if (string.IsNullOrWhiteSpace(remarks))
+                    throw new ApiFailure(400, "Remarks are mandatory for partial completion.");
+                var queueEntry = QueryOne(conn, "SELECT * FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ? AND is_visible = TRUE", orderId, stationId);
+                if (queueEntry == null && IsPackingStationName(stationName))
+                    queueEntry = EnsurePackingQueueEntryForPortal(conn, user, order, station);
+                if (queueEntry == null)
+                {
+                    foreach (var s in ResolveOrderSequenceStations(conn, order))
+                    {
+                        var nm = S(s, "machine_name");
+                        if (string.Equals(nm, stationName, StringComparison.OrdinalIgnoreCase)) break;
+                        var dc = ResolveStationDateColumn(nm);
+                        if (dc == null) continue;
+                        if (QueryOne(conn, "SELECT order_id FROM tbl_orders WHERE order_id = ? AND [" + dc + "] IS NULL", orderId) != null)
+                            throw new ApiFailure(400, "This order is not visible in the selected station.");
+                    }
+                    EnsureQueueState(conn, orderId, stationId, "PENDING", true, "", userId);
+                    queueEntry = QueryOne(conn, "SELECT * FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, stationId);
+                }
+                ApplyProductionAction(conn, user, order, station, queueEntry, "PARTIAL_COMPLETED", remarks, null);
+                WriteJson(context, Obj("ok", true, "message", "Partial completed at " + stationName));
+                return;
+            }
+            if (actionCode != "COMPLETED")
+                throw new ApiFailure(400, "Invalid production action.");
+
+            var blockedBy = PartialUpstreamStations(conn, order, stationName);
+            if (blockedBy.Count > 0)
+                throw new ApiFailure(400, "Cannot mark completed - " + string.Join(", ", blockedBy) + " is still partial.");
+
             var dateCol = ResolveStationDateColumn(stationName);
             if (dateCol != null)
             {
@@ -5418,6 +5523,48 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             Audit(conn, userId, "Production", "Order", S(order, "order_number"), "Station Updated", stationName, stationName + " date recorded", "", stationId);
             AddHistory(conn, orderId, stationId, "COMPLETED", "", "IN_PROGRESS", null, null, stationName + " date recorded", userId);
             WriteJson(context, Obj("ok", true, "message", stationName + " updated on " + now.ToString("dd-MMM-yyyy HH:mm")));
+        }
+    }
+
+    private List<string> PartialUpstreamStations(OleDbConnection conn, Dictionary<string, object> order, string stationName)
+    {
+        var result = new List<string>();
+        var sequenceStations = ResolveOrderSequenceStations(conn, order);
+        var orderId = I(order, "order_id");
+        foreach (var s in sequenceStations)
+        {
+            var name = S(s, "machine_name");
+            if (string.Equals(name, stationName, StringComparison.OrdinalIgnoreCase)) break;
+            var stn = FindMachineByName(conn, name);
+            if (stn == null) continue;
+            var q = QueryOne(conn, "SELECT queue_id FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ? AND queue_status_code = 'PARTIAL_COMPLETED'", orderId, I(stn, "machine_id"));
+            if (q != null) result.Add(name);
+        }
+        return result;
+    }
+
+    private void HandleStationGate(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var stationName = Require(Value(context, "station_name"), "Station is required.").Trim();
+            if (stationName == "Drilling 2") stationName = "Drilling";
+            var order = FindOrderById(conn, orderId);
+            if (order == null) throw new ApiFailure(404, "Order not found.");
+            var station = FindMachineByName(conn, stationName);
+            if (station == null) throw new ApiFailure(404, "Station not found.");
+            var blockedBy = PartialUpstreamStations(conn, order, stationName);
+            var myQueue = QueryOne(conn, "SELECT queue_status_code FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, I(station, "machine_id"));
+            WriteJson(context, Obj(
+                "ok", true,
+                "upstream_partial", blockedBy.Count > 0,
+                "upstream_partial_station", blockedBy.Count > 0 ? blockedBy[0] : "",
+                "upstream_partial_stations", blockedBy,
+                "my_queue_status", myQueue == null ? "" : S(myQueue, "queue_status_code")));
         }
     }
 
@@ -5509,11 +5656,19 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var prevStations = stationIndex > 0 ? StationSequenceOrder.Take(stationIndex).ToList() : new List<string>();
 
             var dateConditions = new List<string>();
+            var aliasIndex = 0;
             foreach (var ps in prevStations)
             {
+                aliasIndex++;
+                var partialSub = "EXISTS (SELECT q" + aliasIndex + ".order_id FROM tbl_order_station_queue AS q" + aliasIndex +
+                    " INNER JOIN tbl_machines AS m" + aliasIndex + " ON q" + aliasIndex + ".station_id = m" + aliasIndex + ".machine_id" +
+                    " WHERE q" + aliasIndex + ".order_id = o.order_id AND m" + aliasIndex + ".machine_name = '" + ps.Replace("'", "''") + "'" +
+                    " AND q" + aliasIndex + ".queue_status_code = 'PARTIAL_COMPLETED')";
                 string col;
                 if (StationDateColMap.TryGetValue(ps, out col))
-                    dateConditions.Add("o.[" + col + "] IS NOT NULL");
+                    dateConditions.Add("(o.[" + col + "] IS NOT NULL OR " + partialSub + ")");
+                else
+                    dateConditions.Add(partialSub);
             }
 
             var currentCol = StationDateColMap.ContainsKey(stationName) ? StationDateColMap[stationName] : null;

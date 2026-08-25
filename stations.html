@@ -65,6 +65,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .update-btn{width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;margin-top:12px}
 .update-btn:hover{background:#15803D}
 .update-btn:disabled{opacity:.5;cursor:not-allowed}
+.partial-btn{background:#EA580C;margin-top:8px}
+.partial-btn:hover{background:#C2410C}
+.gate-banner{display:none;background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-top:12px;line-height:1.4}
+.status-chip{display:none;background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 
 .info-row{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:12px 0}
 .info-row .detail .label{color:var(--slate);opacity:.6;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
@@ -161,7 +165,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
           <div class="combo-dropdown" id="comboDropdown"></div>
         </div>
         <div id="selectedInfo" class="info-row hidden"></div>
-        <button class="update-btn" id="updateBtn" disabled onclick="doUpdate()">Update Stage</button>
+        <span id="myStatusChip" class="status-chip">This station: Partial</span>
+        <div id="gateBanner" class="gate-banner"></div>
+        <button class="update-btn" id="updateBtn" disabled onclick="doUpdate()">Mark Completed</button>
+        <button class="update-btn partial-btn" id="partialBtn" disabled onclick="doPartial()">Mark Partial</button>
       </div>
     </div>
 
@@ -193,6 +200,7 @@ var currentUser=null;
 var allOrders=[];
 var readyOrders=[];
 var selectedOrder=null;
+var gateBlocked=false,gateStations=[];
 var currentStation='';
 
 function doLogin(e){
@@ -358,15 +366,98 @@ function selectOrder(order){
     +'<div class="detail"><div class="label">Customer</div><div class="value">'+escHtml(order.customer_name||'-')+'</div></div>'
     +'<div class="detail"><div class="label">Dealer</div><div class="value">'+escHtml(order.dealer_name||'-')+'</div></div>'
     +'<div class="detail"><div class="label">'+escHtml(currentStation)+' Date</div><div class="value">'+escHtml(dateStr)+'</div></div>';
-  document.getElementById('updateBtn').disabled=false;
+  updateGate(order);
+}
+
+function updateGate(order){
+  document.getElementById('updateBtn').disabled=true;
+  document.getElementById('partialBtn').disabled=true;
+  document.getElementById('gateBanner').style.display='none';
+  document.getElementById('myStatusChip').style.display='none';
+  gateBlocked=false;gateStations=[];
+  var fd=new URLSearchParams();
+  fd.append('action','station-gate');
+  fd.append('order_id',order.order_id);
+  fd.append('station_name',currentStation);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!selectedOrder||selectedOrder.order_id!==order.order_id)return;
+    if(d.error){updateButtonStates();return;}
+    gateBlocked=!!d.upstream_partial;
+    gateStations=d.upstream_partial_stations||[];
+    if(gateBlocked){
+      var b=document.getElementById('gateBanner');
+      var msg='Cannot complete yet - '+escHtml(gateStations.join(', '))+' still partial. Complete there first.';
+      var remarks=d.upstream_partial_remarks||[];
+      if(remarks.length>0) msg+='<br><strong>Remarks:</strong> '+escHtml(remarks.join(' | '));
+      b.innerHTML=msg;
+      b.style.display='block';
+    }
+    if(String(d.my_queue_status)==='PARTIAL_COMPLETED'){
+      var chip=document.getElementById('myStatusChip');
+      chip.textContent='This station: Partial'+(d.my_queue_remarks?' - '+escHtml(d.my_queue_remarks):'');
+      chip.style.display='inline-block';
+    }
+    updateButtonStates();
+  })
+  .catch(function(){
+    if(selectedOrder&&selectedOrder.order_id===order.order_id)updateButtonStates();
+  });
+}
+
+function updateButtonStates(){
+  var has=!!selectedOrder;
+  document.getElementById('updateBtn').disabled=!has||gateBlocked;
+  document.getElementById('partialBtn').disabled=!has;
+}
+
+function doPartial(){
+  if(!selectedOrder)return;
+  var rm=prompt('Remarks for PARTIAL completion at '+currentStation+' (required):','');
+  if(rm===null)return;
+  rm=rm.trim();
+  while(!rm){
+    rm=prompt('Remarks are mandatory for partial completion:','');
+    if(rm===null)return;
+    rm=rm.trim();
+  }
+  if(!confirm('Record PARTIAL completion at '+currentStation+' for '+selectedOrder.order_number+'?'))return;
+  document.getElementById('partialBtn').disabled=true;
+  document.getElementById('partialBtn').textContent='Saving...';
+  var fd=new URLSearchParams();
+  fd.append('action','station-update');
+  fd.append('order_id',selectedOrder.order_id);
+  fd.append('station_name',currentStation);
+  fd.append('action_code','PARTIAL_COMPLETED');
+  fd.append('remarks',rm);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    document.getElementById('partialBtn').disabled=false;
+    document.getElementById('partialBtn').textContent='Mark Partial';
+    if(d.error){showToast(d.error,'error');return;}
+    showToast(d.message||'Partial completed','success');
+    clearCombo();
+    loadState();
+  })
+  .catch(function(){
+    document.getElementById('partialBtn').disabled=false;
+    document.getElementById('partialBtn').textContent='Mark Partial';
+    showToast('Update failed. Try again.','error');
+  });
 }
 
 function clearCombo(){
   selectedOrder=null;
+  gateBlocked=false;gateStations=[];
   document.getElementById('orderInput').value='';
   document.getElementById('comboDropdown').classList.remove('show');
   document.getElementById('selectedInfo').classList.add('hidden');
   document.getElementById('updateBtn').disabled=true;
+  document.getElementById('partialBtn').disabled=true;
+  document.getElementById('gateBanner').style.display='none';
+  document.getElementById('myStatusChip').style.display='none';
 }
 
 function doUpdate(){
@@ -382,7 +473,7 @@ function doUpdate(){
   .then(function(r){return r.json();})
   .then(function(d){
     document.getElementById('updateBtn').disabled=false;
-    document.getElementById('updateBtn').textContent='Update Stage';
+    document.getElementById('updateBtn').textContent='Mark Completed';
     if(d.error){showToast(d.error,'error');return;}
     showToast(d.message||'Updated successfully','success');
     clearCombo();
@@ -390,7 +481,7 @@ function doUpdate(){
   })
   .catch(function(){
     document.getElementById('updateBtn').disabled=false;
-    document.getElementById('updateBtn').textContent='Update Stage';
+    document.getElementById('updateBtn').textContent='Mark Completed';
     showToast('Update failed. Try again.','error');
   });
 }
