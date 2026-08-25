@@ -5840,21 +5840,29 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     ));
                 }
             }
-            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty, order_type_id, dealer_id FROM tbl_orders WHERE workflow_stage_code = 'OPTIMISATION_DONE' OR workflow_stage_code = 'PRODUCTION_STARTED' OR workflow_stage_code = 'IN_PROGRESS' ORDER BY order_number");
+            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty, order_type_id, dealer_id, confirmation_date FROM tbl_orders WHERE workflow_stage_code = 'OPTIMISATION_DONE' OR workflow_stage_code = 'PRODUCTION_STARTED' OR workflow_stage_code = 'IN_PROGRESS' ORDER BY order_number");
             var typeIds = new HashSet<int>();
             var dealerIds = new HashSet<int>();
-            foreach (var o in activeOrders) { var tid = Convert.ToInt32(I(o, "order_type_id")); if (tid > 0) typeIds.Add(tid); var did = Convert.ToInt32(I(o, "dealer_id")); if (did > 0) dealerIds.Add(did); }
+            var orderIdsForPlanner = new List<int>();
+            foreach (var o in activeOrders) { var tid = Convert.ToInt32(I(o, "order_type_id")); if (tid > 0) typeIds.Add(tid); var did = Convert.ToInt32(I(o, "dealer_id")); if (did > 0) dealerIds.Add(did); orderIdsForPlanner.Add(Convert.ToInt32(I(o, "order_id"))); }
             var typeLookup = new Dictionary<int, string>();
             if (typeIds.Count > 0) { var trows = QueryAll(conn, "SELECT order_type_id, order_type_name FROM tbl_order_types WHERE order_type_id IN (" + string.Join(",", typeIds.Select(v => v.ToString()).ToArray()) + ")"); foreach (var t in trows) typeLookup[Convert.ToInt32(I(t, "order_type_id"))] = S(t, "order_type_name"); }
             var dealerLookup = new Dictionary<int, string>();
             if (dealerIds.Count > 0) { var drows = QueryAll(conn, "SELECT dealer_id, dealer_name FROM tbl_dealers WHERE dealer_id IN (" + string.Join(",", dealerIds.Select(v => v.ToString()).ToArray()) + ")"); foreach (var d in drows) dealerLookup[Convert.ToInt32(I(d, "dealer_id"))] = S(d, "dealer_name"); }
+            var plannerLookup = new Dictionary<int, Dictionary<string, object>>();
+            if (orderIdsForPlanner.Count > 0) { var prows = QueryAll(conn, "SELECT order_id, sla_date, [priority] FROM tbl_production_planner WHERE order_id IN (" + string.Join(",", orderIdsForPlanner.Select(v => v.ToString()).ToArray()) + ")"); foreach (var p in prows) plannerLookup[Convert.ToInt32(I(p, "order_id"))] = p; }
             var unplanned = activeOrders.Where(o => !assignedOrderIds.Contains(Convert.ToInt32(I(o, "order_id")))).Select(o =>
             {
                 var tid = Convert.ToInt32(I(o, "order_type_id"));
                 var did = Convert.ToInt32(I(o, "dealer_id"));
+                var oid = Convert.ToInt32(I(o, "order_id"));
                 string typeName; typeLookup.TryGetValue(tid, out typeName);
                 string dealerName; dealerLookup.TryGetValue(did, out dealerName);
-                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "main_order", S(o, "main_order"), "sub_order", S(o, "sub_order"));
+                Dictionary<string, object> plannerRow; plannerLookup.TryGetValue(oid, out plannerRow);
+                var edd = plannerRow != null ? FormatDateTimeIST(plannerRow["sla_date"]) : "";
+                var priority = plannerRow != null ? S(plannerRow, "priority") : "";
+                var confDate = FormatDateTimeIST(S(o, "confirmation_date"));
+                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "confirmation_date", confDate, "edd", edd, "priority", priority);
             }).ToList();
             WriteJson(context, Obj("ok", true, "machines", machines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"), "sequence_no", I(m, "sequence_no"))).ToList(), "unplanned", unplanned, "board", boardResult));
         }

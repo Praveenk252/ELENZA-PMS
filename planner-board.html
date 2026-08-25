@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Planning Board</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--navy:#0f172a;--blue:#046bd2;--green:#16a34a;--orange:#f59e0b;--red:#dc2626;--slate:#64748b;--border:#e2e8f0;--bg:#f1f5f9;--white:#fff}
@@ -23,45 +24,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .top-bar .meta{font-size:12px;color:#94a3b8;flex:1}
 .top-bar button{background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer}
 .top-bar button:hover{background:rgba(255,255,255,.25)}
+.top-bar .export-btn{background:var(--green);font-weight:600}
+.top-bar .export-btn:hover{background:#15803d}
 .board{display:flex;flex:1;overflow:hidden}
-.unplanned-panel{width:420px;min-width:420px;background:var(--white);border-right:2px solid var(--border);display:flex;flex-direction:column}
+.unplanned-panel{flex:1;background:var(--white);border-right:2px solid var(--border);display:flex;flex-direction:column;min-width:0}
 .panel-header{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;background:var(--bg);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .panel-header .count{background:var(--blue);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px}
-.panel-search{padding:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-header .actions{display:flex;gap:6px;align-items:center}
+.panel-header .actions button{padding:4px 10px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;background:var(--white)}
+.panel-header .actions button:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.panel-search{padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .panel-search input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px}
-.panel-body{flex:1;overflow-y:auto;padding:6px}
-.order-card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;cursor:pointer;transition:all .15s;position:relative}
-.order-card:hover{border-color:var(--blue);box-shadow:0 2px 6px rgba(4,107,210,.12)}
-.order-card.selected{border-color:var(--blue);background:#eff6ff;box-shadow:0 0 0 2px rgba(4,107,210,.25)}
-.order-card .oc-num{font-weight:700;font-size:12px;color:var(--navy)}
-.order-card .oc-meta{font-size:11px;color:var(--slate);margin-top:1px}
-.order-card .oc-details{font-size:10px;color:var(--slate);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap}
-.order-card .oc-details span{white-space:nowrap}
-.order-card .oc-stage{font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:3px;background:#dbeafe;color:#1d4ed8}
-.order-card .oc-partial{background:#fef3c7;color:#92400e}
-.order-card .oc-cb{position:absolute;top:10px;right:10px;width:16px;height:16px;cursor:pointer}
-.station-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.station-tabs{display:flex;gap:0;padding:0;background:var(--white);border-bottom:2px solid var(--border);flex-shrink:0;overflow-x:auto}
-.station-tab{padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:var(--bg);color:var(--slate);border-right:1px solid var(--border);transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.table-wrap{flex:1;overflow:auto}
+table.order-table{width:100%;border-collapse:collapse;font-size:12px}
+table.order-table thead{position:sticky;top:0;z-index:2}
+table.order-table th{background:var(--navy);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+table.order-table th:last-child{border-right:none}
+table.order-table th input[type="checkbox"]{cursor:pointer}
+table.order-table td{padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.order-table tr:hover{background:#f8fafc}
+table.order-table tr.selected{background:#eff6ff}
+table.order-table .stage-badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;display:inline-block}
+.stage-opt{background:#dbeafe;color:#1d4ed8}
+.stage-prod{background:#dcfce7;color:#166534}
+.stage-procure{background:#fef3c7;color:#92400e}
+table.order-table .priority-high{background:#fee2e2;color:#991b1b;font-weight:700}
+table.order-table .priority-med{background:#fef3c7;color:#92400e}
+table.order-table .summary-row{background:var(--navy);color:#fff;font-weight:700}
+table.order-table .summary-row td{padding:8px 10px;border-bottom:none}
+.station-panel{width:380px;min-width:380px;display:flex;flex-direction:column;overflow:hidden;background:var(--white)}
+.station-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);flex-shrink:0;overflow-x:auto}
+.station-tab{padding:10px 14px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:var(--bg);color:var(--slate);border-right:1px solid var(--border);transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
 .station-tab:last-child{border-right:none}
 .station-tab:hover{background:#e2e8f0}
 .station-tab.active{background:var(--blue);color:#fff}
-.station-tab .tab-count{background:rgba(0,0,0,.15);padding:1px 6px;border-radius:8px;font-size:10px}
+.station-tab .tab-count{padding:1px 5px;border-radius:8px;font-size:10px}
 .station-tab.active .tab-count{background:rgba(255,255,255,.3)}
 .station-tab .tab-count.has-orders{background:var(--green);color:#fff}
 .station-tab.active .tab-count.has-orders{background:rgba(255,255,255,.3)}
-.station-content{flex:1;overflow-y:auto;padding:12px}
-.station-content .order-card{font-size:11px;padding:6px 8px}
-.station-content .order-card .oc-num{font-size:11px}
-.station-content .order-card .remove-btn{background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;float:right;padding:0 4px}
-.station-content .empty-msg{text-align:center;color:var(--slate);font-size:12px;padding:40px 0;opacity:.6}
-.batch-bar{padding:8px 16px;background:#eff6ff;border-bottom:2px solid var(--blue);display:none;align-items:center;gap:10px;flex-shrink:0}
+.batch-bar{padding:8px 14px;background:#eff6ff;border-bottom:2px solid var(--blue);display:none;align-items:center;gap:8px;flex-shrink:0}
 .batch-bar.show{display:flex}
-.batch-bar .label{font-size:12px;font-weight:600;color:var(--slate)}
-.batch-bar .batch-btn{padding:5px 14px;border:2px solid var(--blue);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--blue);transition:all .15s}
-.batch-bar .batch-btn:hover{background:var(--blue);color:#fff}
-.batch-bar .batch-btn:disabled{opacity:.4;cursor:not-allowed}
+.batch-bar .label{font-size:11px;font-weight:600;color:var(--slate)}
 .batch-bar .sel-count{font-size:12px;font-weight:700;color:var(--blue)}
+.batch-bar .batch-btn{padding:4px 10px;border:2px solid var(--blue);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--blue);transition:all .15s}
+.batch-bar .batch-btn:hover{background:var(--blue);color:#fff}
+.station-content{flex:1;overflow-y:auto;padding:10px}
+.station-content .board-order{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:11px;position:relative}
+.station-content .board-order .bo-num{font-weight:700;font-size:11px}
+.station-content .board-order .bo-meta{color:var(--slate);margin-top:2px}
+.station-content .board-order .remove-btn{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--red);font-size:12px;cursor:pointer}
+.station-content .empty-msg{text-align:center;color:var(--slate);font-size:12px;padding:40px 0;opacity:.6}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;transition:transform .3s ease;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{background:var(--green)}
@@ -88,18 +100,42 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <h1>Planning Board</h1>
     <span class="meta" id="sessionMeta"></span>
     <button onclick="loadBoard()">Refresh</button>
+    <button class="export-btn" onclick="exportXlsx()">Export XLSX</button>
     <button onclick="doLogout()">Logout</button>
   </div>
   <div class="board">
     <div class="unplanned-panel">
-      <div class="panel-header">Unplanned Orders <span class="count" id="unplannedCount">0</span></div>
-      <div class="panel-search"><input id="searchInput" placeholder="Search orders..." oninput="filterUnplanned(this.value)"></div>
-      <div class="panel-body" id="unplannedList"></div>
+      <div class="panel-header">
+        <span>Unplanned Orders <span class="count" id="unplannedCount">0</span></span>
+        <div class="actions">
+          <button onclick="toggleAllChecked()">Select All</button>
+        </div>
+      </div>
+      <div class="panel-search"><input id="searchInput" placeholder="Search by order number, customer, dealer..." oninput="filterUnplanned(this.value)"></div>
+      <div class="table-wrap">
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAllCb" onchange="toggleAllChecked()"></th>
+              <th>Conf. Date</th>
+              <th>Order Number</th>
+              <th>Customer</th>
+              <th>Board Qty</th>
+              <th>Panel Qty</th>
+              <th>Stage</th>
+              <th>EDD</th>
+              <th>Priority</th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody"></tbody>
+          <tfoot id="orderTableFoot"></tfoot>
+        </table>
+      </div>
     </div>
     <div class="station-panel">
       <div class="batch-bar" id="batchBar">
         <span class="sel-count" id="selCount">0</span>
-        <span class="label">selected</span>
+        <span class="label">selected &rarr; Assign to:</span>
         <div id="batchStationBtns"></div>
       </div>
       <div class="station-tabs" id="stationTabs"></div>
@@ -115,7 +151,6 @@ var boardData={machines:[],unplanned:[],board:[]};
 var selectedStationId=null;
 var searchQuery='';
 var multiSelect={};
-var COLORS=['#046bd2','#16a34a','#7c3aed','#ea580c','#0891b2','#be185d','#65a30d'];
 
 function doLogin(e){
   e.preventDefault();
@@ -142,16 +177,53 @@ function loadBoard(){
   fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
     if(d.error){showToast(d.error,'error');return;}
     boardData=d;
-    if(!selectedStationId&&d.machines&&d.machines.length){selectedStationId=d.machines[0].machine_id;}
+    if(!selectedStationId&&d.machines&&d.machines.length)selectedStationId=d.machines[0].machine_id;
     renderBoard();
   }).catch(function(){showToast('Failed to load board','error');});
 }
 
 function renderBoard(){
   renderStationTabs();
-  renderUnplanned();
+  renderOrderTable();
   renderStationContent();
   renderBatchBar();
+}
+
+function renderOrderTable(){
+  var tbody=document.getElementById('orderTableBody');
+  var tfoot=document.getElementById('orderTableFoot');
+  var items=getFilteredUnplanned();
+  var selCount=Object.keys(multiSelect).length;
+  document.getElementById('unplannedCount').textContent=selCount>0?selCount+'/'+items.length:items.length;
+  var totalBoards=0,totalPanels=0;
+  var h='';
+  items.forEach(function(o){
+    var checked=multiSelect[o.order_id]?'checked':'';
+    var cls=multiSelect[o.order_id]?'selected':'';
+    var bd=parseFloat(o.board_qty)||0;
+    var pq=parseFloat(o.panel_qty)||0;
+    totalBoards+=bd;
+    totalPanels+=pq;
+    var stageClass='stage-opt';
+    if(o.workflow_stage==='PRODUCTION_STARTED')stageClass='stage-prod';
+    else if(o.workflow_stage==='IN_PROGRESS')stageClass='stage-procure';
+    var priClass='';
+    if(o.priority==='High')priClass='priority-high';
+    else if(o.priority==='Medium')priClass='priority-med';
+    h+='<tr class="'+cls+'" onclick="toggleSelect('+o.order_id+')">';
+    h+='<td><input type="checkbox" '+checked+' onclick="event.stopPropagation();toggleSelect('+o.order_id+')"></td>';
+    h+='<td>'+esc(o.confirmation_date||'-')+'</td>';
+    h+='<td><strong>'+esc(o.order_number)+'</strong></td>';
+    h+='<td>'+esc(o.customer_name||'')+'</td>';
+    h+='<td>'+esc(o.board_qty||'0')+'</td>';
+    h+='<td>'+esc(o.panel_qty||'0')+'</td>';
+    h+='<td><span class="stage-badge '+stageClass+'">'+esc(o.workflow_stage||'')+'</span></td>';
+    h+='<td>'+esc(o.edd||'-')+'</td>';
+    h+='<td>'+(priClass?'<span class="stage-badge '+priClass+'">'+esc(o.priority)+'</span>':esc(o.priority||'-'))+'</td>';
+    h+='</tr>';
+  });
+  tbody.innerHTML=h||'<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--slate)">All orders planned</td></tr>';
+  tfoot.innerHTML='<tr class="summary-row"><td></td><td colspan="3"><strong>TOTAL</strong></td><td><strong>'+totalBoards.toFixed(1)+'</strong></td><td><strong>'+totalPanels.toFixed(1)+'</strong></td><td colspan="3"></td></tr>';
 }
 
 function renderStationTabs(){
@@ -159,7 +231,7 @@ function renderStationTabs(){
   var machines=boardData.machines||[];
   var board=boardData.board||[];
   var h='';
-  machines.forEach(function(m,idx){
+  machines.forEach(function(m){
     var count=board.filter(function(b){return b.station_id==m.machine_id;}).length;
     var active=m.machine_id==selectedStationId;
     var countClass=count>0?'tab-count has-orders':'tab-count';
@@ -179,51 +251,14 @@ function renderStationContent(){
   if(!board.length){el.innerHTML='<div class="empty-msg">No orders in '+esc(machine?machine.machine_name:'this station')+'</div>';return;}
   var h='';
   board.forEach(function(o){
-    h+='<div class="order-card">';
+    h+='<div class="board-order">';
     h+='<button class="remove-btn" onclick="unassign('+o.order_id+','+o.station_id+')" title="Remove">&#10005;</button>';
-    h+='<div class="oc-num">'+esc(o.order_number)+'</div>';
-    h+='<div class="oc-meta">'+esc(o.customer_name||'')+'</div>';
-    if(o.dealer_name)h+='<div class="oc-meta">Dealer: '+esc(o.dealer_name)+'</div>';
-    h+='<div class="oc-details">';
-    if(o.board_qty)h+='<span>Boards: '+esc(o.board_qty)+'</span>';
-    if(o.panel_qty)h+='<span>Panels: '+esc(o.panel_qty)+'</span>';
-    h+='</div>';
+    h+='<div class="bo-num">'+esc(o.order_number)+'</div>';
+    h+='<div class="bo-meta">'+esc(o.customer_name||'')+'</div>';
+    h+='<div class="bo-meta">Boards: '+esc(o.board_qty||'-')+' | Panels: '+esc(o.panel_qty||'-')+'</div>';
     h+='</div>';
   });
   el.innerHTML=h;
-}
-
-function renderUnplanned(){
-  var list=document.getElementById('unplannedList');
-  var items=boardData.unplanned||[];
-  if(searchQuery){var q=searchQuery.toLowerCase();items=items.filter(function(o){return ((o.order_number||'')+(o.dealer_name||'')+(o.customer_name||'')+(o.order_type||'')+(o.main_order||'')+(o.sub_order||'')).toLowerCase().indexOf(q)!==-1;});}
-  document.getElementById('unplannedCount').textContent=items.length;
-  var selCount=Object.keys(multiSelect).length;
-  if(selCount>0)document.getElementById('unplannedCount').textContent=selCount+' / '+items.length;
-  if(!items.length){list.innerHTML='<div style="text-align:center;color:var(--slate);padding:20px;font-size:12px">All orders planned</div>';return;}
-  var h='';
-  var allChecked=items.length>0&&items.every(function(o){return multiSelect[o.order_id];});
-  h+='<div style="padding:4px 6px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:4px">';
-  h+='<input type="checkbox" class="oc-cb" style="width:14px;height:14px;position:static" '+(allChecked?'checked':'')+' onchange="toggleAll(this.checked)">';
-  h+='<span style="font-size:11px;color:var(--slate)">Select all ('+items.length+')</span>';
-  h+='</div>';
-  items.forEach(function(o){
-    var checked=multiSelect[o.order_id]?'checked':'';
-    h+='<div class="order-card'+(multiSelect[o.order_id]?' selected':'')+'" onclick="toggleSelect('+o.order_id+')">';
-    h+='<input type="checkbox" class="oc-cb" '+checked+' onclick="event.stopPropagation();toggleSelect('+o.order_id+')">';
-    h+='<div class="oc-num">'+esc(o.order_number)+'</div>';
-    h+='<div class="oc-meta">'+esc(o.customer_name||'')+'</div>';
-    if(o.dealer_name)h+='<div class="oc-meta">Dealer: '+esc(o.dealer_name)+'</div>';
-    h+='<div class="oc-details">';
-    if(o.order_type)h+='<span>'+esc(o.order_type)+'</span>';
-    if(o.board_qty)h+='<span>Boards: '+esc(o.board_qty)+'</span>';
-    if(o.panel_qty)h+='<span>Panels: '+esc(o.panel_qty)+'</span>';
-    if(o.main_order||o.sub_order)h+='<span>Main/Sub: '+esc(o.main_order||'-')+'/'+esc(o.sub_order||'-')+'</span>';
-    h+='</div>';
-    if(o.order_date)h+='<div class="oc-meta">Date: '+esc(o.order_date)+'</div>';
-    h+='</div>';
-  });
-  list.innerHTML=h;
 }
 
 function renderBatchBar(){
@@ -239,10 +274,7 @@ function renderBatchBar(){
   document.getElementById('batchStationBtns').innerHTML=h;
 }
 
-function selectStation(stationId){
-  selectedStationId=stationId;
-  renderBoard();
-}
+function selectStation(stationId){selectedStationId=stationId;renderBoard();}
 
 function toggleSelect(orderId){
   if(multiSelect[orderId])delete multiSelect[orderId];
@@ -250,10 +282,11 @@ function toggleSelect(orderId){
   renderBoard();
 }
 
-function toggleAll(checked){
+function toggleAllChecked(){
   var items=getFilteredUnplanned();
-  if(checked){items.forEach(function(o){multiSelect[o.order_id]=true;});}
-  else{items.forEach(function(o){delete multiSelect[o.order_id];});}
+  var allChecked=items.length>0&&items.every(function(o){return multiSelect[o.order_id];});
+  if(allChecked){items.forEach(function(o){delete multiSelect[o.order_id];});}
+  else{items.forEach(function(o){multiSelect[o.order_id]=true;});}
   renderBoard();
 }
 
@@ -275,15 +308,6 @@ function batchAssign(stationId){
   }).catch(function(){showToast('Failed','error');});
 }
 
-function assignTo(stationId,orderId){
-  if(!orderId)return;
-  var fd=new URLSearchParams();fd.append('action','planner-board-assign');fd.append('order_id',orderId);fd.append('station_id',stationId);
-  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
-    if(d.error){showToast(d.error,'error');return;}
-    showToast('Assigned','success');loadBoard();
-  }).catch(function(){showToast('Failed','error');});
-}
-
 function unassign(orderId,stationId){
   var fd=new URLSearchParams();fd.append('action','planner-board-unassign');fd.append('order_id',orderId);fd.append('station_id',stationId);
   fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
@@ -292,7 +316,41 @@ function unassign(orderId,stationId){
   }).catch(function(){showToast('Failed','error');});
 }
 
-function filterUnplanned(q){searchQuery=q.trim();renderUnplanned();}
+function filterUnplanned(q){searchQuery=q.trim();renderOrderTable();}
+
+function exportXlsx(){
+  var items=getFilteredUnplanned();
+  if(!items.length){showToast('No orders to export','error');return;}
+  var ws_data=[['Conf. Date','Order Number','Customer','Dealer','Order Type','Board Qty','Panel Qty','Current Stage','EDD','Priority']];
+  var totalBoards=0,totalPanels=0;
+  items.forEach(function(o){
+    var bd=parseFloat(o.board_qty)||0;
+    var pq=parseFloat(o.panel_qty)||0;
+    totalBoards+=bd;
+    totalPanels+=pq;
+    ws_data.push([o.confirmation_date||'',o.order_number||'',o.customer_name||'',o.dealer_name||'',o.order_type||'',bd,pq,o.workflow_stage||'',o.edd||'',o.priority||'']);
+  });
+  ws_data.push([]);
+  ws_data.push(['','','','TOTAL','','',totalBoards.toFixed(1),'',totalPanels.toFixed(1),'','']);
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols']=[{wch:18},{wch:22},{wch:30},{wch:25},{wch:14},{wch:10},{wch:10},{wch:20},{wch:14},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'Unplanned Orders');
+  var boardData2=boardData.board||[];
+  if(boardData2.length>0){
+    var machines=boardData.machines||[];
+    var bs=[['Station','Order Number','Customer','Board Qty','Panel Qty','Assigned At']];
+    boardData2.forEach(function(o){
+      var m=machines.find(function(ma){return ma.machine_id==o.station_id;});
+      bs.push([m?m.machine_name:'',o.order_number||'',o.customer_name||'',o.board_qty||'',o.panel_qty||'',o.assigned_at||'']);
+    });
+    var ws2=XLSX.utils.aoa_to_sheet(bs);
+    ws2['!cols']=[{wch:16},{wch:22},{wch:30},{wch:10},{wch:10},{wch:20}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Board Plan');
+  }
+  XLSX.writeFile(wb,'Planning_Board_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('Exported '+items.length+' orders','success');
+}
 
 function showToast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast '+t+' show';setTimeout(function(){el.className='toast';},3000);}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
