@@ -373,6 +373,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "planner-board-unassign":
                     HandlePlannerBoardUnassign(context);
                     break;
+                case "planner-board-batch-assign":
+                    HandlePlannerBoardBatchAssign(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -5822,36 +5825,43 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var sid = Convert.ToInt32(I(br, "station_id"));
                 assignedOrderIds.Add(oid);
                 var matchingMachine = machines.FirstOrDefault(m => Convert.ToInt32(I(m, "machine_id")) == sid);
-                var orderRows = QueryAll(conn, "SELECT order_number, customer_name, board_qty_decimal, panel_qty FROM tbl_orders WHERE order_id = " + oid);
-                var orderRow = orderRows.Count > 0 ? orderRows[0] : null;
-                var dealerRows = QueryAll(conn, "SELECT d.dealer_name FROM tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id WHERE o.order_id = " + oid);
-                var dealerRow = dealerRows.Count > 0 ? dealerRows[0] : null;
                 if (matchingMachine != null)
                 {
+                    var orderRows = QueryAll(conn, "SELECT order_number, customer_name, board_qty_decimal, panel_qty FROM tbl_orders WHERE order_id = " + oid);
+                    var orderRow = orderRows.Count > 0 ? orderRows[0] : null;
                     boardResult.Add(Obj(
                         "order_id", oid,
                         "order_number", orderRow != null ? S(orderRow, "order_number") : "",
                         "customer_name", orderRow != null ? S(orderRow, "customer_name") : "",
-                        "dealer_name", dealerRow != null ? S(dealerRow, "dealer_name") : "",
                         "board_qty", orderRow != null ? S(orderRow, "board_qty_decimal") : "",
                         "panel_qty", orderRow != null ? S(orderRow, "panel_qty") : "",
                         "station_id", sid,
-                        "station_name", S(matchingMachine, "machine_name"),
-                        "assigned_at", FormatDateTimeIST(br["assigned_at"])
+                        "station_name", S(matchingMachine, "machine_name")
                     ));
                 }
             }
-            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty FROM tbl_orders WHERE workflow_stage_code <> 'QUOTATION_CREATED' AND workflow_stage_code <> 'DISPATCHED' ORDER BY order_number");
+            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty, order_type_id, dealer_id FROM tbl_orders WHERE workflow_stage_code = 'OPTIMISATION_DONE' OR workflow_stage_code = 'PRODUCTION_STARTED' OR workflow_stage_code = 'IN_PROGRESS' ORDER BY order_number");
+            var typeIds = new HashSet<int>();
+            var dealerIds = new HashSet<int>();
+            foreach (var o in activeOrders) { var tid = Convert.ToInt32(I(o, "order_type_id")); if (tid > 0) typeIds.Add(tid); var did = Convert.ToInt32(I(o, "dealer_id")); if (did > 0) dealerIds.Add(did); }
+            var typeLookup = new Dictionary<int, string>();
+            if (typeIds.Count > 0) { var trows = QueryAll(conn, "SELECT order_type_id, order_type_name FROM tbl_order_types WHERE order_type_id IN (" + string.Join(",", typeIds.Select(v => v.ToString()).ToArray()) + ")"); foreach (var t in trows) typeLookup[Convert.ToInt32(I(t, "order_type_id"))] = S(t, "order_type_name"); }
+            var dealerLookup = new Dictionary<int, string>();
+            if (dealerIds.Count > 0) { var drows = QueryAll(conn, "SELECT dealer_id, dealer_name FROM tbl_dealers WHERE dealer_id IN (" + string.Join(",", dealerIds.Select(v => v.ToString()).ToArray()) + ")"); foreach (var d in drows) dealerLookup[Convert.ToInt32(I(d, "dealer_id"))] = S(d, "dealer_name"); }
             var unplanned = activeOrders.Where(o => !assignedOrderIds.Contains(Convert.ToInt32(I(o, "order_id")))).Select(o =>
             {
-                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"));
+                var tid = Convert.ToInt32(I(o, "order_type_id"));
+                var did = Convert.ToInt32(I(o, "dealer_id"));
+                string typeName; typeLookup.TryGetValue(tid, out typeName);
+                string dealerName; dealerLookup.TryGetValue(did, out dealerName);
+                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "main_order", S(o, "main_order"), "sub_order", S(o, "sub_order"));
             }).ToList();
             WriteJson(context, Obj("ok", true, "machines", machines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"), "sequence_no", I(m, "sequence_no"))).ToList(), "unplanned", unplanned, "board", boardResult));
         }
         }
         catch (Exception ex)
         {
-            WriteJson(context, Obj("ok", false, "error", ex.Message, "type", ex.GetType().FullName));
+            WriteJson(context, Obj("ok", false, "error", ex.Message, "type", ex.GetType().FullName, "stack", ex.StackTrace));
         }
     }
 
@@ -5885,6 +5895,32 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
             Execute(conn, "DELETE FROM tbl_planner_board WHERE order_id = " + orderId + " AND station_id = " + stationId);
             WriteJson(context, Obj("ok", true, "message", "Order removed from machine."));
+        }
+    }
+
+    private void HandlePlannerBoardBatchAssign(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
+            var orderIdsRaw = Require(Value(context, "order_ids"), "Order IDs are required.");
+            var ids = orderIdsRaw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            var now = IstNow();
+            var assigned = 0;
+            var skipped = 0;
+            foreach (var idStr in ids)
+            {
+                int oid;
+                if (!int.TryParse(idStr.Trim(), out oid)) { skipped++; continue; }
+                var existingRows = QueryAll(conn, "SELECT board_id FROM tbl_planner_board WHERE order_id = " + oid + " AND station_id = " + stationId);
+                if (existingRows.Count > 0) { skipped++; continue; }
+                Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at) VALUES (" + oid + ", " + stationId + ", " + I(user, "user_id") + ", " + SqlDateLiteral(now) + ")");
+                assigned++;
+            }
+            WriteJson(context, Obj("ok", true, "assigned", assigned, "skipped", skipped, "message", assigned + " orders assigned."));
         }
     }
 
