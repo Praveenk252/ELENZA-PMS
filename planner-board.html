@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning Board</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0f172a;--blue:#046bd2;--green:#16a34a;--orange:#f59e0b;--red:#dc2626;--slate:#64748b;--border:#e2e8f0;--bg:#f1f5f9;--white:#fff}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--navy);font-size:14px;height:100vh;overflow:hidden}
+.login-screen{display:flex;align-items:center;justify-content:center;height:100vh;background:var(--navy)}
+.login-box{background:var(--white);padding:32px;border-radius:12px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.login-box h1{font-size:20px;margin-bottom:4px}
+.login-box p{color:var(--slate);font-size:13px;margin-bottom:16px}
+.login-box label{display:block;font-size:12px;font-weight:600;color:var(--slate);margin-bottom:4px}
+.login-box input{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;margin-bottom:12px}
+.login-box button{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer}
+.login-box button:hover{background:#0558c0}
+.error{color:var(--red);font-size:12px;margin-bottom:8px;display:none}
+.app{display:none;flex-direction:column;height:100vh}
+.top-bar{background:var(--navy);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.top-bar h1{font-size:16px;font-weight:700}
+.top-bar .meta{font-size:12px;color:#94a3b8;flex:1}
+.top-bar button{background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer}
+.top-bar button:hover{background:rgba(255,255,255,.25)}
+.board{display:flex;flex:1;overflow:hidden}
+.unplanned-panel{width:300px;min-width:300px;background:var(--white);border-right:2px solid var(--border);display:flex;flex-direction:column}
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;background:var(--bg);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-header .count{background:var(--blue);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px}
+.panel-search{padding:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-search input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px}
+.panel-body{flex:1;overflow-y:auto;padding:6px}
+.order-card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;cursor:pointer;transition:all .15s}
+.order-card:hover{border-color:var(--blue);box-shadow:0 2px 6px rgba(4,107,210,.12)}
+.order-card.selected{border-color:var(--blue);background:#eff6ff;box-shadow:0 0 0 2px rgba(4,107,210,.25)}
+.order-card .oc-num{font-weight:700;font-size:12px;color:var(--navy)}
+.order-card .oc-meta{font-size:11px;color:var(--slate);margin-top:1px}
+.order-card .oc-qty{font-size:10px;color:var(--slate)}
+.order-card .oc-stage{font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:3px;background:#dbeafe;color:#1d4ed8}
+.order-card .oc-partial{background:#fef3c7;color:#92400e}
+.machines-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.assign-bar{padding:8px 16px;background:#eff6ff;border-bottom:2px solid var(--blue);display:none;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.assign-bar.show{display:flex}
+.assign-bar .label{font-size:12px;font-weight:600;color:var(--slate)}
+.assign-bar .machine-btn{padding:5px 12px;border:2px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);transition:all .15s}
+.assign-bar .machine-btn:hover{border-color:var(--blue);background:#eff6ff}
+.assign-bar .machine-btn:disabled{opacity:.4;cursor:not-allowed}
+.machine-grid{display:flex;flex:1;overflow-x:auto;gap:0}
+.machine-col{min-width:180px;flex:1;border-right:1px solid var(--border);display:flex;flex-direction:column}
+.machine-col:last-child{border-right:none}
+.machine-col-header{padding:8px 10px;font-weight:700;font-size:12px;text-align:center;color:#fff;flex-shrink:0}
+.machine-col-body{flex:1;overflow-y:auto;padding:6px}
+.machine-col-body .order-card{font-size:11px;padding:6px 8px}
+.machine-col-body .order-card .oc-num{font-size:11px}
+.machine-col-body .order-card .remove-btn{background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;float:right;padding:0 4px}
+.machine-col-body .empty-msg{text-align:center;color:var(--slate);font-size:11px;padding:16px 0;opacity:.6}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;transition:transform .3s ease;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>Planning Board</h1>
+    <p>Login with planner or admin credentials</p>
+    <div class="error" id="loginError"></div>
+    <form onsubmit="doLogin(event)">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+      <button type="submit" id="loginBtn">Login</button>
+    </form>
+  </div>
+</div>
+<div class="app" id="appShell">
+  <div class="top-bar">
+    <h1>Planning Board</h1>
+    <span class="meta" id="sessionMeta"></span>
+    <button onclick="loadBoard()">Refresh</button>
+    <button onclick="doLogout()">Logout</button>
+  </div>
+  <div class="board">
+    <div class="unplanned-panel">
+      <div class="panel-header">Unplanned Orders <span class="count" id="unplannedCount">0</span></div>
+      <div class="panel-search"><input id="searchInput" placeholder="Search orders..." oninput="filterUnplanned(this.value)"></div>
+      <div class="panel-body" id="unplannedList"></div>
+    </div>
+    <div class="machines-panel">
+      <div class="assign-bar" id="assignBar">
+        <span class="label">Assign <strong id="selectedLabel"></strong> to:</span>
+        <div id="machineButtons"></div>
+      </div>
+      <div class="machine-grid" id="machineGrid"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var API='/api.ashx';
+var currentUser=null;
+var boardData={machines:[],unplanned:[],board:[]};
+var selectedOrderId=null;
+var searchQuery='';
+
+function doLogin(e){
+  e.preventDefault();
+  var u=document.getElementById('loginUser').value.trim();
+  var p=document.getElementById('loginPass').value;
+  if(!u||!p){showError('Enter credentials');return;}
+  document.getElementById('loginBtn').disabled=true;
+  var fd=new URLSearchParams();fd.append('action','login');fd.append('username',u);fd.append('password',p);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    document.getElementById('loginBtn').disabled=false;
+    if(d.error){showError(d.error);return;}
+    currentUser=d.user;
+    sessionStorage.setItem('pb_session',JSON.stringify(currentUser));
+    showApp();loadBoard();
+  }).catch(function(){document.getElementById('loginBtn').disabled=false;showError('Login failed');});
+}
+function showError(m){var e=document.getElementById('loginError');e.textContent=m;e.style.display='block';setTimeout(function(){e.style.display='none';},4000);}
+function doLogout(){sessionStorage.removeItem('pb_session');currentUser=null;document.getElementById('appShell').style.display='none';document.getElementById('loginScreen').style.display='flex';}
+function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appShell').style.display='flex';document.getElementById('sessionMeta').textContent=currentUser.full_name+' | '+currentUser.role_name;}
+
+function loadBoard(){
+  if(!currentUser)return;
+  fetch(API+'?action=planner-board-state',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    boardData=d;
+    renderBoard();
+  }).catch(function(){showToast('Failed to load board','error');});
+}
+
+function renderBoard(){
+  renderUnplanned();
+  renderMachineGrid();
+  renderAssignBar();
+}
+
+function renderUnplanned(){
+  var list=document.getElementById('unplannedList');
+  var items=boardData.unplanned||[];
+  if(searchQuery){var q=searchQuery.toLowerCase();items=items.filter(function(o){return ((o.order_number||'')+(o.dealer_name||'')+(o.customer_name||'')).toLowerCase().indexOf(q)!==-1;});}
+  document.getElementById('unplannedCount').textContent=items.length;
+  if(!items.length){list.innerHTML='<div style="text-align:center;color:var(--slate);padding:20px;font-size:12px">All orders planned</div>';return;}
+  var h='';items.forEach(function(o){
+    h+='<div class="order-card'+(selectedOrderId==o.order_id?' selected':'')+'" onclick="selectOrder('+o.order_id+')">';
+    h+='<div class="oc-num">'+esc(o.order_number)+'</div>';
+    h+='<div class="oc-meta">'+esc(o.dealer_name||'')+'</div>';
+    if(o.board_qty||o.panel_qty)h+='<div class="oc-qty">B:'+esc(o.board_qty||'-')+' P:'+esc(o.panel_qty||'-')+'</div>';
+    h+='<div class="oc-stage">'+esc(o.workflow_stage||'')+'</div>';
+    h+='</div>';
+  });
+  list.innerHTML=h;
+}
+
+function renderMachineGrid(){
+  var grid=document.getElementById('machineGrid');
+  var machines=boardData.machines||[];
+  var board=boardData.board||[];
+  var h='';
+  var colors=['#046bd2','#16a34a','#7c3aed','#ea580c','#0891b2','#be185d','#65a30d'];
+  machines.forEach(function(m,idx){
+    var orders=board.filter(function(b){return b.station_id==m.machine_id;});
+    h+='<div class="machine-col">';
+    h+='<div class="machine-col-header" style="background:'+(colors[idx%colors.length])+'">'+esc(m.machine_name)+' ('+orders.length+')</div>';
+    h+='<div class="machine-col-body">';
+    if(!orders.length){h+='<div class="empty-msg">No orders</div>';}
+    orders.forEach(function(o){
+      var isPartial=o.queue_status==='PARTIAL_COMPLETED';
+      h+='<div class="order-card'+(selectedOrderId==o.order_id?' selected':'')+'" onclick="selectOrder('+o.order_id+')">';
+      h+='<button class="remove-btn" onclick="event.stopPropagation();unassign('+o.order_id+','+o.station_id+')" title="Remove">&#10005;</button>';
+      h+='<div class="oc-num">'+esc(o.order_number)+'</div>';
+      h+='<div class="oc-meta">'+esc(o.dealer_name||'')+'</div>';
+      if(isPartial)h+='<div class="oc-stage oc-partial">Partial</div>';
+      h+='</div>';
+    });
+    h+='</div></div>';
+  });
+  grid.innerHTML=h;
+}
+
+function renderAssignBar(){
+  var bar=document.getElementById('assignBar');
+  var machines=boardData.machines||[];
+  if(!selectedOrderId){bar.classList.remove('show');return;}
+  bar.classList.add('show');
+  var order=(boardData.unplanned||[]).find(function(o){return o.order_id==selectedOrderId;});
+  var label=order?order.order_number:'Order #'+selectedOrderId;
+  document.getElementById('selectedLabel').textContent=label;
+  var currentStations=(boardData.board||[]).filter(function(b){return b.order_id==selectedOrderId;}).map(function(b){return b.station_id;});
+  var h='';machines.forEach(function(m){
+    var assigned=currentStations.indexOf(m.machine_id)!==-1;
+    h+='<button class="machine-btn" onclick="assignTo('+m.machine_id+')"'+(assigned?' disabled title="Already assigned"':'')+'>'+esc(m.machine_name)+'</button>';
+  });
+  document.getElementById('machineButtons').innerHTML=h;
+}
+
+function selectOrder(orderId){
+  selectedOrderId=selectedOrderId==orderId?null:orderId;
+  renderBoard();
+}
+
+function assignTo(stationId){
+  if(!selectedOrderId)return;
+  var fd=new URLSearchParams();fd.append('action','planner-board-assign');fd.append('order_id',selectedOrderId);fd.append('station_id',stationId);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    showToast('Assigned','success');loadBoard();
+  }).catch(function(){showToast('Failed','error');});
+}
+
+function unassign(orderId,stationId){
+  var fd=new URLSearchParams();fd.append('action','planner-board-unassign');fd.append('order_id',orderId);fd.append('station_id',stationId);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    showToast('Removed','success');loadBoard();
+  }).catch(function(){showToast('Failed','error');});
+}
+
+function filterUnplanned(q){searchQuery=q.trim();renderUnplanned();}
+
+function showToast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast '+t+' show';setTimeout(function(){el.className='toast';},3000);}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+(function(){var s=sessionStorage.getItem('pb_session');if(s){try{currentUser=JSON.parse(s);showApp();loadBoard();}catch(e){doLogout();}}})();
+</script>
+</body>
+</html>

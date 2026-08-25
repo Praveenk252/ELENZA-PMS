@@ -361,6 +361,18 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "order-timeline":
                     HandleOrderTimeline(context);
                     break;
+                case "planner-board-state":
+                    HandlePlannerBoardState(context);
+                    break;
+                case "planner-board-debug":
+                    HandlePlannerBoardDebug(context);
+                    break;
+                case "planner-board-assign":
+                    HandlePlannerBoardAssign(context);
+                    break;
+                case "planner-board-unassign":
+                    HandlePlannerBoardUnassign(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -3103,6 +3115,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             {
                 lastAction = "Completed at " + stationName;
             }
+            try { AdvancePlannerBoard(conn, Convert.ToInt32(I(order, "order_id")), stationName, sequenceStations, Convert.ToInt32(I(user, "user_id"))); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("AdvancePlannerBoard error: " + ex.Message); }
         }
         else if (actionCode == "PARTIAL_COMPLETED")
         {
@@ -4023,6 +4037,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "CREATE INDEX ix_tbl_sequence_profiles_type_class ON tbl_sequence_profiles (order_type_id, order_class_code)");
         TryExecute(conn, "CREATE INDEX ix_tbl_sequence_profile_stations_profile ON tbl_sequence_profile_stations (profile_id, sequence_no)");
         TryExecute(conn, "CREATE INDEX ix_tbl_mail_reports_daily ON tbl_mail_reports (report_kind, report_date)");
+        TryExecute(conn, "CREATE TABLE tbl_planner_board (board_id COUNTER PRIMARY KEY, order_id LONG NOT NULL, station_id LONG NOT NULL, assigned_by LONG, assigned_at DATETIME)");
+        TryExecute(conn, "CREATE UNIQUE INDEX ux_planner_board_order_station ON tbl_planner_board (order_id, station_id)");
     }
 
     private void EnsureDispatchBoxSchema(OleDbConnection conn)
@@ -4404,14 +4420,14 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         var profileId = I(order, "sequence_profile_id");
         if (profileId > 0)
         {
-            var rows = QueryAll(conn, "SELECT s.*, m.machine_name FROM tbl_sequence_profile_stations AS s INNER JOIN tbl_machines AS m ON s.station_id = m.machine_id WHERE s.profile_id = ? ORDER BY s.sequence_no, s.profile_station_id", profileId);
+            var rows = QueryAll(conn, "SELECT s.*, m.machine_name FROM tbl_sequence_profile_stations AS s INNER JOIN tbl_machines AS m ON s.station_id = m.machine_id WHERE s.profile_id = " + profileId + " ORDER BY s.sequence_no, s.profile_station_id");
             if (rows.Count > 0) return rows;
         }
         var fallbackProfile = ResolveSequenceProfile(conn, I(order, "order_type_id"), OrderClassForOrder(order));
         if (fallbackProfile != null)
         {
-            Execute(conn, "UPDATE tbl_orders SET sequence_profile_id = ? WHERE order_id = ?", I(fallbackProfile, "profile_id"), I(order, "order_id"));
-            return QueryAll(conn, "SELECT s.*, m.machine_name FROM tbl_sequence_profile_stations AS s INNER JOIN tbl_machines AS m ON s.station_id = m.machine_id WHERE s.profile_id = ? ORDER BY s.sequence_no, s.profile_station_id", I(fallbackProfile, "profile_id"));
+            Execute(conn, "UPDATE tbl_orders SET sequence_profile_id = " + I(fallbackProfile, "profile_id") + " WHERE order_id = " + I(order, "order_id"));
+            return QueryAll(conn, "SELECT s.*, m.machine_name FROM tbl_sequence_profile_stations AS s INNER JOIN tbl_machines AS m ON s.station_id = m.machine_id WHERE s.profile_id = " + I(fallbackProfile, "profile_id") + " ORDER BY s.sequence_no, s.profile_station_id");
         }
         return ActiveMachineRows(conn).Select(r => Obj("station_id", I(r, "machine_id"), "machine_name", S(r, "machine_name"), "sequence_no", I(r, "sequence_no"))).ToList();
     }
@@ -5536,6 +5552,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             EnsureQueueState(conn, orderId, stationId, "COMPLETED", true, stationName + " completed", userId);
             Audit(conn, userId, "Production", "Order", S(order, "order_number"), "Station Updated", stationName, stationName + " date recorded", "", stationId);
             AddHistory(conn, orderId, stationId, "COMPLETED", "", "IN_PROGRESS", null, null, stationName + " date recorded", userId);
+            try { var seqStations = ResolveOrderSequenceStations(conn, order); AdvancePlannerBoard(conn, orderId, stationName, seqStations, Convert.ToInt32(userId)); } catch { }
             WriteJson(context, Obj("ok", true, "message", stationName + " updated on " + now.ToString("dd-MMM-yyyy HH:mm")));
         }
     }
@@ -5768,6 +5785,122 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 }
             }
             WriteJson(context, Obj("ok", true, "order_number", S(order, "order_number"), "timeline", result));
+        }
+    }
+
+    private void HandlePlannerBoardDebug(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var machines = QueryAll(conn, "SELECT machine_id, machine_name, sequence_no FROM tbl_machines WHERE is_active = TRUE ORDER BY sequence_no");
+            var boardRows = new List<Dictionary<string, object>>();
+            try { boardRows = QueryAll(conn, "SELECT order_id, station_id FROM tbl_planner_board"); }
+            catch (Exception ex) { WriteJson(context, Obj("ok", false, "error", ex.Message, "step", "board query")); return; }
+            WriteJson(context, Obj("ok", true, "machines", machines.Count, "board_rows", boardRows.Count));
+        }
+    }
+
+    private void HandlePlannerBoardState(HttpContext context)
+    {
+        try
+        {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var machines = QueryAll(conn, "SELECT machine_id, machine_name, sequence_no FROM tbl_machines WHERE is_active = TRUE ORDER BY sequence_no");
+            var boardRows = new List<Dictionary<string, object>>();
+            try { boardRows = QueryAll(conn, "SELECT b.order_id, b.station_id, b.assigned_at FROM tbl_planner_board AS b"); } catch { }
+            var boardResult = new List<object>();
+            var assignedOrderIds = new HashSet<int>();
+            foreach (var br in boardRows)
+            {
+                var oid = Convert.ToInt32(I(br, "order_id"));
+                var sid = Convert.ToInt32(I(br, "station_id"));
+                assignedOrderIds.Add(oid);
+                var matchingMachine = machines.FirstOrDefault(m => Convert.ToInt32(I(m, "machine_id")) == sid);
+                var orderRows = QueryAll(conn, "SELECT order_number, customer_name, board_qty_decimal, panel_qty FROM tbl_orders WHERE order_id = " + oid);
+                var orderRow = orderRows.Count > 0 ? orderRows[0] : null;
+                var dealerRows = QueryAll(conn, "SELECT d.dealer_name FROM tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id WHERE o.order_id = " + oid);
+                var dealerRow = dealerRows.Count > 0 ? dealerRows[0] : null;
+                if (matchingMachine != null)
+                {
+                    boardResult.Add(Obj(
+                        "order_id", oid,
+                        "order_number", orderRow != null ? S(orderRow, "order_number") : "",
+                        "customer_name", orderRow != null ? S(orderRow, "customer_name") : "",
+                        "dealer_name", dealerRow != null ? S(dealerRow, "dealer_name") : "",
+                        "board_qty", orderRow != null ? S(orderRow, "board_qty_decimal") : "",
+                        "panel_qty", orderRow != null ? S(orderRow, "panel_qty") : "",
+                        "station_id", sid,
+                        "station_name", S(matchingMachine, "machine_name"),
+                        "assigned_at", FormatDateTimeIST(br["assigned_at"])
+                    ));
+                }
+            }
+            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty FROM tbl_orders WHERE workflow_stage_code <> 'QUOTATION_CREATED' AND workflow_stage_code <> 'DISPATCHED' ORDER BY order_number");
+            var unplanned = activeOrders.Where(o => !assignedOrderIds.Contains(Convert.ToInt32(I(o, "order_id")))).Select(o =>
+            {
+                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"));
+            }).ToList();
+            WriteJson(context, Obj("ok", true, "machines", machines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"), "sequence_no", I(m, "sequence_no"))).ToList(), "unplanned", unplanned, "board", boardResult));
+        }
+        }
+        catch (Exception ex)
+        {
+            WriteJson(context, Obj("ok", false, "error", ex.Message, "type", ex.GetType().FullName));
+        }
+    }
+
+    private void HandlePlannerBoardAssign(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
+            var now = IstNow();
+            var existingRows = QueryAll(conn, "SELECT board_id FROM tbl_planner_board WHERE order_id = " + orderId + " AND station_id = " + stationId);
+            if (existingRows.Count == 0)
+            {
+                Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at) VALUES (" + orderId + ", " + stationId + ", " + I(user, "user_id") + ", " + SqlDateLiteral(now) + ")");
+            }
+            WriteJson(context, Obj("ok", true, "message", "Order assigned to machine."));
+        }
+    }
+
+    private void HandlePlannerBoardUnassign(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
+            Execute(conn, "DELETE FROM tbl_planner_board WHERE order_id = " + orderId + " AND station_id = " + stationId);
+            WriteJson(context, Obj("ok", true, "message", "Order removed from machine."));
+        }
+    }
+
+    private void AdvancePlannerBoard(OleDbConnection conn, int orderId, string completedStationName, List<Dictionary<string, object>> sequenceStations, int userId)
+    {
+        var machineNames = sequenceStations.Select(m => S(m, "machine_name")).ToList();
+        var nextName = NextStationName(machineNames, completedStationName);
+        if (string.IsNullOrWhiteSpace(nextName)) return;
+        var nextMachine = sequenceStations.FirstOrDefault(m => S(m, "machine_name") == nextName);
+        if (nextMachine == null) return;
+        var nextStationId = Convert.ToInt32(I(nextMachine, "station_id"));
+        var existingRows = QueryAll(conn, "SELECT board_id FROM tbl_planner_board WHERE order_id = " + orderId + " AND station_id = " + nextStationId);
+        if (existingRows.Count == 0)
+        {
+            var now = IstNow();
+            Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at) VALUES (" + orderId + ", " + nextStationId + ", " + userId + ", " + SqlDateLiteral(now) + ")");
         }
     }
 
