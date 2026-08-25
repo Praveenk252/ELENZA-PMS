@@ -4040,7 +4040,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "CREATE INDEX ix_tbl_sequence_profiles_type_class ON tbl_sequence_profiles (order_type_id, order_class_code)");
         TryExecute(conn, "CREATE INDEX ix_tbl_sequence_profile_stations_profile ON tbl_sequence_profile_stations (profile_id, sequence_no)");
         TryExecute(conn, "CREATE INDEX ix_tbl_mail_reports_daily ON tbl_mail_reports (report_kind, report_date)");
-        TryExecute(conn, "CREATE TABLE tbl_planner_board (board_id COUNTER PRIMARY KEY, order_id LONG NOT NULL, station_id LONG NOT NULL, assigned_by LONG, assigned_at DATETIME)");
+        TryExecute(conn, "CREATE TABLE tbl_planner_board (board_id COUNTER PRIMARY KEY, order_id LONG NOT NULL, station_id LONG NOT NULL, assigned_by LONG, assigned_at DATETIME, planned_date DATETIME)");
+        TryExecute(conn, "ALTER TABLE tbl_planner_board ADD COLUMN planned_date DATETIME");
         TryExecute(conn, "CREATE UNIQUE INDEX ux_planner_board_order_station ON tbl_planner_board (order_id, station_id)");
     }
 
@@ -5816,17 +5817,20 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             EnsureRole(user, "Admin", "Production Planner User");
             var machines = QueryAll(conn, "SELECT machine_id, machine_name, sequence_no FROM tbl_machines WHERE is_active = TRUE ORDER BY sequence_no");
             var boardRows = new List<Dictionary<string, object>>();
-            try { boardRows = QueryAll(conn, "SELECT b.order_id, b.station_id, b.assigned_at FROM tbl_planner_board AS b"); } catch { }
+            try { boardRows = QueryAll(conn, "SELECT b.order_id, b.station_id, b.assigned_at, b.planned_date FROM tbl_planner_board AS b"); } catch { }
             var boardResult = new List<object>();
             var assignedOrderIds = new HashSet<int>();
+            var orderStationMap = new Dictionary<int, List<Dictionary<string, object>>>();
             foreach (var br in boardRows)
             {
                 var oid = Convert.ToInt32(I(br, "order_id"));
                 var sid = Convert.ToInt32(I(br, "station_id"));
                 assignedOrderIds.Add(oid);
+                if (!orderStationMap.ContainsKey(oid)) orderStationMap[oid] = new List<Dictionary<string, object>>();
                 var matchingMachine = machines.FirstOrDefault(m => Convert.ToInt32(I(m, "machine_id")) == sid);
                 if (matchingMachine != null)
                 {
+                    orderStationMap[oid].Add(Obj("station_id", sid, "station_name", S(matchingMachine, "machine_name"), "planned_date", FormatDateTimeIST(br["planned_date"])));
                     var orderRows = QueryAll(conn, "SELECT order_number, customer_name, board_qty_decimal, panel_qty FROM tbl_orders WHERE order_id = " + oid);
                     var orderRow = orderRows.Count > 0 ? orderRows[0] : null;
                     var queueRows = QueryAll(conn, "SELECT queue_status_code, remarks FROM tbl_order_station_queue WHERE order_id = " + oid + " AND station_id = " + sid + " AND is_visible = TRUE");
@@ -5842,11 +5846,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                         "station_id", sid,
                         "station_name", S(matchingMachine, "machine_name"),
                         "queue_status", queueStatus,
-                        "remarks", remarks
+                        "remarks", remarks,
+                        "planned_date", FormatDateTimeIST(br["planned_date"])
                     ));
                 }
             }
-            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty, order_type_id, dealer_id, confirmation_date FROM tbl_orders WHERE workflow_stage_code = 'OPTIMISATION_DONE' OR workflow_stage_code = 'PRODUCTION_STARTED' OR workflow_stage_code = 'IN_PROGRESS' ORDER BY order_number");
+            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty, order_type_id, dealer_id, confirmation_date FROM tbl_orders WHERE workflow_stage_code = 'OPTIMISATION_DONE' OR workflow_stage_code = 'PRODUCTION_STARTED' OR workflow_stage_code = 'IN_PROGRESS' ORDER BY confirmation_date ASC, order_number ASC");
             var typeIds = new HashSet<int>();
             var dealerIds = new HashSet<int>();
             var orderIdsForPlanner = new List<int>();
@@ -5857,7 +5862,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (dealerIds.Count > 0) { var drows = QueryAll(conn, "SELECT dealer_id, dealer_name FROM tbl_dealers WHERE dealer_id IN (" + string.Join(",", dealerIds.Select(v => v.ToString()).ToArray()) + ")"); foreach (var d in drows) dealerLookup[Convert.ToInt32(I(d, "dealer_id"))] = S(d, "dealer_name"); }
             var plannerLookup = new Dictionary<int, Dictionary<string, object>>();
             if (orderIdsForPlanner.Count > 0) { var prows = QueryAll(conn, "SELECT order_id, sla_date, [priority] FROM tbl_production_planner WHERE order_id IN (" + string.Join(",", orderIdsForPlanner.Select(v => v.ToString()).ToArray()) + ")"); foreach (var p in prows) plannerLookup[Convert.ToInt32(I(p, "order_id"))] = p; }
-            var unplanned = activeOrders.Where(o => !assignedOrderIds.Contains(Convert.ToInt32(I(o, "order_id")))).Select(o =>
+            var unplanned = activeOrders.Select(o =>
             {
                 var tid = Convert.ToInt32(I(o, "order_type_id"));
                 var did = Convert.ToInt32(I(o, "dealer_id"));
@@ -5868,7 +5873,10 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var edd = plannerRow != null ? FormatDateTimeIST(plannerRow["sla_date"]) : "";
                 var priority = plannerRow != null ? S(plannerRow, "priority") : "";
                 var confDate = FormatDateTimeIST(S(o, "confirmation_date"));
-                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "confirmation_date", confDate, "edd", edd, "priority", priority);
+                var plannedStations = orderStationMap.ContainsKey(oid) ? orderStationMap[oid] : new List<Dictionary<string, object>>();
+                var plannedNames = string.Join(", ", plannedStations.Select(ps => S(ps, "station_name")));
+                var plannedDates = string.Join(", ", plannedStations.Select(ps => S(ps, "planned_date")).Where(d => !string.IsNullOrEmpty(d)));
+                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "confirmation_date", confDate, "edd", edd, "priority", priority, "planned_stations", plannedNames, "planned_dates", plannedDates);
             }).ToList();
             WriteJson(context, Obj("ok", true, "machines", machines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"), "sequence_no", I(m, "sequence_no"))).ToList(), "unplanned", unplanned, "board", boardResult));
         }
@@ -5888,11 +5896,18 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             EnsureRole(user, "Admin", "Production Planner User");
             var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
             var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
+            var plannedDateRaw = Value(context, "planned_date");
             var now = IstNow();
+            var plannedDateSql = "NULL";
+            if (!string.IsNullOrWhiteSpace(plannedDateRaw))
+            {
+                var pd = ParseDate(plannedDateRaw);
+                if (pd.HasValue) plannedDateSql = SqlDateLiteral(pd.Value);
+            }
             var existingRows = QueryAll(conn, "SELECT board_id FROM tbl_planner_board WHERE order_id = " + orderId + " AND station_id = " + stationId);
             if (existingRows.Count == 0)
             {
-                Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at) VALUES (" + orderId + ", " + stationId + ", " + I(user, "user_id") + ", " + SqlDateLiteral(now) + ")");
+                Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at, planned_date) VALUES (" + orderId + ", " + stationId + ", " + I(user, "user_id") + ", " + SqlDateLiteral(now) + ", " + plannedDateSql + ")");
             }
             WriteJson(context, Obj("ok", true, "message", "Order assigned to machine."));
         }
@@ -5921,8 +5936,15 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             EnsureRole(user, "Admin", "Production Planner User");
             var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
             var orderIdsRaw = Require(Value(context, "order_ids"), "Order IDs are required.");
+            var plannedDateRaw = Value(context, "planned_date");
             var ids = orderIdsRaw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             var now = IstNow();
+            var plannedDateSql = "NULL";
+            if (!string.IsNullOrWhiteSpace(plannedDateRaw))
+            {
+                var pd = ParseDate(plannedDateRaw);
+                if (pd.HasValue) plannedDateSql = SqlDateLiteral(pd.Value);
+            }
             var assigned = 0;
             var skipped = 0;
             foreach (var idStr in ids)
@@ -5931,7 +5953,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 if (!int.TryParse(idStr.Trim(), out oid)) { skipped++; continue; }
                 var existingRows = QueryAll(conn, "SELECT board_id FROM tbl_planner_board WHERE order_id = " + oid + " AND station_id = " + stationId);
                 if (existingRows.Count > 0) { skipped++; continue; }
-                Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at) VALUES (" + oid + ", " + stationId + ", " + I(user, "user_id") + ", " + SqlDateLiteral(now) + ")");
+                Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at, planned_date) VALUES (" + oid + ", " + stationId + ", " + I(user, "user_id") + ", " + SqlDateLiteral(now) + ", " + plannedDateSql + ")");
                 assigned++;
             }
             WriteJson(context, Obj("ok", true, "assigned", assigned, "skipped", skipped, "message", assigned + " orders assigned."));

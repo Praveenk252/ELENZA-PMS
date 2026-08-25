@@ -50,6 +50,7 @@ table.order-table .stage-badge{font-size:10px;font-weight:600;padding:2px 6px;bo
 .stage-procure{background:#fef3c7;color:#92400e}
 table.order-table .priority-high{background:#fee2e2;color:#991b1b;font-weight:700}
 table.order-table .priority-med{background:#fef3c7;color:#92400e}
+table.order-table .stage-planned{background:#d1fae5;color:#065f46;font-weight:600}
 table.order-table .summary-row{background:var(--navy);color:#fff;font-weight:700}
 table.order-table .summary-row td{padding:8px 10px;border-bottom:none}
 .station-panel{width:380px;min-width:380px;display:flex;flex-direction:column;overflow:hidden;background:var(--white)}
@@ -111,7 +112,17 @@ table.order-table .summary-row td{padding:8px 10px;border-bottom:none}
           <button onclick="toggleAllChecked()">Select All</button>
         </div>
       </div>
-      <div class="panel-search"><input id="searchInput" placeholder="Search by order number, customer, dealer..." oninput="filterUnplanned(this.value)"></div>
+      <div class="panel-search">
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <select id="filterType" onchange="applyFilters()" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--white)">
+            <option value="">All Types</option>
+          </select>
+          <select id="filterDealer" onchange="applyFilters()" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--white)">
+            <option value="">All Dealers</option>
+          </select>
+        </div>
+        <input id="searchInput" placeholder="Search order number..." oninput="applyFilters()">
+      </div>
       <div class="table-wrap">
         <table class="order-table">
           <thead>
@@ -120,11 +131,14 @@ table.order-table .summary-row td{padding:8px 10px;border-bottom:none}
               <th>Conf. Date</th>
               <th>Order Number</th>
               <th>Dealer</th>
+              <th>Order Type</th>
               <th>Board Qty</th>
               <th>Panel Qty</th>
               <th>Stage</th>
               <th>EDD</th>
               <th>Priority</th>
+              <th>Planned</th>
+              <th>Customer</th>
             </tr>
           </thead>
           <tbody id="orderTableBody"></tbody>
@@ -135,7 +149,10 @@ table.order-table .summary-row td{padding:8px 10px;border-bottom:none}
     <div class="station-panel">
       <div class="batch-bar" id="batchBar">
         <span class="sel-count" id="selCount">0</span>
-        <span class="label">selected &rarr; Assign to:</span>
+        <span class="label">selected &rarr;</span>
+        <label style="font-size:11px;color:var(--slate);font-weight:600">Plan for:</label>
+        <input type="date" id="planDate" style="padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:11px">
+        <span class="label">&rarr;</span>
         <div id="batchStationBtns"></div>
       </div>
       <div class="station-tabs" id="stationTabs"></div>
@@ -183,10 +200,25 @@ function loadBoard(){
 }
 
 function renderBoard(){
+  populateFilters();
   renderStationTabs();
   renderOrderTable();
   renderStationContent();
   renderBatchBar();
+}
+
+function populateFilters(){
+  var items=boardData.unplanned||[];
+  var types={};var dealers={};
+  items.forEach(function(o){if(o.order_type)types[o.order_type]=1;if(o.dealer_name)dealers[o.dealer_name]=1;});
+  var typeSelect=document.getElementById('filterType');
+  var dealerSelect=document.getElementById('filterDealer');
+  var prevType=typeSelect.value;var prevDealer=dealerSelect.value;
+  typeSelect.innerHTML='<option value="">All Types</option>';
+  dealerSelect.innerHTML='<option value="">All Dealers</option>';
+  Object.keys(types).sort().forEach(function(t){typeSelect.innerHTML+='<option value="'+esc(t)+'">'+esc(t)+'</option>';});
+  Object.keys(dealers).sort().forEach(function(d){dealerSelect.innerHTML+='<option value="'+esc(d)+'">'+esc(d)+'</option>';});
+  typeSelect.value=prevType;dealerSelect.value=prevDealer;
 }
 
 function renderOrderTable(){
@@ -215,15 +247,19 @@ function renderOrderTable(){
     h+='<td>'+esc(o.confirmation_date||'-')+'</td>';
     h+='<td><strong>'+esc(o.order_number)+'</strong></td>';
     h+='<td>'+esc(o.dealer_name||'')+'</td>';
+    h+='<td>'+esc(o.order_type||'')+'</td>';
     h+='<td>'+esc(o.board_qty||'0')+'</td>';
     h+='<td>'+esc(o.panel_qty||'0')+'</td>';
     h+='<td><span class="stage-badge '+stageClass+'">'+esc(o.workflow_stage||'')+'</span></td>';
     h+='<td>'+esc(o.edd||'-')+'</td>';
     h+='<td>'+(priClass?'<span class="stage-badge '+priClass+'">'+esc(o.priority)+'</span>':esc(o.priority||'-'))+'</td>';
+    if(o.planned_stations){h+='<td><span class="stage-badge stage-planned">'+esc(o.planned_stations)+'</span></td>';}
+    else{h+='<td>-</td>';}
+    h+='<td>'+esc(o.customer_name||'')+'</td>';
     h+='</tr>';
   });
   tbody.innerHTML=h||'<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--slate)">All orders planned</td></tr>';
-  tfoot.innerHTML='<tr class="summary-row"><td></td><td colspan="3"><strong>TOTAL</strong></td><td><strong>'+totalBoards.toFixed(1)+'</strong></td><td><strong>'+totalPanels.toFixed(1)+'</strong></td><td colspan="3"></td></tr>';
+  tfoot.innerHTML='<tr class="summary-row"><td></td><td colspan="5"><strong>TOTAL</strong></td><td><strong>'+totalBoards.toFixed(1)+'</strong></td><td><strong>'+totalPanels.toFixed(1)+'</strong></td><td colspan="5"></td></tr>';
 }
 
 function renderStationTabs(){
@@ -295,14 +331,20 @@ function toggleAllChecked(){
 
 function getFilteredUnplanned(){
   var items=boardData.unplanned||[];
-  if(searchQuery){var q=searchQuery.toLowerCase();items=items.filter(function(o){return ((o.order_number||'')+(o.dealer_name||'')+(o.customer_name||'')+(o.order_type||'')).toLowerCase().indexOf(q)!==-1;});}
+  var typeFilter=document.getElementById('filterType').value;
+  var dealerFilter=document.getElementById('filterDealer').value;
+  if(searchQuery){var q=searchQuery.toLowerCase();items=items.filter(function(o){return ((o.order_number||'')).toLowerCase().indexOf(q)!==-1;});}
+  if(typeFilter){items=items.filter(function(o){return o.order_type===typeFilter;});}
+  if(dealerFilter){items=items.filter(function(o){return o.dealer_name===dealerFilter;});}
   return items;
 }
 
 function batchAssign(stationId){
   var ids=Object.keys(multiSelect);
   if(!ids.length)return;
+  var planDate=document.getElementById('planDate').value;
   var fd=new URLSearchParams();fd.append('action','planner-board-batch-assign');fd.append('station_id',stationId);fd.append('order_ids',ids.join(','));
+  if(planDate)fd.append('planned_date',planDate);
   fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
     if(d.error){showToast(d.error,'error');return;}
     showToast(d.message||'Assigned','success');
@@ -320,64 +362,61 @@ function unassign(orderId,stationId){
 }
 
 function filterUnplanned(q){searchQuery=q.trim();renderOrderTable();}
+function applyFilters(){searchQuery=document.getElementById('searchInput').value.trim();renderOrderTable();}
 
 function exportXlsx(){
   var wb=XLSX.utils.book_new();
   var machines=boardData.machines||[];
   var board=boardData.board||[];
   var unplanned=getFilteredUnplanned();
-  var grandBoards=0,grandPanels=0;
-  var rows=[];
+  var grandBoards=0,grandPanels=0,totalOrders=0;
   machines.forEach(function(m){
     var mOrders=board.filter(function(b){return b.station_id==m.machine_id;});
-    if(mOrders.length===0)return;
     var mBoards=0,mPanels=0;
-    rows.push([m.machine_name+' ('+mOrders.length+' orders)','','','','','','','']);
-    rows.push(['Order Number','Dealer','Status','Remarks','Board Qty','Panel Qty','','']);
+    var rows=[['Order Number','Dealer','Status','Remarks','Board Qty','Panel Qty']];
     mOrders.forEach(function(o){
       var bd=parseFloat(o.board_qty)||0;
       var pq=parseFloat(o.panel_qty)||0;
       mBoards+=bd;mPanels+=pq;
       var status=o.queue_status==='PARTIAL_COMPLETED'?'Partial':'Planned';
-      rows.push([o.order_number,o.customer_name||'',status,o.remarks||'',bd,pq,'','']);
+      rows.push([o.order_number,o.customer_name||'',status,o.remarks||'',bd,pq]);
     });
-    rows.push(['','Subtotal','','',mBoards,mPanels,'','']);
-    grandBoards+=mBoards;grandPanels+=mPanels;
-    rows.push(['','','','','','','','']);
+    rows.push(['','','','','']);
+    rows.push(['','Subtotal ('+mOrders.length+' orders)','','',mBoards,mPanels]);
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:22},{wch:30},{wch:10},{wch:25},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,m.machine_name.substring(0,31));
+    grandBoards+=mBoards;grandPanels+=mPanels;totalOrders+=mOrders.length;
   });
-  var totalPlanned=board.length;
-  rows.push(['GRAND TOTAL: '+totalPlanned+' orders','','','',grandBoards,grandPanels,'','']);
-  rows.push(['','','','','','','','']);
-  rows.push(['UNPLANNED ORDERS ('+unplanned.length+')','','','','','','','']);
-  rows.push(['Conf. Date','Order Number','Dealer','Order Type','Board Qty','Panel Qty','EDD','Priority']);
+  var uRows=[['Conf. Date','Order Number','Dealer','Order Type','Board Qty','Panel Qty','EDD','Priority','Customer']];
   var uBoards=0,uPanels=0;
   unplanned.forEach(function(o){
     var bd=parseFloat(o.board_qty)||0;
     var pq=parseFloat(o.panel_qty)||0;
     uBoards+=bd;uPanels+=pq;
-    rows.push([o.confirmation_date||'',o.order_number,o.dealer_name||'',o.order_type||'',bd,pq,o.edd||'',o.priority||'']);
+    uRows.push([o.confirmation_date||'',o.order_number,o.dealer_name||'',o.order_type||'',bd,pq,o.edd||'',o.priority||'',o.customer_name||'']);
   });
-  rows.push(['','Subtotal','','',uBoards,uPanels,'','']);
-  rows.push(['','','','','','','','']);
-  rows.push(['OVERALL TOTAL: '+(totalPlanned+unplanned.length)+' orders','','','',(grandBoards+uBoards),(grandPanels+uPanels),'','']);
-  var ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:20},{wch:22},{wch:28},{wch:14},{wch:10},{wch:10},{wch:14},{wch:10}];
-  var machineRows=[];
+  uRows.push(['','','','','','','','','']);
+  uRows.push(['','Subtotal ('+unplanned.length+' orders)','','',uBoards,uPanels,'','','']);
+  var wsU=XLSX.utils.aoa_to_sheet(uRows);
+  wsU['!cols']=[{wch:18},{wch:22},{wch:28},{wch:14},{wch:10},{wch:10},{wch:14},{wch:10},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,wsU,'Unplanned ('+unplanned.length+')');
+  var sRows=[['Station','Orders','Boards','Panels']];
   machines.forEach(function(m){
     var mOrders=board.filter(function(b){return b.station_id==m.machine_id;});
-    if(mOrders.length>0){
-      var mBoards=0,mPanels=0;
-      mOrders.forEach(function(o){mBoards+=parseFloat(o.board_qty)||0;mPanels+=parseFloat(o.panel_qty)||0;});
-      machineRows.push([m.machine_name,mOrders.length,mBoards,mPanels]);
-    }
+    var mBoards=0,mPanels=0;
+    mOrders.forEach(function(o){mBoards+=parseFloat(o.board_qty)||0;mPanels+=parseFloat(o.panel_qty)||0;});
+    if(mOrders.length>0)sRows.push([m.machine_name,mOrders.length,mBoards,mPanels]);
   });
-  machineRows.push(['TOTAL',totalPlanned,grandBoards,grandPanels]);
-  var ws2=XLSX.utils.aoa_to_sheet([['Station','Orders','Boards','Panels'],...machineRows]);
-  ws2['!cols']=[{wch:16},{wch:8},{wch:10},{wch:10}];
-  XLSX.utils.book_append_sheet(wb,ws,'Planning Board');
-  XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+  sRows.push(['TOTAL',totalOrders,grandBoards,grandPanels]);
+  sRows.push(['','','','']);
+  sRows.push(['Unplanned','',unplanned.length,'']);
+  sRows.push(['Grand Total','',totalOrders+unplanned.length,grandBoards+uBoards]);
+  var wsS=XLSX.utils.aoa_to_sheet(sRows);
+  wsS['!cols']=[{wch:16},{wch:8},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,wsS,'Summary');
   XLSX.writeFile(wb,'Planning_Board_'+new Date().toISOString().slice(0,10)+'.xlsx');
-  showToast('Exported '+totalPlanned+' planned + '+unplanned.length+' unplanned','success');
+  showToast('Exported '+totalOrders+' planned + '+unplanned.length+' unplanned','success');
 }
 
 function showToast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast '+t+' show';setTimeout(function(){el.className='toast';},3000);}
