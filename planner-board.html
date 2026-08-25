@@ -27,7 +27,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .top-bar .export-btn{background:var(--green);font-weight:600}
 .top-bar .export-btn:hover{background:#15803d}
 .board{display:flex;flex:1;overflow:hidden}
-.unplanned-panel{flex:1;background:var(--white);border-right:2px solid var(--border);display:flex;flex-direction:column;min-width:0}
+.unplanned-panel{width:50%;min-width:50%;max-width:50%;background:var(--white);border-right:2px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .panel-header{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;background:var(--bg);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .panel-header .count{background:var(--blue);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px}
 .panel-header .actions{display:flex;gap:6px;align-items:center}
@@ -119,7 +119,7 @@ table.order-table .summary-row td{padding:8px 10px;border-bottom:none}
               <th><input type="checkbox" id="selectAllCb" onchange="toggleAllChecked()"></th>
               <th>Conf. Date</th>
               <th>Order Number</th>
-              <th>Customer</th>
+              <th>Dealer</th>
               <th>Board Qty</th>
               <th>Panel Qty</th>
               <th>Stage</th>
@@ -214,7 +214,7 @@ function renderOrderTable(){
     h+='<td><input type="checkbox" '+checked+' onclick="event.stopPropagation();toggleSelect('+o.order_id+')"></td>';
     h+='<td>'+esc(o.confirmation_date||'-')+'</td>';
     h+='<td><strong>'+esc(o.order_number)+'</strong></td>';
-    h+='<td>'+esc(o.customer_name||'')+'</td>';
+    h+='<td>'+esc(o.dealer_name||'')+'</td>';
     h+='<td>'+esc(o.board_qty||'0')+'</td>';
     h+='<td>'+esc(o.panel_qty||'0')+'</td>';
     h+='<td><span class="stage-badge '+stageClass+'">'+esc(o.workflow_stage||'')+'</span></td>';
@@ -251,11 +251,14 @@ function renderStationContent(){
   if(!board.length){el.innerHTML='<div class="empty-msg">No orders in '+esc(machine?machine.machine_name:'this station')+'</div>';return;}
   var h='';
   board.forEach(function(o){
+    var isPartial=o.queue_status==='PARTIAL_COMPLETED';
     h+='<div class="board-order">';
     h+='<button class="remove-btn" onclick="unassign('+o.order_id+','+o.station_id+')" title="Remove">&#10005;</button>';
     h+='<div class="bo-num">'+esc(o.order_number)+'</div>';
     h+='<div class="bo-meta">'+esc(o.customer_name||'')+'</div>';
     h+='<div class="bo-meta">Boards: '+esc(o.board_qty||'-')+' | Panels: '+esc(o.panel_qty||'-')+'</div>';
+    if(isPartial)h+='<div class="bo-meta" style="color:var(--orange);font-weight:600">Partial'+(o.remarks?' - '+esc(o.remarks):'')+'</div>';
+    else if(o.remarks)h+='<div class="bo-meta">'+esc(o.remarks)+'</div>';
     h+='</div>';
   });
   el.innerHTML=h;
@@ -319,37 +322,62 @@ function unassign(orderId,stationId){
 function filterUnplanned(q){searchQuery=q.trim();renderOrderTable();}
 
 function exportXlsx(){
-  var items=getFilteredUnplanned();
-  if(!items.length){showToast('No orders to export','error');return;}
-  var ws_data=[['Conf. Date','Order Number','Customer','Dealer','Order Type','Board Qty','Panel Qty','Current Stage','EDD','Priority']];
-  var totalBoards=0,totalPanels=0;
-  items.forEach(function(o){
+  var wb=XLSX.utils.book_new();
+  var machines=boardData.machines||[];
+  var board=boardData.board||[];
+  var unplanned=getFilteredUnplanned();
+  var grandBoards=0,grandPanels=0;
+  var rows=[];
+  machines.forEach(function(m){
+    var mOrders=board.filter(function(b){return b.station_id==m.machine_id;});
+    if(mOrders.length===0)return;
+    var mBoards=0,mPanels=0;
+    rows.push([m.machine_name+' ('+mOrders.length+' orders)','','','','','','','']);
+    rows.push(['Order Number','Dealer','Status','Remarks','Board Qty','Panel Qty','','']);
+    mOrders.forEach(function(o){
+      var bd=parseFloat(o.board_qty)||0;
+      var pq=parseFloat(o.panel_qty)||0;
+      mBoards+=bd;mPanels+=pq;
+      var status=o.queue_status==='PARTIAL_COMPLETED'?'Partial':'Planned';
+      rows.push([o.order_number,o.customer_name||'',status,o.remarks||'',bd,pq,'','']);
+    });
+    rows.push(['','Subtotal','','',mBoards,mPanels,'','']);
+    grandBoards+=mBoards;grandPanels+=mPanels;
+    rows.push(['','','','','','','','']);
+  });
+  var totalPlanned=board.length;
+  rows.push(['GRAND TOTAL: '+totalPlanned+' orders','','','',grandBoards,grandPanels,'','']);
+  rows.push(['','','','','','','','']);
+  rows.push(['UNPLANNED ORDERS ('+unplanned.length+')','','','','','','','']);
+  rows.push(['Conf. Date','Order Number','Dealer','Order Type','Board Qty','Panel Qty','EDD','Priority']);
+  var uBoards=0,uPanels=0;
+  unplanned.forEach(function(o){
     var bd=parseFloat(o.board_qty)||0;
     var pq=parseFloat(o.panel_qty)||0;
-    totalBoards+=bd;
-    totalPanels+=pq;
-    ws_data.push([o.confirmation_date||'',o.order_number||'',o.customer_name||'',o.dealer_name||'',o.order_type||'',bd,pq,o.workflow_stage||'',o.edd||'',o.priority||'']);
+    uBoards+=bd;uPanels+=pq;
+    rows.push([o.confirmation_date||'',o.order_number,o.dealer_name||'',o.order_type||'',bd,pq,o.edd||'',o.priority||'']);
   });
-  ws_data.push([]);
-  ws_data.push(['','','','TOTAL','','',totalBoards.toFixed(1),'',totalPanels.toFixed(1),'','']);
-  var wb=XLSX.utils.book_new();
-  var ws=XLSX.utils.aoa_to_sheet(ws_data);
-  ws['!cols']=[{wch:18},{wch:22},{wch:30},{wch:25},{wch:14},{wch:10},{wch:10},{wch:20},{wch:14},{wch:10}];
-  XLSX.utils.book_append_sheet(wb,ws,'Unplanned Orders');
-  var boardData2=boardData.board||[];
-  if(boardData2.length>0){
-    var machines=boardData.machines||[];
-    var bs=[['Station','Order Number','Customer','Board Qty','Panel Qty','Assigned At']];
-    boardData2.forEach(function(o){
-      var m=machines.find(function(ma){return ma.machine_id==o.station_id;});
-      bs.push([m?m.machine_name:'',o.order_number||'',o.customer_name||'',o.board_qty||'',o.panel_qty||'',o.assigned_at||'']);
-    });
-    var ws2=XLSX.utils.aoa_to_sheet(bs);
-    ws2['!cols']=[{wch:16},{wch:22},{wch:30},{wch:10},{wch:10},{wch:20}];
-    XLSX.utils.book_append_sheet(wb,ws2,'Board Plan');
-  }
+  rows.push(['','Subtotal','','',uBoards,uPanels,'','']);
+  rows.push(['','','','','','','','']);
+  rows.push(['OVERALL TOTAL: '+(totalPlanned+unplanned.length)+' orders','','','',(grandBoards+uBoards),(grandPanels+uPanels),'','']);
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:20},{wch:22},{wch:28},{wch:14},{wch:10},{wch:10},{wch:14},{wch:10}];
+  var machineRows=[];
+  machines.forEach(function(m){
+    var mOrders=board.filter(function(b){return b.station_id==m.machine_id;});
+    if(mOrders.length>0){
+      var mBoards=0,mPanels=0;
+      mOrders.forEach(function(o){mBoards+=parseFloat(o.board_qty)||0;mPanels+=parseFloat(o.panel_qty)||0;});
+      machineRows.push([m.machine_name,mOrders.length,mBoards,mPanels]);
+    }
+  });
+  machineRows.push(['TOTAL',totalPlanned,grandBoards,grandPanels]);
+  var ws2=XLSX.utils.aoa_to_sheet([['Station','Orders','Boards','Panels'],...machineRows]);
+  ws2['!cols']=[{wch:16},{wch:8},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'Planning Board');
+  XLSX.utils.book_append_sheet(wb,ws2,'Summary');
   XLSX.writeFile(wb,'Planning_Board_'+new Date().toISOString().slice(0,10)+'.xlsx');
-  showToast('Exported '+items.length+' orders','success');
+  showToast('Exported '+totalPlanned+' planned + '+unplanned.length+' unplanned','success');
 }
 
 function showToast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast '+t+' show';setTimeout(function(){el.className='toast';},3000);}

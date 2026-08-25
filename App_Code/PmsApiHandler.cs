@@ -5829,6 +5829,10 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 {
                     var orderRows = QueryAll(conn, "SELECT order_number, customer_name, board_qty_decimal, panel_qty FROM tbl_orders WHERE order_id = " + oid);
                     var orderRow = orderRows.Count > 0 ? orderRows[0] : null;
+                    var queueRows = QueryAll(conn, "SELECT queue_status_code, remarks FROM tbl_order_station_queue WHERE order_id = " + oid + " AND station_id = " + sid + " AND is_visible = TRUE");
+                    var queueRow = queueRows.Count > 0 ? queueRows[0] : null;
+                    var queueStatus = queueRow != null ? S(queueRow, "queue_status_code") : "";
+                    var remarks = queueRow != null ? S(queueRow, "remarks") : "";
                     boardResult.Add(Obj(
                         "order_id", oid,
                         "order_number", orderRow != null ? S(orderRow, "order_number") : "",
@@ -5836,7 +5840,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                         "board_qty", orderRow != null ? S(orderRow, "board_qty_decimal") : "",
                         "panel_qty", orderRow != null ? S(orderRow, "panel_qty") : "",
                         "station_id", sid,
-                        "station_name", S(matchingMachine, "machine_name")
+                        "station_name", S(matchingMachine, "machine_name"),
+                        "queue_status", queueStatus,
+                        "remarks", remarks
                     ));
                 }
             }
