@@ -735,7 +735,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var dealerId = IntRequired(Value(context, "dealer_id"), "Dealer is required.");
             var dealerName = Require(Value(context, "dealer_name"), "Dealer name is required.");
             var mobileNumber = Require(Value(context, "mobile_number"), "Mobile number is required.");
-            Execute(conn, "UPDATE tbl_dealers SET dealer_name = ?, mobile_number = ?, city = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE dealer_id = ?",
+            Execute(conn, "UPDATE tbl_dealers SET dealer_name = ?, mobile_number = ?, city = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE dealer_id = ?",
                 dealerName, mobileNumber, Value(context, "city"), I(user, "user_id"), dealerId);
             Audit(conn, I(user, "user_id"), "Dealer", "Dealer", dealerId.ToString(), "Dealer Updated", "", dealerName, "", null);
             WriteJson(context, Obj("ok", true));
@@ -762,9 +762,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 return;
             }
 
-            var dealersUpdated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET customer_type_id = ?, customer_type_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE dealer_id = ?",
+            var dealersUpdated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET customer_type_id = ?, customer_type_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE dealer_id = ?",
                 I(customerType, "customer_type_id"), newType, I(user, "user_id"), dealerId);
-            var ordersUpdated = ExecuteNonQuery(conn, "UPDATE tbl_orders SET customer_type_id = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + ", last_action = ? WHERE dealer_id = ?",
+            var ordersUpdated = ExecuteNonQuery(conn, "UPDATE tbl_orders SET customer_type_id = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE dealer_id = ?",
                 I(customerType, "customer_type_id"), I(user, "user_id"), "Customer type changed to " + newType + " for dealer " + S(dealer, "dealer_name"), dealerId);
             Audit(conn, I(user, "user_id"), "Dealer", "Dealer", dealerId.ToString(), "Customer Type Changed", oldType, newType, "", null);
             WriteJson(context, Obj("ok", true, "dealers_updated", dealersUpdated, "orders_updated", ordersUpdated));
@@ -812,23 +812,23 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (mode == "single")
             {
                 var dealerId = IntRequired(Value(context, "dealer_id"), "Dealer is required.");
-                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE dealer_id = ?",
+                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE dealer_id = ?",
                     NullIfEmpty(newOwner), I(user, "user_id"), dealerId);
             }
             else if (mode == "all")
             {
-                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE is_active = TRUE",
+                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE is_active = TRUE",
                     NullIfEmpty(newOwner), I(user, "user_id"));
             }
             else if (mode == "unassigned")
             {
-                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE is_active = TRUE AND (marketing_owner IS NULL OR marketing_owner = '')",
+                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE is_active = TRUE AND (marketing_owner IS NULL OR marketing_owner = '')",
                     NullIfEmpty(newOwner), I(user, "user_id"));
             }
             else if (mode == "from-user")
             {
                 var fromUser = Value(context, "from_user");
-                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE is_active = TRUE AND marketing_owner = ?",
+                updated = ExecuteNonQuery(conn, "UPDATE tbl_dealers SET marketing_owner = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE is_active = TRUE AND marketing_owner = ?",
                     NullIfEmpty(newOwner), I(user, "user_id"), (object)fromUser ?? DBNull.Value);
             }
             else
@@ -916,7 +916,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var ct = FindCustomerType(conn, customerTypeText);
                 if (ct != null) customerTypeId = I(ct, "customer_type_id");
             }
-            var now = DateTime.Now;
+            var now = IstNow();
             Execute(conn, "UPDATE tbl_dealers SET dealer_name = ?, company_name = ?, dealer_type = ?, customer_type_id = ?, customer_type_code = ?, city = ?, pin_code = ?, gst_number = ?, contact_person = ?, mobile_number = ?, whatsapp_number = ?, email = ?, payment_terms = ?, credit_limit_lakh = ?, marketing_owner = ?, quotation_owner = ?, address = ?, area = ?, remarks = ?, updated_by = ?, updated_at = " + SqlDateLiteral(now) + " WHERE dealer_id = ?",
                 dealerName,
                 Value(context, "company_name"),
@@ -1037,7 +1037,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var order = FindOrderByNumber(conn, orderNumber);
             if (order == null) throw new ApiFailure(404, "Order not found.");
             if (S(order, "workflow_stage_code") != "QUOTATION_CREATED") throw new ApiFailure(400, "Only quotation-created orders can be confirmed.");
-            var now = DateTime.Now;
+            var now = IstNow();
             var confirmationDate = ParseDate(Value(context, "confirmation_date")) ?? NowInZone("India Standard Time");
             Execute(conn, "UPDATE tbl_orders SET confirmation_date = " + SqlDateLiteral(confirmationDate) + ", confirmed_by = ?, workflow_stage_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(now) + ", last_action = ?, quotation_remarks = ? WHERE order_id = ?",
                 I(user, "user_id"), "ORDER_CONFIRMED", I(user, "user_id"), "Order Confirmed", string.IsNullOrWhiteSpace(remarks) ? S(order, "quotation_remarks") : remarks, I(order, "order_id"));
@@ -1063,7 +1063,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var order = FindOrderByNumber(conn, orderNumber);
             if (order == null) throw new ApiFailure(404, "Order not found.");
             if (S(order, "workflow_stage_code") != "ORDER_CONFIRMED") throw new ApiFailure(400, "Only confirmed orders can be optimised.");
-            var now = DateTime.Now;
+            var now = IstNow();
             var firstStation = ResolveOrderSequenceStations(conn, order).FirstOrDefault();
             if (firstStation == null) throw new ApiFailure(500, "No active production station found.");
             EnsureQueueState(conn, I(order, "order_id"), I(firstStation, "station_id"), "PENDING", true, "", I(user, "user_id"));
@@ -1110,7 +1110,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 }
                 if (duplicate != null) throw new ApiFailure(400, "PO number should not duplicate.");
             }
-            var now = DateTime.Now;
+            var now = IstNow();
             var poDate = ParseDate(Value(context, "po_date")) ?? now;
             var mrnDate = ParseDate(Value(context, "mrn_date"));
             try
@@ -1263,7 +1263,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (queueEntry == null)
                 queueEntry = EnsurePackingQueueEntryForPortal(conn, user, order, station);
             if (queueEntry == null) throw new ApiFailure(400, "This order is not visible in Packing.");
-            Execute(conn, "UPDATE tbl_orders SET packing_balance_box_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + ", last_action = ? WHERE order_id = ?",
+            Execute(conn, "UPDATE tbl_orders SET packing_balance_box_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
                 balanceBoxQty.Value, I(user, "user_id"), "Packing Balance Saved", orderId);
             Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Packing Balance Saved", "", balanceBoxQty.Value.ToString("0.##", CultureInfo.InvariantCulture), "", I(station, "machine_id"));
             WriteJson(context, Obj("ok", true));
@@ -1283,7 +1283,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (enriched == null || !IsPlanningEligible(enriched)) throw new ApiFailure(400, "This order is not available in planner.");
             EnsurePlannerRows(conn, new List<Dictionary<string, object>> { enriched });
             var planner = QueryOne(conn, "SELECT * FROM tbl_production_planner WHERE order_id = ?", orderId);
-            var now = DateTime.Now;
+            var now = IstNow();
             var slaDate = ParseDate(Value(context, "sla_date"));
             var urgency = Value(context, "urgency");
             var priority = Value(context, "priority");
@@ -1325,7 +1325,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (order == null) throw new ApiFailure(404, "Order not found.");
             var oldBoards = D(order, "board_qty_decimal") > 0 ? D(order, "board_qty_decimal") : I(order, "number_of_boards");
             var oldPanels = D(order, "panel_qty");
-            var now = DateTime.Now;
+            var now = IstNow();
             Execute(conn, "UPDATE tbl_orders SET number_of_boards = ?, board_qty_decimal = ?, panel_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(now) + " WHERE order_id = ?",
                 (int)Math.Round(boardQty, 0, MidpointRounding.AwayFromZero),
                 boardQty,
@@ -1355,7 +1355,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         }
         var root = HostingEnvironment.MapPath("~/");
         if (root == null || !Directory.Exists(root)) throw new ApiFailure(500, "Site root not found.");
-        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var stamp = IstNow().ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
@@ -1467,7 +1467,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var firstStation = ResolveOrderSequenceStations(conn, order).FirstOrDefault();
             if (firstStation == null) throw new ApiFailure(500, "No active production station found.");
             EnsureQueueState(conn, orderId, I(firstStation, "station_id"), "PENDING", true, "", I(user, "user_id"));
-            Execute(conn, "UPDATE tbl_orders SET correction_queue = FALSE, workflow_stage_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + ", last_action = ? WHERE order_id = ?",
+            Execute(conn, "UPDATE tbl_orders SET correction_queue = FALSE, workflow_stage_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
                 "PRODUCTION_STARTED", I(user, "user_id"), "Planner Reapproved to " + S(firstStation, "machine_name"), orderId);
             AddHistory(conn, orderId, I(firstStation, "station_id"), "PLANNER_REAPPROVED", "CORRECTION_QUEUE", "PENDING", null, I(firstStation, "station_id"), "", I(user, "user_id"));
             try
@@ -1519,7 +1519,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var queueEntry = QueryOne(conn, "SELECT * FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, I(dispatchStation, "machine_id"));
             if (queueEntry == null) throw new ApiFailure(400, "Dispatch queue entry was not found.");
 
-            var now = DateTime.Now;
+            var now = IstNow();
             var visible = actionCode != "DISPATCHED";
             EnsureQueueState(conn, orderId, I(dispatchStation, "machine_id"), actionCode == "DISPATCHED" ? "COMPLETED" : "PENDING", visible, !string.IsNullOrWhiteSpace(vehicleDetails) ? vehicleDetails : remarks, I(user, "user_id"));
             var workflowStage = actionCode == "DISPATCHED" ? "DISPATCHED" : "DISPATCH_READY";
@@ -1549,7 +1549,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (dispatchStation == null) throw new ApiFailure(404, "Dispatch station not found.");
             var queueEntry = QueryOne(conn, "SELECT * FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ? AND is_visible = TRUE", orderId, I(dispatchStation, "machine_id"));
             if (queueEntry == null) throw new ApiFailure(400, "Dispatch queue entry was not found.");
-            Execute(conn, "UPDATE tbl_orders SET dispatch_balance_box_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + ", last_action = ? WHERE order_id = ?",
+            Execute(conn, "UPDATE tbl_orders SET dispatch_balance_box_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
                 balanceBoxQty.Value, I(user, "user_id"), "Dispatch Balance Saved", orderId);
             Audit(conn, I(user, "user_id"), "Dispatch", "Order", S(order, "order_number"), "Dispatch Balance Saved", "", balanceBoxQty.Value.ToString("0.##", CultureInfo.InvariantCulture), "", I(dispatchStation, "machine_id"));
             WriteJson(context, Obj("ok", true));
@@ -1565,7 +1565,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
             EnsureDispatchBoxSchema(conn);
             var nextBoxNo = Convert.ToInt32(Scalar(conn, "SELECT MAX(box_no) FROM tbl_dispatch_boxes WHERE order_id = ?", orderId) ?? 0) + 1;
-            Execute(conn, "INSERT INTO tbl_dispatch_boxes (order_id, box_no, box_state, updated_by, updated_at, created_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(DateTime.Now) + ", " + SqlDateLiteral(DateTime.Now) + ")",
+            Execute(conn, "INSERT INTO tbl_dispatch_boxes (order_id, box_no, box_state, updated_by, updated_at, created_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(IstNow()) + ", " + SqlDateLiteral(IstNow()) + ")",
                 orderId, nextBoxNo, "NONE", I(user, "user_id"));
             Audit(conn, I(user, "user_id"), "Dispatch", "Order", S(FindOrderById(conn, orderId), "order_number"), "Dispatch Box Added", "", nextBoxNo.ToString(CultureInfo.InvariantCulture), "", null);
             WriteJson(context, Obj("ok", true, "box_no", nextBoxNo));
@@ -1601,7 +1601,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             {
                 for (var i = currentCount + 1; i <= boxQty; i++)
                 {
-                    Execute(conn, "INSERT INTO tbl_dispatch_boxes (order_id, box_no, box_state, updated_by, updated_at, created_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(DateTime.Now) + ", " + SqlDateLiteral(DateTime.Now) + ")",
+                    Execute(conn, "INSERT INTO tbl_dispatch_boxes (order_id, box_no, box_state, updated_by, updated_at, created_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(IstNow()) + ", " + SqlDateLiteral(IstNow()) + ")",
                         orderId, i, "NONE", I(user, "user_id"));
                 }
             }
@@ -1610,7 +1610,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 Execute(conn, "DELETE FROM tbl_dispatch_boxes WHERE order_id = ? AND box_no > ?", orderId, boxQty);
             }
             Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Packing Box Qty Saved", currentCount.ToString(CultureInfo.InvariantCulture), boxQty.ToString(CultureInfo.InvariantCulture), "", I(station, "machine_id"));
-            try { Execute(conn, "UPDATE tbl_orders SET packing_ready_date = " + SqlDateLiteral(DateTime.Now) + " WHERE order_id = ? AND (packing_ready_date IS NULL OR packing_ready_date = '')", orderId); } catch { }
+            try { Execute(conn, "UPDATE tbl_orders SET packing_ready_date = " + SqlDateLiteral(IstNow()) + " WHERE order_id = ? AND (packing_ready_date IS NULL OR packing_ready_date = '')", orderId); } catch { }
             try
             {
                 var balanceQty = boxQty;
@@ -1637,7 +1637,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         AutoCompletePlannerPreviousStations(conn, user, order, packingStation, sequenceStations);
         ClearAllQueueVisibility(conn, I(order, "order_id"));
         EnsureQueueState(conn, I(order, "order_id"), I(packingStation, "station_id"), "PENDING", true, "Packing portal ready", I(user, "user_id"));
-        Execute(conn, "UPDATE tbl_orders SET workflow_stage_code = ?, dispatch_status_code = ?, correction_queue = FALSE, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + ", last_action = ? WHERE order_id = ?",
+        Execute(conn, "UPDATE tbl_orders SET workflow_stage_code = ?, dispatch_status_code = ?, correction_queue = FALSE, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
             "PRODUCTION_STARTED", "", I(user, "user_id"), "Packing portal moved to Packing", I(order, "order_id"));
         try
         {
@@ -1665,12 +1665,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var existing = QueryOne(conn, "SELECT * FROM tbl_dispatch_boxes WHERE order_id = ? AND box_no = ?", orderId, boxNo);
             if (existing == null)
             {
-                Execute(conn, "INSERT INTO tbl_dispatch_boxes (order_id, box_no, box_state, updated_by, updated_at, created_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(DateTime.Now) + ", " + SqlDateLiteral(DateTime.Now) + ")",
+                Execute(conn, "INSERT INTO tbl_dispatch_boxes (order_id, box_no, box_state, updated_by, updated_at, created_at) VALUES (?, ?, ?, ?, " + SqlDateLiteral(IstNow()) + ", " + SqlDateLiteral(IstNow()) + ")",
                     orderId, boxNo, state, I(user, "user_id"));
             }
             else
             {
-                Execute(conn, "UPDATE tbl_dispatch_boxes SET box_state = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE dispatch_box_id = ?",
+                Execute(conn, "UPDATE tbl_dispatch_boxes SET box_state = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE dispatch_box_id = ?",
                     state, I(user, "user_id"), I(existing, "dispatch_box_id"));
             }
             Audit(conn, I(user, "user_id"), "Dispatch", "Order", S(FindOrderById(conn, orderId), "order_number"), "Dispatch Box State", "", boxNo + " | " + state, "", null);
@@ -2045,7 +2045,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 if (station == null) throw new ApiFailure(404, "Assigned station not found.");
                 stationId = I(station, "machine_id");
             }
-            var now = DateTime.Now;
+            var now = IstNow();
             if (targetUserId > 0)
             {
                 var target = QueryOne(conn, "SELECT user_id, is_active, password_hash FROM tbl_users WHERE user_id = ?", targetUserId);
@@ -2088,7 +2088,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var password = Require(Value(context, "password"), "Password is required.");
             var target = GetUserByLogin(conn, loginId);
             if (target == null) throw new ApiFailure(404, "User not found.");
-            Execute(conn, "UPDATE tbl_users SET password_hash = ?, password_salt = '', password_iterations = 0, updated_at = " + SqlDateLiteral(DateTime.Now) + " WHERE user_id = ?", password, I(target, "user_id"));
+            Execute(conn, "UPDATE tbl_users SET password_hash = ?, password_salt = '', password_iterations = 0, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE user_id = ?", password, I(target, "user_id"));
             WriteJson(context, Obj("ok", true));
         }
     }
@@ -2594,7 +2594,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var orderId = I(order, "order_id");
             if (existingRows.Contains(orderId)) continue;
             maxRank += 10;
-            Execute(conn, "INSERT INTO tbl_production_planner (order_id, planning_rank, updated_by, updated_at) VALUES (?, ?, 0, " + SqlDateLiteral(DateTime.Now) + ")", orderId, maxRank);
+            Execute(conn, "INSERT INTO tbl_production_planner (order_id, planning_rank, updated_by, updated_at) VALUES (?, ?, 0, " + SqlDateLiteral(IstNow()) + ")", orderId, maxRank);
         }
     }
 
@@ -2858,7 +2858,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     private Dictionary<string, object> BuildWeeklySummary(List<Dictionary<string, object>> orders, List<Dictionary<string, object>> audits)
     {
         var startDate = DateTime.Today.AddDays(-6);
-        var endDate = DateTime.Now;
+        var endDate = IstNow();
         var startKey = DateSortKey(startDate);
         var weeklyAudits = audits
             .Where(a => string.CompareOrdinal(S(a, "created_sort"), startKey) >= 0)
@@ -3069,7 +3069,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         var nextName = NextStationName(machineNames, stationName);
         var previousStation = string.IsNullOrWhiteSpace(previousName) ? null : sequenceStations.FirstOrDefault(m => S(m, "machine_name") == previousName);
         var nextStation = string.IsNullOrWhiteSpace(nextName) ? null : sequenceStations.FirstOrDefault(m => S(m, "machine_name") == nextName);
-        var now = DateTime.Now;
+        var now = IstNow();
         var workflowStageCode = "PRODUCTION_STARTED";
         var dispatchStatusCode = S(order, "dispatch_status_code");
         var lastAction = "";
@@ -3195,7 +3195,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             {
                 PreserveOrActivateNextStation(conn, I(subOrder, "order_id"), dispatchStation.ContainsKey("station_id") ? I(dispatchStation, "station_id") : I(dispatchStation, "machine_id"), I(user, "user_id"));
             }
-            Execute(conn, "UPDATE tbl_orders SET workflow_stage_code = ?, dispatch_status_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + ", last_action = ? WHERE order_id = ?",
+            Execute(conn, "UPDATE tbl_orders SET workflow_stage_code = ?, dispatch_status_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
                 "DISPATCH_READY", "", I(user, "user_id"), note, I(subOrder, "order_id"));
             AddHistory(conn, I(subOrder, "order_id"), I(packingStation, "station_id"), "COMPLETED", "PENDING", "COMPLETED", I(packingStation, "station_id"), dispatchStation == null ? (int?)null : (dispatchStation.ContainsKey("station_id") ? I(dispatchStation, "station_id") : I(dispatchStation, "machine_id")), note, I(user, "user_id"));
             try
@@ -3220,7 +3220,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         var stationName = S(targetStation, "machine_name");
         var workflowStage = string.Equals(stationName, "Dispatch", StringComparison.OrdinalIgnoreCase) ? "DISPATCH_READY" : "PRODUCTION_STARTED";
         var dispatchStatus = string.Equals(stationName, "Dispatch", StringComparison.OrdinalIgnoreCase) ? "" : S(order, "dispatch_status_code");
-        Execute(conn, "UPDATE tbl_orders SET workflow_stage_code = ?, dispatch_status_code = ?, correction_queue = FALSE, updated_by = ?, updated_at = " + SqlDateLiteral(DateTime.Now) + ", last_action = ? WHERE order_id = ?",
+        Execute(conn, "UPDATE tbl_orders SET workflow_stage_code = ?, dispatch_status_code = ?, correction_queue = FALSE, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
             workflowStage, dispatchStatus, I(user, "user_id"), "Planner moved to " + stationName, I(order, "order_id"));
         AddHistory(conn, I(order, "order_id"), I(targetStation, "machine_id"), "PLANNER_ASSIGNED_STATION", "VISIBLE", "PENDING", fromStation == null ? (int?)null : I(fromStation, "station_id"), I(targetStation, "machine_id"), "Planner moved to " + stationName, I(user, "user_id"));
         try
@@ -3285,7 +3285,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     private void EnsureQueueState(OleDbConnection conn, int orderId, int stationId, string queueStatusCode, bool isVisible, string remarks, int userId)
     {
         var existing = QueryOne(conn, "SELECT queue_id FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, stationId);
-        var now = DateTime.Now;
+        var now = IstNow();
         if (existing != null)
         {
             Execute(conn, "UPDATE tbl_order_station_queue SET queue_status_code = ?, is_visible = " + SqlBoolLiteral(isVisible) + ", remarks = ?, updated_by = ?, updated_at = " + SqlDateLiteral(now) + " WHERE queue_id = ?",
@@ -3313,13 +3313,13 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
 
     private void AddHistory(OleDbConnection conn, int orderId, int? stationId, string actionCode, string previousStatusCode, string newStatusCode, int? fromStationId, int? toStationId, string remarks, int userId)
     {
-        Execute(conn, "INSERT INTO tbl_order_history (order_id, station_id, action_code, previous_status_code, new_status_code, from_station_id, to_station_id, remarks, acted_by, acted_at) VALUES (?, " + SqlIntLiteral(stationId) + ", ?, ?, ?, " + SqlIntLiteral(fromStationId) + ", " + SqlIntLiteral(toStationId) + ", ?, ?, " + SqlDateLiteral(DateTime.Now) + ")",
+        Execute(conn, "INSERT INTO tbl_order_history (order_id, station_id, action_code, previous_status_code, new_status_code, from_station_id, to_station_id, remarks, acted_by, acted_at) VALUES (?, " + SqlIntLiteral(stationId) + ", ?, ?, ?, " + SqlIntLiteral(fromStationId) + ", " + SqlIntLiteral(toStationId) + ", ?, ?, " + SqlDateLiteral(IstNow()) + ")",
             orderId, actionCode, NullableString(previousStatusCode), NullableString(newStatusCode), remarks, userId);
     }
 
     private void Audit(OleDbConnection conn, int userId, string moduleName, string recordType, string recordKey, string actionName, string previousValue, string newValue, string remarks, int? stationId)
     {
-        Execute(conn, "INSERT INTO tbl_audit_logs (module_name, record_type, record_key, action_name, previous_value, new_value, remarks, station_id, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, " + SqlIntLiteral(stationId) + ", ?, " + SqlDateLiteral(DateTime.Now) + ")",
+        Execute(conn, "INSERT INTO tbl_audit_logs (module_name, record_type, record_key, action_name, previous_value, new_value, remarks, station_id, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, " + SqlIntLiteral(stationId) + ", ?, " + SqlDateLiteral(IstNow()) + ")",
             moduleName, recordType, recordKey, actionName, previousValue, newValue, remarks, userId);
     }
 
@@ -3962,7 +3962,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         }
         catch
         {
-            return DateTime.Now;
+            return IstNow();
         }
     }
 
@@ -4068,7 +4068,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     {
         var roles = QueryAll(conn, "SELECT role_id, role_name FROM tbl_roles").ToDictionary(r => S(r, "role_name"), StringComparer.OrdinalIgnoreCase);
         var stations = QueryAll(conn, "SELECT machine_id, machine_name FROM tbl_machines").ToDictionary(r => S(r, "machine_name"), StringComparer.OrdinalIgnoreCase);
-        var now = DateTime.Now;
+        var now = IstNow();
         foreach (var sample in SampleUsers)
         {
             if (!roles.ContainsKey(sample.RoleName)) continue;
@@ -4466,7 +4466,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         if (QueryOne(conn, "SELECT dealer_id FROM tbl_dealers WHERE dealer_code = ?", dealerCode) != null)
             throw new ApiFailure(400, "Dealer ID already exists.");
         var creditLimitLakh = N(creditLimitText);
-        var now = DateTime.Now;
+        var now = IstNow();
         Execute(conn,
             "INSERT INTO tbl_dealers (dealer_code, dealer_name, company_name, dealer_type, customer_type_id, customer_type_code, city, pin_code, gst_number, contact_person, mobile_number, email, payment_terms, credit_limit_lakh, marketing_owner, quotation_owner, address, is_active, remarks, created_by, created_at, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, " + SqlDateLiteral(now) + ", ?, " + SqlDateLiteral(now) + ")",
             dealerCode,
@@ -4635,7 +4635,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         var sequenceProfile = ResolveSequenceProfile(conn, I(orderType, "order_type_id"), orderClass);
         var subOrderValue = string.IsNullOrWhiteSpace(mainOrderReference) ? "" : mainOrderReference.Trim();
         var quotationNumber = NextCode(conn, "tbl_orders", "quotation_number", "QT");
-        var now = DateTime.Now;
+        var now = IstNow();
         var expectedConfirmationDate = ParseDate(expectedConfirmationDateValue);
         Execute(conn,
             "INSERT INTO tbl_orders (quotation_number, order_number, quotation_date, dealer_id, customer_name, customer_type_id, order_type_id, sequence_profile_id, order_class_code, main_order, sub_order, site_name, location, approx_value, expected_confirmation_date, quotation_remarks, workflow_stage_code, procurement_status_code, dispatch_status_code, correction_queue, created_by, created_at, updated_by, updated_at, last_action) VALUES (?, ?, " + SqlDateLiteral(now) + ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " + SqlDateLiteral(expectedConfirmationDate) + ", ?, ?, ?, ?, FALSE, ?, " + SqlDateLiteral(now) + ", ?, " + SqlDateLiteral(now) + ", ?)",
@@ -4674,7 +4674,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         var roles = QueryAll(conn, "SELECT role_id, role_name FROM tbl_roles").ToDictionary(r => S(r, "role_name"), StringComparer.OrdinalIgnoreCase);
         var stations = QueryAll(conn, "SELECT machine_id, machine_name FROM tbl_machines").ToDictionary(r => S(r, "machine_name"), StringComparer.OrdinalIgnoreCase);
         var imported = 0;
-        var now = DateTime.Now;
+        var now = IstNow();
 
         for (var i = 1; i < lines.Length; i++)
         {
@@ -4973,6 +4973,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         var dt = ToDateTime(value);
         return dt.HasValue ? dt.Value.ToString("yyyy-MM-dd HH:mm:ss") : "";
     }
+
+    private static readonly TimeZoneInfo IstZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+    private static DateTime IstNow() { return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, IstZone); }
 
     private static string SqlDateLiteral(DateTime? value)
     {
@@ -5474,7 +5477,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var actionCode = Value(context, "action_code").Trim().ToUpperInvariant();
             if (string.IsNullOrEmpty(actionCode)) actionCode = "COMPLETED";
             var remarks = Value(context, "remarks");
-            var now = DateTime.Now;
+            var now = IstNow();
             var order = FindOrderById(conn, orderId);
             if (order == null) throw new ApiFailure(404, "Order not found.");
             var station = FindMachineByName(conn, stationName);
@@ -5842,7 +5845,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var orderIds = Value(context, "order_ids");
             if (string.IsNullOrWhiteSpace(orderIds)) throw new ApiFailure(400, "Order IDs required.");
             var token = Guid.NewGuid().ToString("N").Substring(0, 16);
-            var now = DateTime.Now;
+            var now = IstNow();
             Execute(conn, "INSERT INTO tbl_remarks_requests (token, order_ids, requested_by, requested_at, status, created_at) VALUES (?, ?, ?, " + SqlDateLiteral(now) + ", 'pending', " + SqlDateLiteral(now) + ")",
                 token, orderIds, I(user, "user_id"));
             var reqId = Convert.ToInt32(Scalar(conn, "SELECT @@IDENTITY"));
@@ -5888,7 +5891,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (request == null) throw new ApiFailure(404, "Request not found.");
             var orderIdsStr = S(request, "order_ids");
             var ids = orderIdsStr.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => { int id; return int.TryParse(s.Trim(), out id) ? id : 0; }).Where(id => id > 0).ToList();
-            var now = DateTime.Now;
+            var now = IstNow();
             Dictionary<int, string> perOrderRemarks = null;
             if (!string.IsNullOrWhiteSpace(orderRemarksRaw))
             {
@@ -6002,7 +6005,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             }
             else
             {
-                var sevenDaysAgo = DateTime.Now.AddDays(-7);
+                var sevenDaysAgo = IstNow().AddDays(-7);
                 var oldPending = QueryAll(conn,
                     "SELECT request_id FROM tbl_remarks_requests WHERE requested_by = ? AND status = 'pending' AND requested_at < ?",
                     I(user, "user_id"), SqlDateLiteral(sevenDaysAgo));
@@ -6025,7 +6028,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var user = RequireLogin(context, conn);
             var roleName = S(user, "role_name");
             var userId = I(user, "user_id");
-            var sevenDaysAgo = DateTime.Now.AddDays(-7);
+            var sevenDaysAgo = IstNow().AddDays(-7);
             var whereClause = roleName == "Admin" ? "" : " AND rr.requested_by = " + SqlIntLiteral(userId);
             var sql = "SELECT rr.requested_at, rr.replied_at, rr.status, rr.replied_by, " +
                        "o.order_number, d.dealer_name, o.customer_name, " +
@@ -6093,7 +6096,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         pendingRows = new List<Dictionary<string, object>>();
         EnsureSchema(conn);
 
-        var todayStart = DateTime.Now.Date;
+        var todayStart = IstNow().Date;
         var doneWhere = applyUserFilter ? " AND rr.requested_by = " + SqlIntLiteral(userId) : "";
         var doneSql = "SELECT rr.requested_at, rr.replied_at, rr.status, rr.requested_by, o.order_number, d.dealer_name, o.customer_name, rep.remarks, u.full_name AS replier_name FROM (((tbl_remarks_requests AS rr INNER JOIN tbl_remarks_replies AS rep ON rr.request_id = rep.request_id) INNER JOIN tbl_orders AS o ON rep.order_id = o.order_id) LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_users AS u ON rep.replied_by = u.user_id WHERE rr.replied_at >= " + SqlDateLiteral(todayStart) + " AND rr.status IN ('replied','partial')" + doneWhere + " ORDER BY rr.replied_at DESC";
         foreach (var r in QueryAll(conn, doneSql))
