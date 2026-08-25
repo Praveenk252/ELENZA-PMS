@@ -126,7 +126,8 @@ function showApp(){document.getElementById('loginScreen').style.display='none';d
 
 function loadBoard(){
   if(!currentUser)return;
-  fetch(API+'?action=planner-board-state',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+  var fd=new URLSearchParams();fd.append('action','planner-board-state');
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
     if(d.error){showToast(d.error,'error');return;}
     boardData=d;
     renderBoard();
