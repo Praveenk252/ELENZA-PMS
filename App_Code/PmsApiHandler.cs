@@ -358,6 +358,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "station-ready-orders":
                     HandleStationReadyOrders(context);
                     break;
+                case "order-timeline":
+                    HandleOrderTimeline(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -4977,6 +4980,14 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     private static readonly TimeZoneInfo IstZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
     private static DateTime IstNow() { return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, IstZone); }
 
+    private static string FormatDateTimeIST(object value)
+    {
+        var dt = ToDateTime(value);
+        if (!dt.HasValue) return "-";
+        var ist = TimeZoneInfo.ConvertTimeFromUtc(dt.Value.ToUniversalTime(), IstZone);
+        return ist.ToString("dd-MMM-yy, HH:mm");
+    }
+
     private static string SqlDateLiteral(DateTime? value)
     {
         if (!value.HasValue) return "NULL";
@@ -5707,6 +5718,56 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 "station_name", stationName,
                 "orders", result
             ));
+        }
+    }
+
+    private void HandleOrderTimeline(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var order = FindOrderById(conn, orderId);
+            if (order == null) throw new ApiFailure(404, "Order not found.");
+            var histRows = QueryAll(conn, "SELECT h.acted_at, h.action_code, h.new_status_code, h.remarks, s.machine_name AS station_name, u.full_name AS acted_by_name FROM ((tbl_order_history AS h LEFT JOIN tbl_machines AS s ON h.station_id = s.machine_id) LEFT JOIN tbl_users AS u ON h.acted_by = u.user_id) WHERE h.order_id = ? ORDER BY h.acted_at ASC, h.history_id ASC", orderId);
+
+            var result = new List<object>();
+            if (!string.IsNullOrWhiteSpace(S(order, "confirmation_date")))
+                result.Add(Obj("step", "Order Confirmed", "time", FormatDateTimeIST(DT(order, "confirmation_date")), "status", "done"));
+            if (!string.IsNullOrWhiteSpace(S(order, "optimisation_date")))
+                result.Add(Obj("step", "Optimisation Done", "time", FormatDateTimeIST(DT(order, "optimisation_date")), "by", S(order, "optimisation_by"), "status", "done"));
+            var stationDates = new[] {
+                new { key = "hot_press_date", label = "Hot Press" },
+                new { key = "cutting_date", label = "Cutting" },
+                new { key = "edgebanding_date", label = "Edgebanding" },
+                new { key = "drilling_date", label = "Drilling" },
+                new { key = "qc_date", label = "QC" },
+                new { key = "packed_date", label = "Packed" },
+                new { key = "dispatched_date", label = "Dispatch" }
+            };
+            foreach (var sd in stationDates)
+            {
+                var val = S(order, sd.key);
+                if (!string.IsNullOrWhiteSpace(val))
+                {
+                    result.Add(Obj("step", sd.label, "time", FormatDateTimeIST(DT(order, sd.key)), "status", "done"));
+                }
+            }
+            foreach (var h in histRows)
+            {
+                var action = S(h, "action_code");
+                var remarks = S(h, "remarks");
+                if (!string.IsNullOrWhiteSpace(remarks))
+                {
+                    var sn = S(h, "station_name");
+                    var by = S(h, "acted_by_name");
+                    var label = sn + " — " + action.Replace("_", " ").ToLower();
+                    result.Add(Obj("step", label, "time", FormatDateTimeIST(DT(h, "acted_at")), "by", by, "remarks", remarks, "status", "info"));
+                }
+            }
+            WriteJson(context, Obj("ok", true, "order_number", S(order, "order_number"), "timeline", result));
         }
     }
 

@@ -113,6 +113,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .content-tabs .ctab.active{color:var(--blue);border-bottom-color:var(--blue)}
 
 .hidden{display:none !important}
+
+.order-timeline{margin-top:12px;padding:10px 0}
+.order-timeline h4{font-size:13px;color:var(--navy);margin-bottom:8px;font-weight:700}
+.tl-step{display:flex;align-items:flex-start;gap:10px;padding:6px 0;position:relative}
+.tl-step:not(:last-child)::after{content:'';position:absolute;left:7px;top:22px;width:2px;height:calc(100% - 10px);background:var(--border)}
+.tl-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:2px;border:2px solid var(--border);background:var(--white)}
+.tl-dot.done{background:var(--green);border-color:var(--green)}
+.tl-dot.current{background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 3px rgba(4,107,210,.2)}
+.tl-dot.pending{background:var(--white);border-color:#cbd5e1}
+.tl-info{flex:1}
+.tl-label{font-size:12px;font-weight:600;color:var(--navy)}
+.tl-time{font-size:11px;color:var(--slate);opacity:.8}
+.tl-remarks{font-size:11px;color:var(--orange);font-style:italic;margin-top:2px}
 </style>
 </head>
 <body>
@@ -165,6 +178,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
           <div class="combo-dropdown" id="comboDropdown"></div>
         </div>
         <div id="selectedInfo" class="info-row hidden"></div>
+        <div id="orderTimeline" class="order-timeline hidden"></div>
         <span id="myStatusChip" class="status-chip">This station: Partial</span>
         <div id="gateBanner" class="gate-banner"></div>
         <button class="update-btn" id="updateBtn" disabled onclick="doUpdate()">Mark Completed</button>
@@ -363,9 +377,8 @@ function selectOrder(order){
   info.classList.remove('hidden');
   var dateStr=order.station_date?shortDate(order.station_date):'Not updated';
   info.innerHTML='<div class="detail"><div class="label">Order Number</div><div class="value">'+escHtml(order.order_number)+'</div></div>'
-    +'<div class="detail"><div class="label">Customer</div><div class="value">'+escHtml(order.customer_name||'-')+'</div></div>'
-    +'<div class="detail"><div class="label">Dealer</div><div class="value">'+escHtml(order.dealer_name||'-')+'</div></div>'
     +'<div class="detail"><div class="label">'+escHtml(currentStation)+' Date</div><div class="value">'+escHtml(dateStr)+'</div></div>';
+  loadOrderTimeline(order.order_id);
   updateGate(order);
 }
 
@@ -454,6 +467,8 @@ function clearCombo(){
   document.getElementById('orderInput').value='';
   document.getElementById('comboDropdown').classList.remove('show');
   document.getElementById('selectedInfo').classList.add('hidden');
+  document.getElementById('orderTimeline').classList.add('hidden');
+  document.getElementById('orderTimeline').innerHTML='';
   document.getElementById('updateBtn').disabled=true;
   document.getElementById('partialBtn').disabled=true;
   document.getElementById('gateBanner').style.display='none';
@@ -501,9 +516,41 @@ function escHtml(s){
 function shortDate(v){
   var raw=String(v||'').trim();
   if(!raw)return '-';
-  var m=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m)return m[3]+'-'+m[2]+'-'+m[1].slice(-2);
+  var m=raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+  if(m){
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var d=parseInt(m[3],10), mon=months[parseInt(m[2],10)-1], y=m[1].slice(-2);
+    return d+'-'+mon+'-'+y+', '+m[4]+':'+m[5];
+  }
   return raw;
+}
+
+function loadOrderTimeline(orderId){
+  var el=document.getElementById('orderTimeline');
+  el.classList.add('hidden');el.innerHTML='';
+  var fd=new URLSearchParams();
+  fd.append('action','order-timeline');
+  fd.append('order_id',orderId);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.error||!d.timeline||!d.timeline.length){el.classList.add('hidden');return;}
+    var h='<h4>Order History — '+escHtml(d.order_number||'')+'</h4>';
+    d.timeline.forEach(function(t){
+      var dotClass=t.status==='done'?'done':t.status==='current'?'current':'pending';
+      h+='<div class="tl-step">';
+      h+='<div class="tl-dot '+dotClass+'"></div>';
+      h+='<div class="tl-info"><div class="tl-label">'+escHtml(t.step||'');
+      if(t.by)h+=' <span style="font-weight:400;color:var(--slate)">('+escHtml(t.by)+')</span>';
+      h+='</div>';
+      if(t.time)h+='<div class="tl-time">'+escHtml(t.time)+'</div>';
+      if(t.remarks)h+='<div class="tl-remarks">'+escHtml(t.remarks)+'</div>';
+      h+='</div></div>';
+    });
+    el.innerHTML=h;
+    el.classList.remove('hidden');
+  })
+  .catch(function(){el.classList.add('hidden');});
 }
 
 document.addEventListener('click',function(e){
