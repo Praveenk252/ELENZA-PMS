@@ -5209,6 +5209,17 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         return row != null && row.TryGetValue(key, out value) && value != null && value != DBNull.Value ? Convert.ToString(value) : "";
     }
 
+    private static string FixEncoding(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        return s
+            .Replace("\u00E2\u20AC\u201D", "\u2014")
+            .Replace("\u00E2\u20AC\u201C", "\u201C")
+            .Replace("\u00E2\u20AC\u2018", "\u2018")
+            .Replace("\u00E2\u20AC\u2019", "\u2019")
+            .Replace("\u00E2\u20AC\u2013", "\u2013");
+    }
+
     private static bool B(Dictionary<string, object> row, string key)
     {
         object value;
@@ -5800,11 +5811,11 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 {
                     var sn = S(h, "station_name");
                     var by = S(h, "acted_by_name");
-                    var label = sn + " — " + action.Replace("_", " ").ToLower();
-                    result.Add(Obj("step", label, "time", FormatDateTimeIST(DT(h, "acted_at")), "by", by, "remarks", remarks, "status", "info"));
+                    var label = FixEncoding(sn + " \u2014 " + action.Replace("_", " ").ToLower());
+                    result.Add(Obj("step", label, "time", FormatDateTimeIST(DT(h, "acted_at")), "by", by, "remarks", FixEncoding(remarks), "status", "info"));
                 }
             }
-            WriteJson(context, Obj("ok", true, "order_number", S(order, "order_number"), "timeline", result));
+            WriteJson(context, Obj("ok", true, "order_number", FixEncoding(S(order, "order_number")), "timeline", result));
         }
     }
 
