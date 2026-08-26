@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElenzaIndia - Dealer Details</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;color:#1e293b}
+.topbar{background:#046bd2;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:16px;font-weight:600}
+.topbar .info{font-size:13px;opacity:.9}
+.topbar .btn{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;text-decoration:none;display:inline-block}
+.topbar .btn:hover{background:rgba(255,255,255,.3)}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+.panel{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px}
+.panel h3{font-size:15px;font-weight:600;margin-bottom:14px;color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg{display:flex;flex-direction:column}
+.fg label{font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px}
+.fg input,.fg select,.fg textarea{padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px}
+.fg textarea{resize:vertical;min-height:60px}
+.fg.full{grid-column:1/-1}
+.fbtns{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.fbtns button{padding:8px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-save{background:#046bd2;color:#fff}.btn-save:hover{background:#0358b0}
+.btn-cancel{background:#e2e8f0;color:#475569}.btn-cancel:hover{background:#cbd5e1}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:13px;z-index:999;display:none}
+.toast.err{background:#dc2626}.toast.ok{background:#16a34a}
+.ocard{border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:8px}
+.ocard:hover{background:#f8fafc}
+.ocard .onum{font-weight:600;color:#046bd2;font-size:14px}
+.ocard .odet{font-size:12px;color:#64748b;margin-top:4px}
+.b{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.b.g{background:#dcfce7;color:#166534}.b.bl{background:#dbeafe;color:#1e40af}.b.y{background:#fef9c3;color:#854d0e}.b.gr{background:#f1f5f9;color:#475569}
+.tscroll{max-height:400px;overflow-y:auto}
+#loginOv{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f1f5f9}
+.lcard{background:#fff;padding:32px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:360px;text-align:center}
+.lcard h2{font-size:18px;margin-bottom:4px}.lcard p{font-size:13px;color:#64748b;margin-bottom:20px}
+.lcard input{width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;margin-bottom:10px}
+.lcard button{width:100%;padding:10px;background:#046bd2;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.lcard .err{color:#dc2626;font-size:12px;margin-top:10px;display:none}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+.auth-quick-link-icon{font-size:18px;line-height:1}
+.auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+.auth-quick-link-desc{display:none}
+@media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
+.nocard{text-align:center;color:#94a3b8;padding:30px;font-size:13px}
+@media(max-width:768px){.fgrid{grid-template-columns:1fr}.topbar{flex-direction:column;gap:8px;text-align:center}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="marketing-assignment.html" class="btn">Back</a>
+    <h1 id="pageTitle">Dealer Details</h1>
+  </div>
+  <div class="info" id="uInfo"></div>
+  <button class="btn" onclick="logout()">Logout</button>
+</div>
+<div class="wrap" id="main" style="display:none">
+  <div class="panel">
+    <h3>Dealer Information</h3>
+    <form id="dForm" onsubmit="saveDealer(event)">
+      <div class="fgrid">
+        <div class="fg"><label>Dealer Code</label><input type="text" id="f_code" readonly style="background:#f1f5f9"></div>
+        <div class="fg"><label>Dealer Name *</label><input type="text" id="f_name" required></div>
+        <div class="fg"><label>Company Name</label><input type="text" id="f_company"></div>
+        <div class="fg"><label>Dealer Type *</label><select id="f_dtype" required></select></div>
+        <div class="fg"><label>Customer Type *</label><select id="f ctype" required></select></div>
+        <div class="fg"><label>City</label><input type="text" id="f_city"></div>
+        <div class="fg"><label>Area</label><input type="text" id="f_area"></div>
+        <div class="fg"><label>Pin Code</label><input type="text" id="f_pin"></div>
+        <div class="fg"><label>GST Number</label><input type="text" id="f_gst"></div>
+        <div class="fg"><label>Contact Person</label><input type="text" id="f_contact"></div>
+        <div class="fg"><label>Mobile Number *</label><input type="text" id="f_mobile" required></div>
+        <div class="fg"><label>WhatsApp Number</label><input type="text" id="f_whatsapp"></div>
+        <div class="fg"><label>Email</label><input type="email" id="f_email"></div>
+        <div class="fg"><label>Payment Terms</label><select id="f_payterms"></select></div>
+        <div class="fg"><label>Credit Limit (Lakh)</label><input type="number" id="f_credit"></div>
+        <div class="fg"><label>Marketing Owner</label><select id="f_mowner"></select></div>
+        <div class="fg"><label>Quotation Owner</label><input type="text" id="f_qowner"></div>
+        <div class="fg full"><label>Address</label><textarea id="f_address"></textarea></div>
+        <div class="fg full"><label>Remarks</label><textarea id="f_remarks"></textarea></div>
+      </div>
+      <div class="fbtns">
+        <button type="button" class="btn-cancel" onclick="window.location='marketing-assignment.html'">Cancel</button>
+        <button type="submit" class="btn-save">Save Changes</button>
+      </div>
+    </form>
+  </div>
+  <div class="panel">
+    <h3>Orders (<span id="oCount">0</span>)</h3>
+    <div class="tscroll" id="oList"><div class="nocard">Loading...</div></div>
+  </div>
+</div>
+<div id="loginOv">
+  <div class="lcard">
+    <h2>ElenzaIndia Admin</h2><p>Dealer Details</p>
+    <form onsubmit="doLogin(event)">
+      <input type="text" id="lUser" placeholder="Admin Login ID" required>
+      <input type="password" id="lPass" placeholder="Password" required>
+      <button type="submit">Sign In</button>
+    </form>
+    <p class="err" id="lErr"></p>
+    <div class="auth-quick-links">
+    <div class="auth-quick-links-grid">
+    <a href="stations.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏭</span><span class="auth-quick-link-label">Stations</span><span class="auth-quick-link-desc">Station workflow</span></a>
+    <a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+    <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+    <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+    <a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+    <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+    <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+    <a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+    <a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+    </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var D={dealer:null,customers:[],musers:[],dtypes:[],pters:[]};
+function api(a){return fetch('api.ashx?action='+a,{credentials:'same-origin'}).then(function(r){return r.json()})}
+function apiPost(a,b){return fetch('api.ashx?action='+a,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b,credentials:'same-origin'}).then(function(r){return r.json()})}
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
+function logout(){D.dealer=null;document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
+function getParam(n){return new URLSearchParams(window.location.search).get(n)}
+function doLogin(e){e.preventDefault();var u=document.getElementById('lUser').value.trim(),p=document.getElementById('lPass').value,er=document.getElementById('lErr');er.style.display='none';api('login&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(function(r){if(!r.ok){er.textContent=r.message||'Failed';er.style.display='block';return}if(r.user.role_name!=='Admin'){er.textContent='Admin only.';er.style.display='block';return}sessionStorage.setItem('pms_user',u);document.getElementById('loginOv').style.display='none';document.getElementById('main').style.display='block';document.getElementById('uInfo').textContent=r.user.full_name;loadDealer(getParam('dealer_id'))}).catch(function(){er.textContent='Connection error';er.style.display='block'})}
+function load(){var id=getParam('dealer_id');if(!id){toast('No dealer specified','err');return}var savedUser=sessionStorage.getItem('pms_user');if(savedUser){api('login&username='+encodeURIComponent(savedUser)+'&password=1').then(function(r){if(r.ok){document.getElementById('loginOv').style.display='none';document.getElementById('main').style.display='block';document.getElementById('uInfo').textContent=r.user.full_name;loadDealer(id)}else{showLogin()}}).catch(function(){showLogin()})}else{showLogin()}}
+function showLogin(){document.getElementById('loginOv').style.display='flex'}
+function loadDealer(id){api('marketing-dealer-detail&dealer_id='+id).then(function(d){if(!d.ok){toast(d.message||'Error','err');return}D.dealer=d.dealer;D.customers=d.customer_types||[];D.musers=d.marketing_users||[];D.dtypes=d.dealer_types||[];D.pters=d.payment_terms_list||[];fillForm();renderOrders(d.orders||[])}).catch(function(){toast('Load failed','err')})}
+function fillForm(){var d=D.dealer;if(!d)return;document.getElementById('pageTitle').textContent=d.dealer_name||'Dealer Details';document.getElementById('f_code').value=d.dealer_code||'';document.getElementById('f_name').value=d.dealer_name||'';document.getElementById('f_company').value=d.company_name||'';document.getElementById('f_city').value=d.city||'';document.getElementById('f_area').value=d.area||'';document.getElementById('f_pin').value=d.pin_code||'';document.getElementById('f_gst').value=d.gst_number||'';document.getElementById('f_contact').value=d.contact_person||'';document.getElementById('f_mobile').value=d.mobile_number||'';document.getElementById('f_whatsapp').value=d.whatsapp_number||'';document.getElementById('f_email').value=d.email||'';document.getElementById('f_credit').value=d.credit_limit_lakh||'';document.getElementById('f_qowner').value=d.quotation_owner||'';document.getElementById('f_address').value=d.address||'';document.getElementById('f_remarks').value=d.remarks||'';fillDropdown('f_dtype',D.dtypes,d.dealer_type);fillDropdown('f ctype',D.customers.map(function(c){return{code:c.code,name:c.name}}),d.customer_type_code);fillDropdown('f_mowner',D.musers.map(function(u){return{code:u.full_name,name:u.full_name}}),d.marketing_owner);fillDropdown('f_payterms',D.pters.map(function(p){return{code:p.name,name:p.name}}),d.payment_terms)}
+function fillDropdown(id,items,current){var el=document.getElementById(id);el.innerHTML='';items.forEach(function(i){var v=i.code||i.name;var o=document.createElement('option');o.value=v;o.textContent=i.name||v;if(v===current)o.selected=true;el.appendChild(o)})}
+function renderOrders(orders){document.getElementById('oCount').textContent=orders.length;if(!orders.length){document.getElementById('oList').innerHTML='<div class="nocard">No orders found</div>';return}var h='';orders.forEach(function(o){var sc=String(o.workflow_stage_code||'').toUpperCase();var sl='gr';var sn=o.workflow_stage||'';if(sc==='DISPATCHED'){sl='g';sn='Dispatched'}else if(sc==='DISPATCH_READY'){sl='y';sn='Packed'}else if(sc.indexOf('PRODUCTION')>=0){sl='bl';sn='In Production'}h+='<div class="ocard"><div style="display:flex;justify-content:space-between;align-items:center"><div class="onum">'+(o.order_number||'')+'</div><span class="b '+sl+'">'+sn+'</span></div><div class="odet">'+(o.customer_name||'')+' | '+(o.order_type||'')+' | '+(o.approx_value?'Rs. '+o.approx_value:'')+' | '+(o.updated_at||'')+'</div></div>'});document.getElementById('oList').innerHTML=h}
+function saveDealer(e){e.preventDefault();var d=D.dealer;if(!d)return;var body='dealer_id='+d.dealer_id+'&dealer_name='+encodeURIComponent(document.getElementById('f_name').value)+'&company_name='+encodeURIComponent(document.getElementById('f_company').value)+'&dealer_type='+encodeURIComponent(document.getElementById('f_dtype').value)+'&customer_type_code='+encodeURIComponent(document.getElementById('f ctype').value)+'&city='+encodeURIComponent(document.getElementById('f_city').value)+'&area='+encodeURIComponent(document.getElementById('f_area').value)+'&pin_code='+encodeURIComponent(document.getElementById('f_pin').value)+'&gst_number='+encodeURIComponent(document.getElementById('f_gst').value)+'&contact_person='+encodeURIComponent(document.getElementById('f_contact').value)+'&mobile_number='+encodeURIComponent(document.getElementById('f_mobile').value)+'&whatsapp_number='+encodeURIComponent(document.getElementById('f_whatsapp').value)+'&email='+encodeURIComponent(document.getElementById('f_email').value)+'&payment_terms='+encodeURIComponent(document.getElementById('f_payterms').value)+'&credit_limit_lakh='+encodeURIComponent(document.getElementById('f_credit').value)+'&marketing_owner='+encodeURIComponent(document.getElementById('f_mowner').value)+'&quotation_owner='+encodeURIComponent(document.getElementById('f_qowner').value)+'&address='+encodeURIComponent(document.getElementById('f_address').value)+'&remarks='+encodeURIComponent(document.getElementById('f_remarks').value);apiPost('marketing-dealer-update',body).then(function(r){if(r.ok){toast('Saved successfully','ok')}else{toast(r.message||'Save failed','err')}}).catch(function(){toast('Network error','err')})}
+</script>
+</body>
+</html>
