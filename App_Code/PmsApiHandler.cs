@@ -376,6 +376,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "planner-board-batch-assign":
                     HandlePlannerBoardBatchAssign(context);
                     break;
+                case "planner-board-edit-remarks":
+                    HandlePlannerBoardEditRemarks(context);
+                    break;
+                case "planner-board-vs-actual":
+                    HandlePlannerBoardVsActual(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -4042,6 +4048,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "CREATE INDEX ix_tbl_mail_reports_daily ON tbl_mail_reports (report_kind, report_date)");
         TryExecute(conn, "CREATE TABLE tbl_planner_board (board_id COUNTER PRIMARY KEY, order_id LONG NOT NULL, station_id LONG NOT NULL, assigned_by LONG, assigned_at DATETIME, planned_date DATETIME)");
         TryExecute(conn, "ALTER TABLE tbl_planner_board ADD COLUMN planned_date DATETIME");
+        TryExecute(conn, "ALTER TABLE tbl_planner_board ADD COLUMN remarks TEXT(500)");
         TryExecute(conn, "CREATE UNIQUE INDEX ux_planner_board_order_station ON tbl_planner_board (order_id, station_id)");
     }
 
@@ -5594,11 +5601,20 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (station == null) throw new ApiFailure(404, "Station not found.");
             var blockedBy = PartialUpstreamStations(conn, order, stationName);
             var myQueue = QueryOne(conn, "SELECT queue_status_code FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ?", orderId, I(station, "machine_id"));
+            var blockedRemarks = new List<string>();
+            foreach (var stnName in blockedBy)
+            {
+                var stn = FindMachineByName(conn, stnName);
+                if (stn == null) continue;
+                var q = QueryOne(conn, "SELECT remarks FROM tbl_order_station_queue WHERE order_id = ? AND station_id = ? AND queue_status_code = 'PARTIAL_COMPLETED'", orderId, I(stn, "machine_id"));
+                if (q != null && !string.IsNullOrEmpty(S(q, "remarks"))) blockedRemarks.Add(stnName + ": " + S(q, "remarks"));
+            }
             WriteJson(context, Obj(
                 "ok", true,
                 "upstream_partial", blockedBy.Count > 0,
                 "upstream_partial_station", blockedBy.Count > 0 ? blockedBy[0] : "",
                 "upstream_partial_stations", blockedBy,
+                "upstream_partial_remarks", blockedRemarks,
                 "my_queue_status", myQueue == null ? "" : S(myQueue, "queue_status_code")));
         }
     }
@@ -5831,27 +5847,37 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 if (matchingMachine != null)
                 {
                     orderStationMap[oid].Add(Obj("station_id", sid, "station_name", S(matchingMachine, "machine_name"), "planned_date", FormatDateTimeIST(br["planned_date"])));
-                    var orderRows = QueryAll(conn, "SELECT order_number, customer_name, board_qty_decimal, panel_qty FROM tbl_orders WHERE order_id = " + oid);
+                    var orderRows = QueryAll(conn, "SELECT o.order_number, o.customer_name, o.board_qty_decimal, o.panel_qty, d.dealer_name FROM tbl_orders o LEFT JOIN tbl_dealers d ON o.dealer_id=d.dealer_id WHERE o.order_id = " + oid);
                     var orderRow = orderRows.Count > 0 ? orderRows[0] : null;
-                    var queueRows = QueryAll(conn, "SELECT queue_status_code, remarks FROM tbl_order_station_queue WHERE order_id = " + oid + " AND station_id = " + sid + " AND is_visible = TRUE");
+                    var queueRows = QueryAll(conn, "SELECT queue_status_code, remarks FROM tbl_order_station_queue WHERE order_id = " + oid + " AND station_id = " + sid);
                     var queueRow = queueRows.Count > 0 ? queueRows[0] : null;
                     var queueStatus = queueRow != null ? S(queueRow, "queue_status_code") : "";
                     var remarks = queueRow != null ? S(queueRow, "remarks") : "";
+                    var wasCompleted = false;
+                    try { var wcRows = QueryAll(conn, "SELECT queue_id FROM tbl_order_station_queue WHERE order_id = " + oid + " AND station_id = " + sid + " AND (queue_status_code = 'COMPLETED' OR queue_status_code = 'PARTIAL_COMPLETED')"); wasCompleted = wcRows.Count > 0; } catch { }
+                    var priority = "";
+                    var edd = "";
+                    try { var ppRows = QueryAll(conn, "SELECT [priority], sla_date FROM tbl_production_planner WHERE order_id = " + oid); if (ppRows.Count > 0) { priority = S(ppRows[0], "priority"); edd = FormatDateTimeIST(ppRows[0]["sla_date"]); } } catch { }
                     boardResult.Add(Obj(
                         "order_id", oid,
                         "order_number", orderRow != null ? S(orderRow, "order_number") : "",
                         "customer_name", orderRow != null ? S(orderRow, "customer_name") : "",
+                        "dealer_name", orderRow != null ? S(orderRow, "dealer_name") : "",
                         "board_qty", orderRow != null ? S(orderRow, "board_qty_decimal") : "",
                         "panel_qty", orderRow != null ? S(orderRow, "panel_qty") : "",
                         "station_id", sid,
                         "station_name", S(matchingMachine, "machine_name"),
                         "queue_status", queueStatus,
                         "remarks", remarks,
+                        "was_completed", wasCompleted,
+                        "priority", priority,
+                        "edd", edd,
                         "planned_date", FormatDateTimeIST(br["planned_date"])
                     ));
                 }
             }
-            var activeOrders = QueryAll(conn, "SELECT order_id, order_number, customer_name, workflow_stage_code, board_qty_decimal, panel_qty, order_type_id, dealer_id, confirmation_date FROM tbl_orders WHERE workflow_stage_code = 'OPTIMISATION_DONE' OR workflow_stage_code = 'PRODUCTION_STARTED' OR workflow_stage_code = 'IN_PROGRESS' ORDER BY confirmation_date ASC, order_number ASC");
+            var enrichedOrders = LoadEnrichedOrders(conn, LoadMasterSets(conn), user);
+            var activeOrders = enrichedOrders.Where(o => IsPlanningEligible(o)).ToList();
             var typeIds = new HashSet<int>();
             var dealerIds = new HashSet<int>();
             var orderIdsForPlanner = new List<int>();
@@ -5876,7 +5902,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var plannedStations = orderStationMap.ContainsKey(oid) ? orderStationMap[oid] : new List<Dictionary<string, object>>();
                 var plannedNames = string.Join(", ", plannedStations.Select(ps => S(ps, "station_name")));
                 var plannedDates = string.Join(", ", plannedStations.Select(ps => S(ps, "planned_date")).Where(d => !string.IsNullOrEmpty(d)));
-                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "board_qty_decimal"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "confirmation_date", confDate, "edd", edd, "priority", priority, "planned_stations", plannedNames, "planned_dates", plannedDates);
+                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "number_of_boards"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "confirmation_date", confDate, "edd", edd, "priority", priority, "planned_stations", plannedNames, "planned_dates", plannedDates);
             }).ToList();
             WriteJson(context, Obj("ok", true, "machines", machines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"), "sequence_no", I(m, "sequence_no"))).ToList(), "unplanned", unplanned, "board", boardResult));
         }
@@ -5958,6 +5984,66 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             }
             WriteJson(context, Obj("ok", true, "assigned", assigned, "skipped", skipped, "message", assigned + " orders assigned."));
         }
+    }
+
+    private void HandlePlannerBoardEditRemarks(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
+            var remarks = Value(context, "remarks") ?? "";
+            var existing = QueryAll(conn, "SELECT queue_id FROM tbl_order_station_queue WHERE order_id = " + orderId + " AND station_id = " + stationId);
+            if (existing.Count > 0)
+            {
+                Execute(conn, "UPDATE tbl_order_station_queue SET remarks = '" + remarks.Replace("'", "''") + "' WHERE order_id = " + orderId + " AND station_id = " + stationId);
+            }
+            else
+            {
+                Execute(conn, "INSERT INTO tbl_order_station_queue (order_id, station_id, queue_status_code, remarks, is_visible, updated_at) VALUES (" + orderId + ", " + stationId + ", 'PLANNED', '" + remarks.Replace("'", "''") + "', TRUE, " + SqlDateLiteral(IstNow()) + ")");
+            }
+            WriteJson(context, Obj("ok", true, "message", "Remarks updated."));
+        }
+    }
+
+    private void HandlePlannerBoardVsActual(HttpContext context)
+    {
+        try
+        {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var machines = QueryAll(conn, "SELECT machine_id, machine_name FROM tbl_machines ORDER BY sequence_no");
+            var allPlannedOrderIds = QueryAll(conn, "SELECT DISTINCT order_id FROM tbl_planner_board");
+            var plannedOrderSet = new HashSet<int>(allPlannedOrderIds.Select(r => Convert.ToInt32(I(r, "order_id"))));
+            var result = new List<object>();
+            foreach (var m in machines)
+            {
+                var mid = Convert.ToInt32(I(m, "machine_id"));
+                var planned = QueryAll(conn, "SELECT pb.order_id, o.order_number, o.customer_name, d.dealer_name FROM (tbl_planner_board pb INNER JOIN tbl_orders o ON pb.order_id=o.order_id) LEFT JOIN tbl_dealers d ON o.dealer_id=d.dealer_id WHERE pb.station_id=" + mid);
+                var completed = QueryAll(conn, "SELECT order_id FROM tbl_order_station_queue WHERE station_id=" + mid + " AND (queue_status_code='COMPLETED' OR queue_status_code='PARTIAL_COMPLETED')");
+                var completedIds = new HashSet<int>(completed.Where(c => plannedOrderSet.Contains(Convert.ToInt32(I(c, "order_id")))).Select(c => Convert.ToInt32(I(c, "order_id"))));
+                var plannedIds = new HashSet<int>(planned.Select(p => Convert.ToInt32(I(p, "order_id"))));
+                var missed = planned.Where(p => !completedIds.Contains(Convert.ToInt32(I(p, "order_id")))).ToList();
+                var extra = completed.Where(c => !plannedIds.Contains(Convert.ToInt32(I(c, "order_id"))) && plannedOrderSet.Contains(Convert.ToInt32(I(c, "order_id")))).ToList();
+                var extraOrders = new List<object>();
+                foreach (var e in extra)
+                {
+                    var eid = Convert.ToInt32(I(e, "order_id"));
+                    var eRow = QueryOne(conn, "SELECT o.order_number, o.customer_name, d.dealer_name FROM tbl_orders o LEFT JOIN tbl_dealers d ON o.dealer_id=d.dealer_id WHERE o.order_id=" + eid);
+                    extraOrders.Add(Obj("order_id", eid, "order_number", eRow != null ? S(eRow, "order_number") : "", "customer_name", eRow != null ? S(eRow, "customer_name") : "", "dealer_name", eRow != null ? S(eRow, "dealer_name") : ""));
+                }
+                var missedOrders = missed.Select(p => Obj("order_id", I(p, "order_id"), "order_number", S(p, "order_number"), "customer_name", S(p, "customer_name"), "dealer_name", S(p, "dealer_name"))).ToList();
+                result.Add(Obj("station_id", mid, "station_name", S(m, "machine_name"), "total_planned", planned.Count, "completed", completedIds.Intersect(plannedIds).Count(), "missed", missedOrders.Count, "extra", extraOrders.Count, "missed_orders", missedOrders, "extra_orders", extraOrders));
+            }
+            WriteJson(context, Obj("ok", true, "machines", result));
+        }
+        }
+        catch (Exception ex) { WriteJson(context, Obj("ok", false, "error", ex.Message, "stack", ex.StackTrace)); }
     }
 
     private void AdvancePlannerBoard(OleDbConnection conn, int orderId, string completedStationName, List<Dictionary<string, object>> sequenceStations, int userId)
