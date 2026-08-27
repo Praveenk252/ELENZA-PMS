@@ -1,0 +1,175 @@
+{
+  "description": "Panel formulas verified from Excel RM List 11722. All dimensions in mm.",
+  "conventions": {
+    "add_params": "add(list, part, qty, length, width, thickness, material, layer, op)",
+    "note": "length = Panel Height in Excel, width = Panel Width in Excel"
+  },
+  "base_open": {
+    "code": "BOC",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Adjustable Shelf", "qty": 1, "w": "W-37", "h": "D-30", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W-25", "h": "H-25", "t": 6, "op": "-", "material": "6 mm back"}
+    ]
+  },
+  "base_1shutter": {
+    "code": "BC1SH",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top Back Ripper", "qty": 1, "w": "W-36", "h": 85, "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top Front Ripper", "qty": 1, "w": "W-36", "h": 85, "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Adjustable Shelf", "qty": 1, "w": "W-37", "h": "D-30", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W-25", "h": "H-25", "t": 6, "op": "-", "material": "6 mm back"},
+      {"part": "Shutter", "qty": 1, "w": "W-2", "h": "H-2", "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 2},
+      {"part": "Handle", "qty": 1}
+    ]
+  },
+  "base_2shutter": {
+    "code": "BC2SH",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top Back Ripper", "qty": 1, "w": "W-36", "h": 85, "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top Front Ripper", "qty": 1, "w": "W-36", "h": 85, "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Adjustable Shelf", "qty": 1, "w": "W-37", "h": "D-30", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W-25", "h": "H-25", "t": 6, "op": "-", "material": "6 mm back"},
+      {"part": "Shutter", "qty": 2, "w": "W/2-2", "h": "H-2", "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 4},
+      {"part": "Handle", "qty": 2}
+    ]
+  },
+  "base_3drawer": {
+    "code": "BC3WD",
+    "drawer_heights": {
+      "small": "(D-60)/4",
+      "large": "(D-60)/2",
+      "shutter_small": "floor((H-6)/4)",
+      "shutter_large": "(H-6) - 2*floor((H-6)/4)"
+    },
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W-25", "h": "H-12", "t": 6, "op": "-", "material": "6 mm back"},
+      {"part": "Drawer Side L", "qty_per_drawer": 1, "w": "D-60", "h": "dH", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Drawer Side R", "qty_per_drawer": 1, "w": "D-60", "h": "dH", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Drawer Front", "qty_per_drawer": 1, "w": "W-100", "h": "dH", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Drawer Back", "qty_per_drawer": 1, "w": "W-100", "h": "dH", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Drawer Back Panel", "qty_per_drawer": 1, "w": "W-89", "h": "D-85", "t": 6, "op": "-", "material": "6 mm board"},
+      {"part": "Drawer Shutter", "qty_per_drawer": 1, "w": "W-2", "h": "shutterH", "t": 18, "op": "DF", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Drawer runner set", "qty": "n"},
+      {"part": "Handle", "qty": "n"}
+    ]
+  },
+  "base_2drawer": {
+    "code": "BC2WD",
+    "drawer_heights": {
+      "each": "(D-60)/2",
+      "shutter": "(H-4)/2"
+    },
+    "note": "Same structure as 3drawer but with n=2, both drawers are large"
+  },
+  "wall_1shutter": {
+    "code": "WC1SH",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Adjustable Shelf", "qty": 1, "w": "W-37", "h": "D-30", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W-25", "h": "H-25", "t": 6, "op": "-", "material": "6 mm back"},
+      {"part": "Shutter", "qty": 1, "w": "W-2", "h": "H-2", "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 2},
+      {"part": "Handle", "qty": 1}
+    ]
+  },
+  "wall_2shutter": {
+    "code": "WC2SH",
+    "note": "Same panels as wall_1shutter but Shutter qty=2, w=W/2-2"
+  },
+  "tall_1shutter": {
+    "code": "TC1SH",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Fixed Shelf", "qty": 1, "w": "W-36", "h": "D-25", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Adjustable Shelf", "qty": 3, "w": "W-37", "h": "D-30", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W-25", "h": "H-25", "t": 6, "op": "-", "material": "6 mm back"},
+      {"part": "Shutter", "qty": 1, "w": "W-2", "h": "H-2", "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 2},
+      {"part": "Handle", "qty": 1}
+    ]
+  },
+  "tall_2shutter": {
+    "code": "TC2SH",
+    "note": "Same panels as tall_1shutter but Shutter qty=2, w=W/2-2"
+  },
+  "corner_blind": {
+    "code": "BDC",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top Back Ripper", "qty": 1, "w": "W-36", "h": 85, "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Top Front Ripper", "qty": 1, "w": "W-36", "h": 85, "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Adjustable Shelf", "qty": 1, "w": "W-37", "h": "D-100", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Fix.Front", "qty": 1, "w": 630, "h": "H-36", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Fix.Patti", "qty": 1, "w": 70, "h": "H-36", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W+5", "h": "H-25", "t": 6, "op": "-", "material": "6 mm back"},
+      {"part": "EP", "qty": 2, "w": 90, "h": "H", "t": 18, "op": "EP", "material": "18 mm filler board"},
+      {"part": "Shutter", "qty": 1, "w": "W/2-2", "h": "H-2", "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 2},
+      {"part": "Handle", "qty": 1}
+    ]
+  },
+  "sink_without_bottom": {
+    "code": "BSCWB",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Shutter", "qty": 1, "w": "W-2", "h": 698, "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 2},
+      {"part": "Handle", "qty": 1}
+    ]
+  },
+  "sink_with_alu_bottom": {
+    "code": "BSCWAB",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom panel", "qty": 1, "w": "W-36", "h": "D", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Shutter", "qty": 1, "w": "W-2", "h": 698, "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 2},
+      {"part": "Handle", "qty": 1}
+    ]
+  },
+  "gas_cylinder": {
+    "code": "BGC",
+    "panels": [
+      {"part": "Side panel", "qty": 2, "w": "D", "h": "H", "t": 18, "op": "Groove", "material": "18 mm BWP board"},
+      {"part": "Bottom Ripper", "qty": 1, "w": "W-36", "h": 85, "t": 18, "op": "-", "material": "18 mm BWP board"},
+      {"part": "Back panel", "qty": 1, "w": "W-25", "h": "H-14", "t": 6, "op": "-", "material": "6 mm back"},
+      {"part": "Shutter", "qty": 1, "w": "W-2", "h": 698, "t": 18, "op": "SS", "material": "18 mm front board"}
+    ],
+    "hardware": [
+      {"part": "Hinge set", "qty": 2},
+      {"part": "Handle", "qty": 1}
+    ]
+  }
+}
