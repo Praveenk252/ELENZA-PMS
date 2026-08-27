@@ -5220,6 +5220,23 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             .Replace("\u00E2\u20AC\u2013", "\u2013");
     }
 
+    private static string WorkflowStageLabel(string code)
+    {
+        if (string.IsNullOrEmpty(code)) return "-";
+        switch (code.ToUpperInvariant())
+        {
+            case "QUOTATION_CREATED": return "Quotation";
+            case "ORDER_CONFIRMED": return "Confirmed";
+            case "OPTIMISATION_DONE": return "Optimised";
+            case "PROCUREMENT_STARTED": return "Procurement";
+            case "PRODUCTION_STARTED": return "In Production";
+            case "PACKED": return "Packed";
+            case "DISPATCH_READY": return "Dispatch Ready";
+            case "DISPATCHED": return "Dispatched";
+            default: return code.Replace("_", " ").ToLowerInvariant();
+        }
+    }
+
     private static bool B(Dictionary<string, object> row, string key)
     {
         object value;
@@ -5888,7 +5905,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 }
             }
             var enrichedOrders = LoadEnrichedOrders(conn, LoadMasterSets(conn), user);
-            var activeOrders = enrichedOrders.Where(o => IsPlanningEligible(o)).ToList();
+            var activeOrders = enrichedOrders.Where(o => IsPlanningEligible(o))
+                .OrderBy(o => ParseDate(S(o, "confirmation_date")) ?? DateTime.MaxValue)
+                .ToList();
             var typeIds = new HashSet<int>();
             var dealerIds = new HashSet<int>();
             var orderIdsForPlanner = new List<int>();
@@ -5913,7 +5932,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var plannedStations = orderStationMap.ContainsKey(oid) ? orderStationMap[oid] : new List<Dictionary<string, object>>();
                 var plannedNames = string.Join(", ", plannedStations.Select(ps => S(ps, "station_name")));
                 var plannedDates = string.Join(", ", plannedStations.Select(ps => S(ps, "planned_date")).Where(d => !string.IsNullOrEmpty(d)));
-                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "number_of_boards"), "panel_qty", S(o, "panel_qty"), "workflow_stage", S(o, "workflow_stage_code"), "confirmation_date", confDate, "edd", edd, "priority", priority, "planned_stations", plannedNames, "planned_dates", plannedDates);
+                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "number_of_boards"), "panel_qty", S(o, "panel_qty"), "workflow_stage", WorkflowStageLabel(S(o, "workflow_stage_code")), "confirmation_date", confDate, "edd", edd, "priority", priority, "planned_stations", plannedNames, "planned_dates", plannedDates);
             }).ToList();
             WriteJson(context, Obj("ok", true, "machines", machines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"), "sequence_no", I(m, "sequence_no"))).ToList(), "unplanned", unplanned, "board", boardResult));
         }
