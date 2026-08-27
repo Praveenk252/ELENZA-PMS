@@ -216,6 +216,7 @@ var readyOrders=[];
 var selectedOrder=null;
 var gateBlocked=false,gateStations=[];
 var currentStation='';
+var gateRequestId=0;
 
 function doLogin(e){
   e.preventDefault();
@@ -386,8 +387,10 @@ function updateGate(order){
   document.getElementById('updateBtn').disabled=true;
   document.getElementById('partialBtn').disabled=true;
   document.getElementById('gateBanner').style.display='none';
+  document.getElementById('gateBanner').innerHTML='';
   document.getElementById('myStatusChip').style.display='none';
   gateBlocked=false;gateStations=[];
+  var requestId=++gateRequestId;
   var fd=new URLSearchParams();
   fd.append('action','station-gate');
   fd.append('order_id',order.order_id);
@@ -395,6 +398,7 @@ function updateGate(order){
   fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
   .then(function(r){return r.json();})
   .then(function(d){
+    if(requestId!==gateRequestId)return;
     if(!selectedOrder||selectedOrder.order_id!==order.order_id)return;
     if(d.error){updateButtonStates();return;}
     gateBlocked=!!d.upstream_partial;
@@ -415,7 +419,7 @@ function updateGate(order){
     updateButtonStates();
   })
   .catch(function(){
-    if(selectedOrder&&selectedOrder.order_id===order.order_id)updateButtonStates();
+    if(requestId===gateRequestId&&selectedOrder&&selectedOrder.order_id===order.order_id)updateButtonStates();
   });
 }
 
@@ -472,6 +476,7 @@ function clearCombo(){
   document.getElementById('updateBtn').disabled=true;
   document.getElementById('partialBtn').disabled=true;
   document.getElementById('gateBanner').style.display='none';
+  document.getElementById('gateBanner').innerHTML='';
   document.getElementById('myStatusChip').style.display='none';
 }
 
