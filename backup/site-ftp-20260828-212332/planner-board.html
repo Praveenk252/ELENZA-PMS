@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning Board</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0f172a;--blue:#046bd2;--green:#16a34a;--orange:#f59e0b;--red:#dc2626;--slate:#64748b;--border:#e2e8f0;--bg:#f1f5f9;--white:#fff}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--navy);font-size:14px;height:100vh;overflow:hidden}
+.login-screen{display:flex;align-items:center;justify-content:center;height:100vh;background:var(--navy)}
+.login-box{background:var(--white);padding:32px;border-radius:12px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.login-box h1{font-size:20px;margin-bottom:4px}
+.login-box p{color:var(--slate);font-size:13px;margin-bottom:16px}
+.login-box label{display:block;font-size:12px;font-weight:600;color:var(--slate);margin-bottom:4px}
+.login-box input{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;margin-bottom:12px}
+.login-box button{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer}
+.login-box button:hover{background:#0558c0}
+.error{color:var(--red);font-size:12px;margin-bottom:8px;display:none}
+.app{display:none;flex-direction:column;height:100vh}
+.top-bar{background:var(--navy);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.top-bar h1{font-size:16px;font-weight:700}
+.top-bar .meta{font-size:12px;color:#94a3b8;flex:1}
+.top-bar button{background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer}
+.top-bar button:hover{background:rgba(255,255,255,.25)}
+.top-bar .export-btn{background:var(--green);font-weight:600}
+.top-bar .export-btn:hover{background:#15803d}
+.board{display:flex;flex:1;overflow:hidden}
+.unplanned-panel{flex:1;background:var(--white);border-right:2px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;background:var(--bg);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-header .count{background:var(--blue);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px}
+.panel-header .actions{display:flex;gap:6px;align-items:center}
+.panel-header .actions button{padding:4px 10px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;background:var(--white)}
+.panel-header .actions button:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.panel-search{padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-search input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px}
+.table-wrap{flex:1;overflow:auto}
+table.order-table{width:100%;border-collapse:collapse;font-size:12px}
+table.order-table thead{position:sticky;top:0;z-index:2}
+table.order-table th{background:var(--navy);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+table.order-table th:last-child{border-right:none}
+table.order-table th input[type="checkbox"]{cursor:pointer}
+table.order-table td{padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.order-table tr:hover{background:#f8fafc}
+table.order-table tr.selected{background:#eff6ff}
+table.order-table .stage-badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;display:inline-block}
+.stage-opt{background:#dbeafe;color:#1d4ed8}
+.stage-prod{background:#dcfce7;color:#166534}
+.stage-procure{background:#fef3c7;color:#92400e}
+table.order-table .priority-high{background:#fee2e2;color:#991b1b;font-weight:700}
+table.order-table .priority-med{background:#fef3c7;color:#92400e}
+table.order-table .stage-planned{background:#d1fae5;color:#065f46;font-weight:600}
+table.order-table .summary-row{background:var(--navy);color:#fff;font-weight:700}
+table.order-table .summary-row td{padding:8px 10px;border-bottom:none}
+.station-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--white);min-width:0}
+.station-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);flex-shrink:0;overflow-x:auto}
+.station-tab{padding:10px 14px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:var(--bg);color:var(--slate);border-right:1px solid var(--border);transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.station-tab:last-child{border-right:none}
+.station-tab:hover{background:#e2e8f0}
+.station-tab.active{background:var(--blue);color:#fff}
+.station-tab .tab-count{padding:1px 5px;border-radius:8px;font-size:10px}
+.station-tab.active .tab-count{background:rgba(255,255,255,.3)}
+.station-tab .tab-count.has-orders{background:var(--green);color:#fff}
+.station-tab.active .tab-count.has-orders{background:rgba(255,255,255,.3)}
+.batch-bar{padding:8px 14px;background:#eff6ff;border-bottom:2px solid var(--blue);display:none;align-items:center;gap:8px;flex-shrink:0}
+.batch-bar.show{display:flex}
+.batch-bar .label{font-size:11px;font-weight:600;color:var(--slate)}
+.batch-bar .sel-count{font-size:12px;font-weight:700;color:var(--blue)}
+.batch-bar .batch-btn{padding:4px 10px;border:2px solid var(--blue);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--blue);transition:all .15s}
+.batch-bar .batch-btn:hover{background:var(--blue);color:#fff}
+.station-content{flex:1;overflow-y:auto;padding:0}
+.station-content .empty-msg{text-align:center;color:var(--slate);font-size:12px;padding:40px 0;opacity:.6}
+.station-table{width:100%;border-collapse:collapse;font-size:11px}
+.station-table thead{position:sticky;top:0;z-index:2}
+.station-table th{background:var(--navy);color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none;border-right:1px solid rgba(255,255,255,.1)}
+.station-table th:last-child{border-right:none}
+.station-table th .sort-arrow{margin-left:3px;font-size:9px;opacity:.5}
+.station-table th.sorted .sort-arrow{opacity:1}
+.station-table td{padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px}
+.station-table tr:hover{background:#f1f5f9}
+.station-table tr.pri-high{background:#fef2f2;border-left:3px solid var(--red)}
+.station-table tr.pri-med{background:#fffbeb;border-left:3px solid var(--orange)}
+.station-table tr.pri-low{border-left:3px solid transparent}
+.station-table tr.pri-none{border-left:3px solid transparent}
+.station-table .rm-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;padding:2px 4px}
+.station-table .rm-btn:hover{color:#991b1b}
+.station-table .edit-rmk{background:none;border:1px solid var(--border);border-radius:3px;padding:1px 4px;font-size:10px;cursor:pointer;color:var(--slate)}
+.station-table .edit-rmk:hover{border-color:var(--blue);color:var(--blue)}
+.station-table .rmk-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.station-table .warn-icon{color:var(--orange);font-size:14px;cursor:help;margin-left:4px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;transition:transform .3s ease;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>Planning Board</h1>
+    <p>Login with planner or admin credentials</p>
+    <div class="error" id="loginError"></div>
+    <form onsubmit="doLogin(event)">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+      <button type="submit" id="loginBtn">Login</button>
+    </form>
+  </div>
+</div>
+<div class="app" id="appShell">
+  <div class="top-bar">
+    <h1>Planning Board</h1>
+    <span class="meta" id="sessionMeta"></span>
+    <button onclick="loadBoard()">Refresh</button>
+    <button class="export-btn" onclick="exportXlsx()">Export XLSX</button>
+    <button class="export-btn" style="background:#7c3aed" onclick="exportVsActual()">Planned vs Actual</button>
+    <button class="export-btn" style="background:#dc2626" onclick="clearAllPlans()">Clear All Plans</button>
+    <button onclick="doLogout()">Logout</button>
+  </div>
+  <div class="board">
+    <div class="unplanned-panel">
+      <div class="panel-header">
+        <span>Unplanned Orders <span class="count" id="unplannedCount">0</span></span>
+        <div class="actions">
+          <button onclick="toggleAllChecked()">Select All</button>
+        </div>
+      </div>
+      <div class="panel-search">
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <select id="filterType" onchange="applyFilters()" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--white)">
+            <option value="">All Types</option>
+          </select>
+          <select id="filterDealer" onchange="applyFilters()" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--white)">
+            <option value="">All Dealers</option>
+          </select>
+        </div>
+        <input id="searchInput" placeholder="Search order number..." oninput="applyFilters()">
+      </div>
+      <div class="table-wrap">
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAllCb" onchange="toggleAllChecked()"></th>
+              <th>Conf. Date</th>
+              <th>Order Number</th>
+              <th>Dealer</th>
+              <th>Order Type</th>
+              <th>Board Qty</th>
+              <th>Panel Qty</th>
+              <th>Current Stage</th>
+              <th>EDD</th>
+              <th>Priority</th>
+              <th>Planned</th>
+              <th>Customer</th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody"></tbody>
+          <tfoot id="orderTableFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="station-panel">
+      <div class="batch-bar" id="batchBar">
+        <span class="sel-count" id="selCount">0</span>
+        <span class="label">selected &rarr;</span>
+        <label style="font-size:11px;color:var(--slate);font-weight:600">Plan for:</label>
+        <input type="date" id="planDate" style="padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:11px">
+        <span class="label">&rarr;</span>
+        <div id="batchStationBtns"></div>
+      </div>
+      <div class="station-tabs" id="stationTabs"></div>
+      <div class="station-content" id="stationContent"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var API='/api.ashx';
+var currentUser=null;
+var boardData={machines:[],unplanned:[],board:[]};
+var selectedStationId=null;
+var searchQuery='';
+var multiSelect={};
+var stationSortCol='order_number';
+var stationSortAsc=true;
+
+function doLogin(e){
+  e.preventDefault();
+  var u=document.getElementById('loginUser').value.trim();
+  var p=document.getElementById('loginPass').value;
+  if(!u||!p){showError('Enter credentials');return;}
+  document.getElementById('loginBtn').disabled=true;
+  var fd=new URLSearchParams();fd.append('action','login');fd.append('username',u);fd.append('password',p);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    document.getElementById('loginBtn').disabled=false;
+    if(d.error){showError(d.error);return;}
+    currentUser=d.user;
+    sessionStorage.setItem('pb_session',JSON.stringify(currentUser));
+    showApp();loadBoard();
+  }).catch(function(){document.getElementById('loginBtn').disabled=false;showError('Login failed');});
+}
+function showError(m){var e=document.getElementById('loginError');e.textContent=m;e.style.display='block';setTimeout(function(){e.style.display='none';},4000);}
+function doLogout(){sessionStorage.removeItem('pb_session');currentUser=null;document.getElementById('appShell').style.display='none';document.getElementById('loginScreen').style.display='flex';multiSelect={};}
+function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appShell').style.display='flex';document.getElementById('sessionMeta').textContent=currentUser.full_name+' | '+currentUser.role_name;}
+
+function loadBoard(){
+  if(!currentUser)return;
+  var fd=new URLSearchParams();fd.append('action','planner-board-state');
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    boardData=d;
+    if(!selectedStationId&&d.machines&&d.machines.length)selectedStationId=d.machines[0].machine_id;
+    renderBoard();
+  }).catch(function(){showToast('Failed to load board','error');});
+}
+
+function renderBoard(){
+  populateFilters();
+  renderStationTabs();
+  renderOrderTable();
+  renderStationContent();
+  renderBatchBar();
+}
+
+function populateFilters(){
+  var items=boardData.unplanned||[];
+  var types={};var dealers={};
+  items.forEach(function(o){if(o.order_type)types[o.order_type]=1;if(o.dealer_name)dealers[o.dealer_name]=1;});
+  var typeSelect=document.getElementById('filterType');
+  var dealerSelect=document.getElementById('filterDealer');
+  var prevType=typeSelect.value;var prevDealer=dealerSelect.value;
+  typeSelect.innerHTML='<option value="">All Types</option>';
+  dealerSelect.innerHTML='<option value="">All Dealers</option>';
+  Object.keys(types).sort().forEach(function(t){typeSelect.innerHTML+='<option value="'+esc(t)+'">'+esc(t)+'</option>';});
+  Object.keys(dealers).sort().forEach(function(d){dealerSelect.innerHTML+='<option value="'+esc(d)+'">'+esc(d)+'</option>';});
+  typeSelect.value=prevType;dealerSelect.value=prevDealer;
+}
+
+function renderOrderTable(){
+  var tbody=document.getElementById('orderTableBody');
+  var tfoot=document.getElementById('orderTableFoot');
+  var items=getFilteredUnplanned();
+  var selCount=Object.keys(multiSelect).length;
+  document.getElementById('unplannedCount').textContent=selCount>0?selCount+'/'+items.length:items.length;
+  var totalBoards=0,totalPanels=0;
+  var h='';
+  items.forEach(function(o){
+    var checked=multiSelect[o.order_id]?'checked':'';
+    var cls=multiSelect[o.order_id]?'selected':'';
+    var bd=parseFloat(o.board_qty)||0;
+    var pq=parseFloat(o.panel_qty)||0;
+    totalBoards+=bd;
+    totalPanels+=pq;
+    var stageClass='stage-opt';
+    if(o.workflow_stage==='PRODUCTION_STARTED')stageClass='stage-prod';
+    else if(o.workflow_stage==='IN_PROGRESS')stageClass='stage-procure';
+    var priClass='';
+    if(o.priority==='High')priClass='priority-high';
+    else if(o.priority==='Medium')priClass='priority-med';
+    h+='<tr class="'+cls+'" onclick="toggleSelect('+o.order_id+')">';
+    h+='<td><input type="checkbox" '+checked+' onclick="event.stopPropagation();toggleSelect('+o.order_id+')"></td>';
+    h+='<td>'+esc(o.confirmation_date||'-')+'</td>';
+    h+='<td><strong>'+esc(o.order_number)+'</strong></td>';
+    h+='<td>'+esc(o.dealer_name||'')+'</td>';
+    h+='<td>'+esc(o.order_type||'')+'</td>';
+    h+='<td>'+esc(o.board_qty||'0')+'</td>';
+    h+='<td>'+esc(o.panel_qty||'0')+'</td>';
+    h+='<td><span class="stage-badge '+stageClass+'">'+esc(o.workflow_stage||'-')+'</span></td>';
+    h+='<td>'+esc(o.edd||'-')+'</td>';
+    h+='<td>'+(priClass?'<span class="stage-badge '+priClass+'">'+esc(o.priority)+'</span>':esc(o.priority||'-'))+'</td>';
+    if(o.planned_stations){h+='<td><span class="stage-badge stage-planned">'+esc(o.planned_stations)+'</span></td>';}
+    else{h+='<td>-</td>';}
+    h+='<td>'+esc(o.customer_name||'')+'</td>';
+    h+='</tr>';
+  });
+  tbody.innerHTML=h||'<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--slate)">All orders planned</td></tr>';
+  tfoot.innerHTML='<tr class="summary-row"><td></td><td colspan="5"><strong>TOTAL</strong></td><td><strong>'+totalBoards.toFixed(1)+'</strong></td><td><strong>'+totalPanels.toFixed(1)+'</strong></td><td colspan="5"></td></tr>';
+}
+
+function renderStationTabs(){
+  var el=document.getElementById('stationTabs');
+  var machines=boardData.machines||[];
+  var board=boardData.board||[];
+  var h='';
+  machines.forEach(function(m){
+    var count=board.filter(function(b){return b.station_id==m.machine_id;}).length;
+    var active=m.machine_id==selectedStationId;
+    var countClass=count>0?'tab-count has-orders':'tab-count';
+    h+='<button class="station-tab'+(active?' active':'')+'" onclick="selectStation('+m.machine_id+')">';
+    h+=esc(machineDisplayName(m.machine_name));
+    h+='<span class="'+countClass+'">'+count+'</span>';
+    if(count>0)h+=' <span style="color:var(--red);font-size:10px;margin-left:2px" onclick="event.stopPropagation();clearStationPlans('+m.machine_id+',\''+esc(machineDisplayName(m.machine_name))+'\')">X</span>';
+    h+='</button>';
+  });
+  el.innerHTML=h;
+}
+
+function renderStationContent(){
+  var el=document.getElementById('stationContent');
+  if(!selectedStationId){el.innerHTML='<div class="empty-msg">Select a station</div>';return;}
+  var machine=(boardData.machines||[]).find(function(m){return m.machine_id==selectedStationId;});
+  var board=(boardData.board||[]).filter(function(b){return b.station_id==selectedStationId;});
+  if(!board.length){el.innerHTML='<div class="empty-msg">No orders in '+esc(machineDisplayName(machine?machine.machine_name:'this station'))+'</div>';return;}
+  var sorted=board.slice().sort(function(a,b){
+    var va=a[stationSortCol]||'';var vb=b[stationSortCol]||'';
+    if(stationSortCol==='board_qty'||stationSortCol==='panel_qty'){va=parseFloat(va)||0;vb=parseFloat(vb)||0;}
+    if(va<vb)return stationSortAsc?-1:1;if(va>vb)return stationSortAsc?1:-1;return 0;
+  });
+  var cols=[
+    {key:'order_number',label:'Order Number'},
+    {key:'board_qty',label:'Board Qty'},
+    {key:'panel_qty',label:'Panel Qty'},
+    {key:'remarks',label:'Remarks'},
+    {key:'queue_status',label:'Status'},
+    {key:'planned_date',label:'Plan Date'}
+  ];
+  var h='<table class="station-table"><thead><tr>';
+  cols.forEach(function(c){
+    var arrow=stationSortCol===c.key?(stationSortAsc?' ▲':' ▼'):' ▲▼';
+    var cls=stationSortCol===c.key?'sorted':'';
+    h+='<th class="'+cls+'" onclick="sortStation(\''+c.key+'\')">'+esc(c.label)+'<span class="sort-arrow">'+arrow+'</span></th>';
+  });
+  h+='<th>Actions</th></tr></thead><tbody>';
+  sorted.forEach(function(o){
+    var pri='';
+    if(o.priority==='High')pri='pri-high';
+    else if(o.priority==='Medium')pri='pri-med';
+    else pri='pri-low';
+    var status=o.queue_status==='PARTIAL_COMPLETED'?'<span style="color:var(--orange);font-weight:600">Partial</span>':'<span style="color:var(--green)">Planned</span>';
+    h+='<tr class="'+pri+'">';
+    h+='<td><strong>'+esc(o.order_number)+'</strong>'+(o.was_completed?'<span class="warn-icon" title="Already completed at this station">&#9888;</span>':'')+'</td>';
+    h+='<td>'+esc(o.board_qty||'-')+'</td>';
+    h+='<td>'+esc(o.panel_qty||'-')+'</td>';
+    h+='<td class="rmk-cell" title="'+esc(o.remarks||'')+'">'+esc(o.remarks||'-')+' <button class="edit-rmk" onclick="editRemarks('+o.order_id+','+o.station_id+','+esc(JSON.stringify(o.remarks||'').replace(/"/g,'&quot;'))+')">&#9998;</button></td>';
+    h+='<td>'+status+'</td>';
+    h+='<td>'+esc(o.planned_date||'-')+'</td>';
+    h+='<td><button class="rm-btn" onclick="unassign('+o.order_id+','+o.station_id+')" title="Remove">&#10005;</button></td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+function sortStation(col){
+  if(stationSortCol===col){stationSortAsc=!stationSortAsc;}
+  else{stationSortCol=col;stationSortAsc=true;}
+  renderStationContent();
+}
+function editRemarks(orderId,stationId,currentRemarks){
+  var val=prompt('Edit remarks:',currentRemarks||'');
+  if(val===null)return;
+  var fd=new URLSearchParams();fd.append('action','planner-board-edit-remarks');fd.append('order_id',orderId);fd.append('station_id',stationId);fd.append('remarks',val);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    showToast('Remarks updated','success');loadBoard();
+  }).catch(function(){showToast('Failed','error');});
+}
+
+function renderBatchBar(){
+  var bar=document.getElementById('batchBar');
+  var count=Object.keys(multiSelect).length;
+  if(count===0){bar.classList.remove('show');return;}
+  bar.classList.add('show');
+  document.getElementById('selCount').textContent=count;
+  var machines=boardData.machines||[];
+  var h='';machines.forEach(function(m){
+    h+='<button class="batch-btn" onclick="batchAssign('+m.machine_id+')">'+esc(machineDisplayName(m.machine_name))+'</button>';
+  });
+  document.getElementById('batchStationBtns').innerHTML=h;
+}
+
+function selectStation(stationId){selectedStationId=stationId;renderBoard();}
+
+function toggleSelect(orderId){
+  if(multiSelect[orderId])delete multiSelect[orderId];
+  else multiSelect[orderId]=true;
+  renderBoard();
+}
+
+function toggleAllChecked(){
+  var items=getFilteredUnplanned();
+  var allChecked=items.length>0&&items.every(function(o){return multiSelect[o.order_id];});
+  if(allChecked){items.forEach(function(o){delete multiSelect[o.order_id];});}
+  else{items.forEach(function(o){multiSelect[o.order_id]=true;});}
+  renderBoard();
+}
+
+function getFilteredUnplanned(){
+  var items=boardData.unplanned||[];
+  var typeFilter=document.getElementById('filterType').value;
+  var dealerFilter=document.getElementById('filterDealer').value;
+  if(searchQuery){var q=searchQuery.toLowerCase();items=items.filter(function(o){return ((o.order_number||'')).toLowerCase().indexOf(q)!==-1;});}
+  if(typeFilter){items=items.filter(function(o){return o.order_type===typeFilter;});}
+  if(dealerFilter){items=items.filter(function(o){return o.dealer_name===dealerFilter;});}
+  return items;
+}
+
+function batchAssign(stationId){
+  var ids=Object.keys(multiSelect);
+  if(!ids.length)return;
+  var planDate=document.getElementById('planDate').value;
+  var fd=new URLSearchParams();fd.append('action','planner-board-batch-assign');fd.append('station_id',stationId);fd.append('order_ids',ids.join(','));
+  if(planDate)fd.append('planned_date',planDate);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    showToast(d.message||'Assigned','success');
+    multiSelect={};
+    loadBoard();
+  }).catch(function(){showToast('Failed','error');});
+}
+
+function unassign(orderId,stationId){
+  var fd=new URLSearchParams();fd.append('action','planner-board-unassign');fd.append('order_id',orderId);fd.append('station_id',stationId);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    showToast('Removed','success');loadBoard();
+  }).catch(function(){showToast('Failed','error');});
+}
+
+function clearStationPlans(stationId,stationName){
+  if(!confirm('Clear all plans for '+stationName+'?'))return;
+  var fd=new URLSearchParams();fd.append('action','planner-board-clear');fd.append('station_id',stationId);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    showToast(d.message||'Cleared','success');loadBoard();
+  }).catch(function(){showToast('Failed','error');});
+}
+
+function clearAllPlans(){
+  if(!confirm('Clear ALL plans from ALL machines?'))return;
+  var fd=new URLSearchParams();fd.append('action','planner-board-clear');
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    showToast(d.message||'All plans cleared','success');loadBoard();
+  }).catch(function(){showToast('Failed','error');});
+}
+
+function filterUnplanned(q){searchQuery=q.trim();renderOrderTable();}
+function applyFilters(){searchQuery=document.getElementById('searchInput').value.trim();renderOrderTable();}
+
+function exportXlsx(){
+  var wb=XLSX.utils.book_new();
+  var machines=boardData.machines||[];
+  var board=boardData.board||[];
+  var unplanned=boardData.unplanned||[];
+  var grandBoards=0,grandPanels=0,totalOrders=0;
+  machines.forEach(function(m){
+    var mOrders=board.filter(function(b){return b.station_id==m.machine_id;});
+    if(!mOrders.length)return;
+    var dateGroups={};
+    mOrders.forEach(function(o){
+      var pd=o.planned_date&&o.planned_date!=='-'?o.planned_date:'No Date';
+      if(!dateGroups[pd])dateGroups[pd]=[];
+      dateGroups[pd].push(o);
+    });
+    var sortedDates=Object.keys(dateGroups).sort();
+    var rows=[['Date','Order Number','Customer','Dealer','Status','EDD','Remarks','Board Qty','Panel Qty','Priority']];
+    var mBoards=0,mPanels=0;
+    sortedDates.forEach(function(d){
+      var items=dateGroups[d];
+      items.forEach(function(o){
+        var bd=parseFloat(o.board_qty)||0;
+        var pq=parseFloat(o.panel_qty)||0;
+        mBoards+=bd;mPanels+=pq;
+        var status=o.queue_status==='PARTIAL_COMPLETED'?'Partial':(o.was_completed?'Completed':'Planned');
+        rows.push([d,o.order_number,o.customer_name||'',o.dealer_name||'',status,o.edd||'',o.remarks||'',bd,pq,o.priority||'']);
+      });
+      rows.push([d+' Subtotal','','','','','','',items.reduce(function(s,o){return s+(parseFloat(o.board_qty)||0);},0),items.reduce(function(s,o){return s+(parseFloat(o.panel_qty)||0);},0),'']);
+    });
+    rows.push(['','','','','','','','','','']);
+    rows.push(['','Subtotal ('+mOrders.length+' orders)','','','','','',mBoards,mPanels,'']);
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:22},{wch:22},{wch:28},{wch:28},{wch:10},{wch:14},{wch:25},{wch:10},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,m.machine_name.substring(0,31));
+    grandBoards+=mBoards;grandPanels+=mPanels;totalOrders+=mOrders.length;
+  });
+  var uRows=[['Conf. Date','Order Number','Dealer','Order Type','Board Qty','Panel Qty','EDD','Priority','Customer']];
+  var uBoards=0,uPanels=0;
+  unplanned.forEach(function(o){
+    var bd=parseFloat(o.board_qty)||0;
+    var pq=parseFloat(o.panel_qty)||0;
+    uBoards+=bd;uPanels+=pq;
+    uRows.push([o.confirmation_date||'',o.order_number,o.dealer_name||'',o.order_type||'',bd,pq,o.edd||'',o.priority||'',o.customer_name||'']);
+  });
+  uRows.push(['','','','','','','','','']);
+  uRows.push(['','Subtotal ('+unplanned.length+' orders)','','',uBoards,uPanels,'','','']);
+  var wsU=XLSX.utils.aoa_to_sheet(uRows);
+  wsU['!cols']=[{wch:18},{wch:22},{wch:28},{wch:14},{wch:10},{wch:10},{wch:14},{wch:10},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,wsU,'Unplanned ('+unplanned.length+')');
+  var sRows=[['Station','Orders','Boards','Panels']];
+  machines.forEach(function(m){
+    var mOrders=board.filter(function(b){return b.station_id==m.machine_id;});
+    var mBoards=0,mPanels=0;
+    mOrders.forEach(function(o){mBoards+=parseFloat(o.board_qty)||0;mPanels+=parseFloat(o.panel_qty)||0;});
+    if(mOrders.length>0)sRows.push([m.machine_name,mOrders.length,mBoards,mPanels]);
+  });
+  sRows.push(['TOTAL',totalOrders,grandBoards,grandPanels]);
+  sRows.push(['','','','']);
+  sRows.push(['Unplanned','',unplanned.length,'']);
+  sRows.push(['Grand Total','',totalOrders+unplanned.length,grandBoards+uBoards]);
+  var wsS=XLSX.utils.aoa_to_sheet(sRows);
+  wsS['!cols']=[{wch:16},{wch:8},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,wsS,'Summary');
+  XLSX.writeFile(wb,'Planning_Board_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('Exported '+totalOrders+' planned + '+unplanned.length+' unplanned','success');
+}
+
+function exportVsActual(){
+  fetch(API,{method:'POST',body:new URLSearchParams('action=planner-board-vs-actual'),credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    var wb=XLSX.utils.book_new();
+    var machines=d.machines||[];
+    var totalPlanned=0,totalCompleted=0,totalMissed=0,totalExtra=0;
+    machines.forEach(function(m){
+      if(!m.missed_orders.length&&!m.extra_orders.length){totalPlanned+=m.total_planned;totalCompleted+=m.completed;totalMissed+=m.missed;totalExtra+=m.extra;return;}
+      var rows=[['Order Number','Customer','Dealer','Status']];
+      (m.missed_orders||[]).forEach(function(o){rows.push([o.order_number,o.customer_name,o.dealer_name||'','MISSED']);});
+      (m.extra_orders||[]).forEach(function(o){rows.push([o.order_number,o.customer_name,o.dealer_name||'','EXTRA']);});
+      rows.push(['','','','']);
+      rows.push(['Planned: '+m.total_planned,'Completed: '+m.completed,'Missed: '+m.missed,'Extra: '+m.extra]);
+      var ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:22},{wch:28},{wch:28},{wch:12}];
+      XLSX.utils.book_append_sheet(wb,ws,m.station_name.substring(0,31));
+      totalPlanned+=m.total_planned;totalCompleted+=m.completed;totalMissed+=m.missed;totalExtra+=m.extra;
+    });
+    var sRows=[['Station','Planned','Completed','Missed','Extra']];
+    machines.forEach(function(m){sRows.push([m.station_name,m.total_planned,m.completed,m.missed,m.extra]);});
+    sRows.push(['TOTAL',totalPlanned,totalCompleted,totalMissed,totalExtra]);
+    var wsS=XLSX.utils.aoa_to_sheet(sRows);
+    wsS['!cols']=[{wch:18},{wch:10},{wch:10},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,wsS,'Summary');
+    XLSX.writeFile(wb,'Planned_vs_Actual_'+new Date().toISOString().slice(0,10)+'.xlsx');
+    showToast('Exported planned vs actual report','success');
+  }).catch(function(){showToast('Failed to load report','error');});
+}
+
+function exportVsActual(){
+  fetch(API,{method:'POST',body:new URLSearchParams('action=planner-board-vs-actual'),credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    var machines=d.machines||[];
+    var totalPlanned=0,totalCompleted=0,totalMissed=0,totalExtra=0;
+    var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body>';
+    machines.forEach(function(m){
+      if(!m.missed_orders.length&&!m.extra_orders.length){totalPlanned+=m.total_planned;totalCompleted+=m.completed;totalMissed+=m.missed;totalExtra+=m.extra;return;}
+      html+='<h3>'+m.station_name+'</h3><table border="1"><thead><tr style="background:#00ADD8E6;color:#fff;font-weight:bold"><td>Order Number</td><td>Customer</td><td>Dealer</td><td>Status</td></tr></thead><tbody>';
+      (m.missed_orders||[]).forEach(function(o){html+='<tr style="background:#FFC7CE"><td>'+esc(o.order_number)+'</td><td>'+esc(o.customer_name)+'</td><td>'+esc(o.dealer_name||'')+'</td><td>MISSED</td></tr>';});
+      (m.extra_orders||[]).forEach(function(o){html+='<tr style="background:#C6EFCE"><td>'+esc(o.order_number)+'</td><td>'+esc(o.customer_name)+'</td><td>'+esc(o.dealer_name||'')+'</td><td>EXTRA</td></tr>';});
+      html+='<tr style="background:#FFFF00;font-weight:bold"><td colspan="2">Planned: '+m.total_planned+' | Completed: '+m.completed+'</td><td>Missed: '+m.missed+'</td><td>Extra: '+m.extra+'</td></tr>';
+      html+='</tbody></table><br>';
+      totalPlanned+=m.total_planned;totalCompleted+=m.completed;totalMissed+=m.missed;totalExtra+=m.extra;
+    });
+    html+='<h3>Summary</h3><table border="1"><thead><tr style="background:#00ADD8E6;color:#fff;font-weight:bold"><td>Station</td><td>Planned</td><td>Completed</td><td>Missed</td><td>Extra</td></tr></thead><tbody>';
+    machines.forEach(function(m){html+='<tr><td>'+m.station_name+'</td><td>'+m.total_planned+'</td><td>'+m.completed+'</td><td>'+m.missed+'</td><td>'+m.extra+'</td></tr>';});
+    html+='<tr style="background:#90EE90;font-weight:bold"><td>TOTAL</td><td>'+totalPlanned+'</td><td>'+totalCompleted+'</td><td>'+totalMissed+'</td><td>'+totalExtra+'</td></tr>';
+    html+='</tbody></table></body></html>';
+    var blob=new Blob([html],{type:'application/vnd.ms-excel'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='Planned_vs_Actual_'+new Date().toISOString().slice(0,10)+'.xls';
+    a.click();
+    showToast('Exported planned vs actual report','success');
+  }).catch(function(){showToast('Failed to load report','error');});
+}
+
+function showToast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast '+t+' show';setTimeout(function(){el.className='toast';},3000);}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function machineDisplayName(name){
+  if(name==='Packed')return'Packing';
+  if(name==='Drilling')return'Maxi Drilling';
+  if(name==='Drilling 2')return'Mini Drilling';
+  return name;
+}
+
+(function(){
+  var dt=new Date();dt.setDate(dt.getDate()+1);
+  var ds=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
+  var pd=document.getElementById('planDate');if(pd)pd.value=ds;
+  var s=sessionStorage.getItem('pb_session');if(s){try{currentUser=JSON.parse(s);showApp();loadBoard();}catch(e){doLogout();}}
+})();
+</script>
+</body>
+</html>
