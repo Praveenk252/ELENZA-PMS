@@ -6394,6 +6394,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         var s = string.IsNullOrWhiteSpace(currentStage) ? "" : currentStage.ToLowerInvariant();
         if (s == "packed" || s == "packing" || s == "dispatch") return "Packed";
         if (string.Equals(wf, "PACKED", StringComparison.OrdinalIgnoreCase)) return "Packed";
+        if (string.Equals(wf, "QUOTATION_CREATED", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(wf, "ORDER_CONFIRMED", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(wf, "OPTIMISATION_DONE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(wf, "PROCUREMENT_STARTED", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(wf, "ALLOCATION_DONE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(wf, "CUTTING_PLAN_DONE", StringComparison.OrdinalIgnoreCase)) return "Pre-Production";
         return "In Production";
     }
 
@@ -6490,6 +6496,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     currentStage = Label(statusLookup, "WORKFLOW", S(r, "workflow_stage_code"));
                     if (string.Equals(tab, "Dispatched", StringComparison.OrdinalIgnoreCase)) currentStage = "Dispatched";
                 }
+                var milestones = new List<object>();
+                var confirmDate = S(r, "confirmation_date");
+                milestones.Add(Obj("name", "Order Confirmed", "state", string.IsNullOrWhiteSpace(confirmDate) ? "pending" : "done", "time", string.IsNullOrWhiteSpace(confirmDate) ? "" : FormatDateTime(DT(r, "confirmation_date"))));
+                var optimDate = S(r, "optimisation_date");
+                milestones.Add(Obj("name", "Optimisation Done", "state", string.IsNullOrWhiteSpace(optimDate) ? "pending" : "done", "time", string.IsNullOrWhiteSpace(optimDate) ? "" : FormatDateTime(DT(r, "optimisation_date"))));
+                foreach (var st in stations) milestones.Add(st);
                 return Obj(
                     "order_id", oid,
                     "order_number", S(r, "order_number"),
@@ -6506,7 +6518,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     "tracking", BuildDealerTracking(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"), r, hrows),
                     "current_stage", string.IsNullOrWhiteSpace(currentStage) ? "-" : currentStage,
                     "tab", tab,
-                    "stations", stations
+                    "stations", stations,
+                    "milestones", milestones
                 );
             }).ToList();
             WriteJson(context, Obj(

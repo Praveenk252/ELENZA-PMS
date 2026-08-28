@@ -53,18 +53,20 @@ td.wrap{white-space:normal}
 .empty{padding:20px;color:var(--slate);text-align:center}
 .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700}
 .badge.production{background:#e8f0fe;color:var(--blue)}
+.badge.preproduction{background:#f1f0fb;color:#6d4fc1}
 .badge.packed{background:#fef3c7;color:#b45309}
 .badge.dispatched{background:#e9f8ef;color:var(--green)}
-.tracking{display:flex;gap:0;align-items:center;flex-wrap:wrap;margin:8px 0}
-.step{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:70px}
-.step .dot{width:28px;height:28px;border-radius:50%;border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--slate);background:#fff}
+.tracking{display:flex;align-items:flex-start;gap:0;margin:16px 0 6px;overflow-x:auto;padding-bottom:6px}
+.step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;min-width:88px;max-width:88px;position:relative;cursor:default}
+.step .dot{width:26px;height:26px;border-radius:50%;border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--slate);background:#fff;z-index:2}
 .step.done .dot{background:var(--green);border-color:var(--green);color:#fff}
 .step.current .dot{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(15,108,205,.2)}
-.step .lbl{font-size:10px;font-weight:600;color:var(--slate);text-align:center}
+.step .lbl{font-size:10px;font-weight:600;color:var(--slate);text-align:center;line-height:1.25;min-height:24px}
 .step.done .lbl,.step.current .lbl{color:var(--navy)}
 .step .ts{font-size:9px;color:var(--slate);text-align:center}
-.step-line{width:100%;height:3px;background:var(--border);flex:0 0 auto}
+.step-line{height:3px;background:var(--border);flex:0 0 auto;margin-top:12px;min-width:14px}
 .step.done+.step-line{background:var(--green)}
+.step.current+.step-line{background:var(--green)}
 .step.done .dot,.step.current .dot{border:0}
 .profile-head{display:flex;gap:14px;align-items:center;margin-bottom:14px}
 .profile-head h3{margin:0;font-size:15px}
@@ -75,7 +77,7 @@ td.wrap{white-space:normal}
 .ledger-form{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-items:end;margin-bottom:14px}
 .ledger-form .full{grid-column:1/-1}
 .form-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:700px){.profile-grid{grid-template-columns:1fr}.ledger-form{grid-template-columns:1fr}.step{min-width:56px}.step .lbl{font-size:8px}}
+@media(max-width:700px){.profile-grid{grid-template-columns:1fr}.ledger-form{grid-template-columns:1fr}.step{min-width:72px;max-width:72px}.step .lbl{font-size:8px}}
 .auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
 .auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
 .auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s;font-size:12px;font-weight:600;color:#123d63}
@@ -147,6 +149,7 @@ td.wrap{white-space:normal}
         </div>
         <div class="tabs" id="orderTabs">
           <button class="tab on" data-tab="">All</button>
+          <button class="tab" data-tab="Pre-Production">Pre-Production</button>
           <button class="tab" data-tab="In Production">In Production</button>
           <button class="tab" data-tab="Packed">Packed</button>
           <button class="tab" data-tab="Dispatched">Dispatched</button>
@@ -327,7 +330,7 @@ function initials(name){
 function renderOrders(){
   var body=document.getElementById('orderBody');
   var orders=state.orders;
-  var counts={All:orders.length,'In Production':0,Packed:0,Dispatched:0};
+  var counts={All:orders.length,'Pre-Production':0,'In Production':0,Packed:0,Dispatched:0};
   orders.forEach(function(o){counts[o.tab]=(counts[o.tab]||0)+1;});
   document.querySelectorAll('#orderTabs .tab').forEach(function(t){
     var k=t.getAttribute('data-tab')||'All';
@@ -362,7 +365,8 @@ function renderOrders(){
   if(!shown.length){body.innerHTML='<tr><td colspan="7" class="empty">No orders found</td></tr>';return;}
   var h='';
   shown.forEach(function(o){
-    var badge='<span class="badge production">'+(o.tab==='In Production'?'In Production':o.tab)+'</span>';
+    var badge='<span class="badge production">'+(o.tab||'In Production')+'</span>';
+    if(o.tab==='Pre-Production')badge='<span class="badge preproduction">Pre-Production</span>';
     if(o.tab==='Packed')badge='<span class="badge packed">Packed</span>';
     if(o.tab==='Dispatched')badge='<span class="badge dispatched">Dispatched</span>';
     h+='<tr class="order-row" onclick="showTracking('+o.order_id+')">';
@@ -390,19 +394,19 @@ function showTracking(orderId){
   document.getElementById('curStageBadge').textContent='Current: '+(order.current_stage||'-');
   var ds=order.dispatch_status||'-',wf=order.workflow_stage||'-';
   document.getElementById('curStageSub').textContent='Workflow: '+wf+' | Dispatch: '+ds+' | Updated: '+(order.updated_at?shortDate(order.updated_at):'-');
-  var stations=order.stations||[];
+  var milestones=order.milestones||order.stations||[];
   var h='';
-  if(!stations.length){
-    h='<div class="empty">No station details available</div>';
+  if(!milestones.length){
+    h='<div class="empty">No tracking history available</div>';
   }
-  stations.forEach(function(s,i){
+  milestones.forEach(function(s,i){
     var st=String(s.state||'pending');
-    h+='<div class="step '+st+'">';
+    h+='<div class="step '+st+'" title="'+esc(s.name)+'">';
     h+='<div class="dot">'+(st==='done'?'&#10003;':st==='current'?'&#9679;':(i+1))+'</div>';
     h+='<div class="lbl">'+esc(s.name)+'</div>';
-    if(s.updated_at)h+='<div class="ts">'+esc(shortDate(s.updated_at))+'</div>';
+    if(s.time||s.updated_at)h+='<div class="ts">'+esc(shortTime(s.time||s.updated_at))+'</div>';
     h+='</div>';
-    if(i<stations.length-1)h+='<div class="step-line"></div>';
+    if(i<milestones.length-1)h+='<div class="step-line"></div>';
   });
   document.getElementById('trackingSteps').innerHTML=h;
 }
@@ -499,6 +503,7 @@ function apiPost(action,payload){
 }
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function shortTime(v){var r=String(v||'').trim();if(!r)return'';var m=r.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);if(m)return m[3]+'-'+m[2]+'-'+m[1].slice(-2)+' '+m[4]+':'+m[5];var d=r.match(/^(\d{4})-(\d{2})-(\d{2})/);if(d)return d[3]+'-'+d[2]+'-'+d[1].slice(-2);return r;}
 function shortDate(v){var r=String(v||'').trim();if(!r)return'-';var m=r.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[3]+'-'+m[2]+'-'+m[1].slice(-2);return r;}
 function formatAmount(v){var n=Number(v||0);return(n>=0?'+':'')+n.toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2});}
 
