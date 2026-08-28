@@ -7,6 +7,16 @@ description: "Backup the entire ElenzaIndia site from FTP server to a local time
 
 Download the full site from the live FTP server, save locally, and publish to git.
 
+## MANDATORY: Run via a subagent
+
+- **NEVER run the backup in the main agent session.** The FTP download can take several minutes, produces large output, and may be interrupted by timeouts or user aborts that leave the repo in a half-committed state.
+- Always delegate the entire backup to the `general` subagent type via the Task tool.
+- Construct the Task prompt by copying the **Steps** and **Script** sections below verbatim into the subagent prompt, plus:
+  - The absolute path to this skill file: `C:\Users\Praveen\Documents\Codex\2026-05-28\requirement-specification-elenzaindia-com-production-management\.agents\skills\backup\SKILL.md`
+  - The project directory: `C:\Users\Praveen\Documents\Codex\2026-05-28\requirement-specification-elenzaindia-com-production-management`
+  - The instruction to save the script to the pre-approved temp dir `C:\Users\Praveen\AppData\Local\Temp\opencode\backup.ps1`, override `$projectDir` with the project directory, and run it with a long timeout (>= 600000 ms).
+  - Tell the subagent to report back: total files downloaded, failures, zip size/location, git commit hash, and confirmation that the push to origin/master succeeded.
+
 ## Steps
 
 1. **Create timestamped backup folder**: Generate a timestamp and create `backup/site-ftp-YYYYMMDD-HHMMSS/`
@@ -106,19 +116,19 @@ function Download-Dir($ftpPath, $localDir) {
 Download-Dir "" $localRoot
 
 # Step 3: Create zip
-$zipPath = "backup/site-ftp-$timestamp.zip"
+$zipPath = Join-Path $projectDir "backup/site-ftp-$timestamp.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "$localRoot/*" -DestinationPath $zipPath -Force
 Write-Host "`nZIP: $zipPath ($([math]::Round((Get-Item $zipPath).Length/1MB, 1)) MB)"
 
 # Step 4: Publish to git
 Write-Host "`n--- GIT PUBLISH ---"
-git add "backup/site-ftp-$timestamp/" $zipPath 2>&1
+git -C $projectDir add -f "backup/site-ftp-$timestamp/" $zipPath 2>&1
 $commitMsg = "backup: site snapshot $timestamp"
-git commit -m $commitMsg 2>&1
-$commitHash = git log --oneline -1 2>&1
+git -C $projectDir commit -m $commitMsg 2>&1
+$commitHash = git -C $projectDir log --oneline -1 2>&1
 Write-Host "Committed: $commitHash"
-git push origin master 2>&1
+git -C $projectDir push origin master 2>&1
 Write-Host "Pushed to origin/master"
 
 # Step 5: Report
