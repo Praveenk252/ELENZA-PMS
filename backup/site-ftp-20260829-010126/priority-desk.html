@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elenza PMS — Priority Desk</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#046BD2;--navy:#1E293B;--slate:#334155;--bg:#F0F5FA;--white:#FFFFFF;--border:#D1D5DB;--red:#DC2626;--green:#16A34A;--orange:#EA580C;--yellow:#CA8A04}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--slate);min-height:100vh}
+
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:var(--white);border-radius:12px;padding:40px;width:100%;max-width:400px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.login-box h1{text-align:center;color:var(--navy);font-size:22px;margin-bottom:8px}
+.login-box p{text-align:center;color:var(--slate);font-size:13px;margin-bottom:24px;opacity:.7}
+.login-box label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--navy)}
+.login-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;margin-bottom:16px;outline:none}
+.login-box input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(4,107,210,.15)}
+.login-box .error{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
+.login-box button{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer}
+.login-box button:hover{background:#045CB4}
+.login-box button:disabled{opacity:.5;cursor:not-allowed}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+.auth-quick-link-icon{font-size:18px;line-height:1}
+.auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+.auth-quick-link-desc{display:none}
+@media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
+
+.app{display:none;min-height:100vh;flex-direction:column}
+.top-bar{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.top-bar h1{font-size:16px;font-weight:600}
+.top-bar .right{display:flex;align-items:center;gap:12px}
+.top-bar .user-info{font-size:12px;opacity:.7}
+.top-bar .logout-btn{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer}
+.top-bar .logout-btn:hover{background:rgba(255,255,255,.1)}
+
+.view-toggle{display:flex;background:var(--white);border-bottom:2px solid var(--border)}
+.view-btn{padding:12px 20px;font-size:13px;font-weight:600;color:var(--slate);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.view-btn:hover{color:var(--blue);background:rgba(4,107,210,.04)}
+.view-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+.main{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px}
+
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.toolbar .field{display:flex;flex-direction:column;gap:2px}
+.toolbar .field label{font-size:11px;color:var(--slate);opacity:.7;text-transform:uppercase;letter-spacing:.5px}
+.toolbar .field input,.toolbar .field select{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;outline:none}
+.toolbar .field input:focus,.toolbar .field select:focus{border-color:var(--blue)}
+
+.table-wrap{background:var(--white);border-radius:12px;overflow:hidden}
+.table-wrap table{width:100%;border-collapse:collapse}
+.table-wrap th{background:var(--bg);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--slate);opacity:.7;border-bottom:1px solid var(--border)}
+.table-wrap td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.table-wrap tr:last-child td{border-bottom:none}
+.table-wrap tr{cursor:pointer;transition:background .1s}
+.table-wrap tr:hover{background:rgba(4,107,210,.03)}
+.table-wrap tr.selected{background:rgba(4,107,210,.06)}
+.table-wrap .order-num{font-weight:700;color:var(--navy)}
+.table-wrap .priority-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.table-wrap .priority-high{background:#FEE2E2;color:#DC2626}
+.table-wrap .priority-none{background:var(--bg);color:var(--slate);opacity:.5}
+.table-wrap .date-cell{white-space:nowrap}
+.table-wrap .remarks-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--slate);opacity:.7}
+.table-wrap .empty{padding:40px;text-align:center;color:var(--slate);opacity:.5;font-size:13px}
+
+.action-bar{display:flex;gap:8px;align-items:center}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#045CB4}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:var(--bg);color:var(--slate);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+
+.action-panel{display:none;background:var(--white);border-radius:12px;padding:20px;border:2px solid var(--blue)}
+.action-panel.show{display:block}
+.action-panel .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.action-panel .panel-order{font-size:18px;font-weight:700;color:var(--navy)}
+.action-panel .panel-type{font-size:12px;color:var(--slate);opacity:.7}
+.action-panel .panel-details{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px}
+.action-panel .detail .label{font-size:11px;color:var(--slate);opacity:.6;text-transform:uppercase;letter-spacing:.5px}
+.action-panel .detail .value{font-size:13px;color:var(--navy);font-weight:600}
+.action-panel .form-row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+.action-panel .form-row .field{display:flex;flex-direction:column;gap:4px}
+.action-panel .form-row label{font-size:11px;color:var(--slate);opacity:.7;text-transform:uppercase;letter-spacing:.5px}
+.action-panel .form-row input,.action-panel .form-row textarea{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;outline:none;font-family:inherit}
+.action-panel .form-row input:focus,.action-panel .form-row textarea:focus{border-color:var(--blue)}
+.action-panel .form-row textarea{height:60px;resize:none}
+.action-panel .toggle-row{display:flex;align-items:center;gap:10px}
+.toggle{position:relative;width:44px;height:24px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;inset:0;background:var(--border);border-radius:12px;transition:.2s}
+.toggle .slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:var(--red)}
+.toggle input:checked+.slider:before{transform:translateX(20px)}
+.toggle-label{font-size:13px;font-weight:600;color:var(--navy)}
+.panel-actions{display:flex;gap:8px;margin-top:16px}
+
+.report-section{display:none}
+.report-section.show{display:block}
+.report-summary{display:flex;gap:16px;flex-wrap:wrap}
+.report-card{background:var(--white);border-radius:10px;padding:14px 20px;flex:1;min-width:120px;text-align:center}
+.report-card .num{font-size:24px;font-weight:700;color:var(--navy)}
+.report-card .lbl{font-size:11px;color:var(--slate);opacity:.6;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;color:#fff;z-index:1000;transform:translateX(120%);transition:transform .3s}
+.toast.show{transform:translateX(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+
+.loading-row td{text-align:center;padding:30px;color:var(--slate);opacity:.5}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+.action-panel .panel-details{display:grid;grid-template-columns:1fr !important}
+.action-panel .form-row{flex-direction:column}
+.toolbar{flex-direction:column}
+.table-wrap{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+<div class="login-box">
+<h1>Priority Desk</h1>
+<p>Assign and track order priorities</p>
+<div class="error" id="loginError"></div>
+<label>Username</label>
+<input type="text" id="loginUser" autocomplete="username" placeholder="Enter username">
+<label>Password</label>
+<input type="password" id="loginPass" autocomplete="current-password" placeholder="Enter password">
+<button id="loginBtn" onclick="doLogin()">Sign In</button>
+<div class="auth-quick-links">
+<div class="auth-quick-links-grid">
+<a href="stations.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏭</span><span class="auth-quick-link-label">Stations</span><span class="auth-quick-link-desc">Station workflow</span></a>
+<a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+<a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+<a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+<a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+<a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+<a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+<a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+<a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+</div>
+</div>
+</div>
+</div>
+
+<div class="app" id="app">
+<div class="top-bar">
+<h1>Priority Desk</h1>
+<div class="right">
+<span class="user-info" id="userInfo"></span>
+<button class="logout-btn" onclick="doLogout()">Logout</button>
+</div>
+</div>
+
+<div class="view-toggle">
+<button class="view-btn active" onclick="showView('desk')">Priority Desk</button>
+<button class="view-btn" onclick="showView('report')">Report</button>
+</div>
+
+<div class="main">
+<div id="deskView">
+<div class="toolbar">
+<div class="field">
+<label>Search</label>
+<input type="search" id="searchInput" placeholder="Order / Dealer / Customer" oninput="filterOrders()">
+</div>
+<div class="field">
+<label>Priority</label>
+<select id="priorityFilter" onchange="filterOrders()">
+<option value="all">All</option>
+<option value="high">High Only</option>
+<option value="none">No Priority</option>
+</select>
+</div>
+</div>
+
+<div class="action-bar">
+<button class="btn btn-primary" id="assignBtn" disabled onclick="openActionPanel()">Assign Priority</button>
+<span style="font-size:12px;color:var(--slate);opacity:.6">Select an order from the table</span>
+<span id="orderCount" style="font-size:12px;color:var(--slate);opacity:.5;margin-left:auto"></span>
+</div>
+
+<div class="action-panel" id="actionPanel">
+<div class="panel-header">
+<div>
+<div class="panel-order" id="panelOrder"></div>
+<div class="panel-type" id="panelType"></div>
+</div>
+<button class="btn btn-ghost" onclick="closeActionPanel()">Cancel</button>
+</div>
+<div class="panel-details" id="panelDetails"></div>
+<div class="form-row">
+<div class="field">
+<label>Priority</label>
+<div class="toggle-row">
+<label class="toggle">
+<input type="checkbox" id="priorityToggle">
+<span class="slider"></span>
+</label>
+<span class="toggle-label" id="priorityLabel">No Priority</span>
+</div>
+</div>
+<div class="field">
+<label>Packing Date</label>
+<input type="date" id="priorityDate">
+</div>
+</div>
+<div class="form-row">
+<div class="field" style="flex:1">
+<label>Remarks</label>
+<textarea id="priorityRemarks" placeholder="Follow-up notes..."></textarea>
+</div>
+</div>
+<div class="panel-actions">
+<button class="btn btn-primary" onclick="savePriority()">Save</button>
+<button class="btn btn-ghost" onclick="closeActionPanel()">Cancel</button>
+</div>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th style="width:30px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+<th>Order Number</th>
+<th>Dealer</th>
+<th>Customer</th>
+<th>Type</th>
+<th>Stage</th>
+<th>Priority</th>
+<th>Packing Date</th>
+<th>Remarks</th>
+</tr>
+</thead>
+<tbody id="orderBody"></tbody>
+</table>
+</div>
+</div>
+
+<div class="report-section" id="reportView">
+<div class="toolbar">
+<div class="field">
+<label>Date From</label>
+<input type="date" id="reportDateFrom" onchange="loadReport()">
+</div>
+<div class="field">
+<label>Date To</label>
+<input type="date" id="reportDateTo" onchange="loadReport()">
+</div>
+</div>
+
+<div class="report-summary" id="reportSummary"></div>
+
+<div class="table-wrap" style="margin-top:16px">
+<table>
+<thead>
+<tr>
+<th>Order Number</th>
+<th>Dealer</th>
+<th>Customer</th>
+<th>Type</th>
+<th>Stage</th>
+<th>Packing Date</th>
+<th>Remarks</th>
+</tr>
+</thead>
+<tbody id="reportBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API='api.ashx';
+var allOrders=[];
+var filteredOrders=[];
+var selectedOrderId=null;
+var currentUser=null;
+var refreshTimer=null;
+var panelOpen=false;
+
+function init(){
+var s=sessionStorage.getItem('pd_session');
+if(s){try{currentUser=JSON.parse(s);validateSession();}catch(e){showLogin();}}
+else{showLogin();}
+}
+
+function validateSession(){
+fetch(API+'?action=session',{credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+if(d.error||!d.user_id){showLogin();return;}
+currentUser={user_id:d.user_id,username:d.username||currentUser.username,role:d.role_name||currentUser.role};
+sessionStorage.setItem('pd_session',JSON.stringify(currentUser));
+showApp();
+})
+.catch(function(){showLogin();});
+}
+
+function showLogin(){
+document.getElementById('loginScreen').style.display='flex';
+document.getElementById('app').style.display='none';
+setTimeout(function(){document.getElementById('loginUser').focus();},100);
+}
+
+function showApp(){
+document.getElementById('loginScreen').style.display='none';
+document.getElementById('app').style.display='flex';
+document.getElementById('userInfo').textContent=currentUser.username+' ('+currentUser.role+')';
+loadOrders();
+startAutoRefresh();
+document.addEventListener('keydown',onKeyDown);
+}
+
+function onKeyDown(e){
+if(e.key==='Escape'){
+if(panelOpen)closeActionPanel();
+}
+if(e.key==='Enter'&&panelOpen){
+e.preventDefault();
+savePriority();
+}
+}
+
+function doLogin(){
+var u=document.getElementById('loginUser').value.trim();
+var p=document.getElementById('loginPass').value.trim();
+var err=document.getElementById('loginError');
+if(!u||!p){err.textContent='Enter username and password';err.style.display='block';return;}
+err.style.display='none';
+document.getElementById('loginBtn').disabled=true;
+document.getElementById('loginBtn').textContent='Signing in...';
+var fd=new URLSearchParams();
+fd.append('action','login');
+fd.append('username',u);
+fd.append('password',p);
+fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+document.getElementById('loginBtn').disabled=false;
+document.getElementById('loginBtn').textContent='Sign In';
+if(d.error){err.textContent=d.error;err.style.display='block';return;}
+currentUser={user_id:d.user_id,username:d.username||u,role:d.role_name};
+sessionStorage.setItem('pd_session',JSON.stringify(currentUser));
+showApp();
+})
+.catch(function(){
+document.getElementById('loginBtn').disabled=false;
+document.getElementById('loginBtn').textContent='Sign In';
+err.textContent='Login failed.';err.style.display='block';
+});
+}
+
+function doLogout(){
+sessionStorage.removeItem('pd_session');
+currentUser=null;
+allOrders=[];
+filteredOrders=[];
+selectedOrderId=null;
+if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null;}
+document.removeEventListener('keydown',onKeyDown);
+showLogin();
+}
+
+function loadOrders(){
+var body=document.getElementById('orderBody');
+if(allOrders.length===0)body.innerHTML='<tr class="loading-row"><td colspan="9"><span class="spinner"></span>Loading orders...</td></tr>';
+fetch(API+'?action=priority-desk-state',{credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+if(d.error){showToast(d.error,'error');return;}
+allOrders=d.rows||[];
+filterOrders();
+})
+.catch(function(e){showToast('Failed to load orders: '+e.message,'error');});
+}
+
+function filterOrders(){
+var q=(document.getElementById('searchInput').value||'').toLowerCase();
+var pf=document.getElementById('priorityFilter').value;
+filteredOrders=allOrders.filter(function(o){
+if(pf==='high'&&(o.priority||'').toLowerCase()!=='high')return false;
+if(pf==='none'&&(o.priority||'').toLowerCase()==='high')return false;
+if(q){
+var s=(o.order_number+' '+o.dealer_name+' '+o.customer_name).toLowerCase();
+if(s.indexOf(q)<0)return false;
+}
+return true;
+});
+renderOrders(filteredOrders);
+var countEl=document.getElementById('orderCount');
+if(countEl)countEl.textContent=filteredOrders.length+' of '+allOrders.length+' orders';
+}
+
+function renderOrders(orders){
+var b=document.getElementById('orderBody');
+if(orders.length===0){b.innerHTML='<tr><td colspan="9" class="empty">No orders found</td></tr>';return;}
+var h='';
+orders.forEach(function(o){
+var isHigh=(o.priority||'').toLowerCase()==='high';
+var sel=o.order_id===selectedOrderId;
+h+='<tr class="'+(sel?'selected':'')+'" onclick="selectOrder('+o.order_id+')">';
+h+='<td><input type="checkbox" '+(sel?'checked':'')+' onclick="event.stopPropagation();selectOrder('+o.order_id+')"></td>';
+h+='<td class="order-num">'+esc(o.order_number)+'</td>';
+h+='<td>'+esc(o.dealer_name)+'</td>';
+h+='<td>'+esc(o.customer_name)+'</td>';
+h+='<td>'+esc(o.order_type)+'</td>';
+h+='<td>'+esc(o.planner_stage_label||o.workflow_stage)+'</td>';
+h+='<td>'+(isHigh?'<span class="priority-badge priority-high">HIGH</span>':'<span class="priority-badge priority-none">&mdash;</span>')+'</td>';
+h+='<td class="date-cell">'+(o.priority_date||'&mdash;')+'</td>';
+h+='<td class="remarks-cell" title="'+esc(o.planner_remarks)+'">'+esc(o.planner_remarks||'\u2014')+'</td>';
+h+='</tr>';
+});
+b.innerHTML=h;
+}
+
+function selectOrder(id){
+selectedOrderId=selectedOrderId===id?null:id;
+document.getElementById('assignBtn').disabled=!selectedOrderId;
+filterOrders();
+}
+
+function toggleSelectAll(){
+var cb=document.getElementById('selectAll');
+if(cb.checked){
+if(filteredOrders.length>0){selectedOrderId=filteredOrders[0].order_id;}
+}else{
+selectedOrderId=null;
+}
+document.getElementById('assignBtn').disabled=!selectedOrderId;
+filterOrders();
+}
+
+function openActionPanel(){
+if(!selectedOrderId)return;
+panelOpen=true;
+var order=allOrders.find(function(o){return o.order_id===selectedOrderId;});
+if(!order)return;
+document.getElementById('panelOrder').textContent=order.order_number||('Order #'+order.order_id);
+document.getElementById('panelType').textContent=(order.order_type||'')+(order.dealer_name?' \u00b7 '+order.dealer_name:'');
+var dets=document.getElementById('panelDetails');
+var fields=[
+{label:'Dealer',value:order.dealer_name},
+{label:'Customer',value:order.customer_name},
+{label:'Order Type',value:order.order_type},
+{label:'Stage',value:order.planner_stage_label||order.workflow_stage},
+{label:'Main Order',value:order.main_order||order.order_class},
+{label:'Sub Order',value:order.sub_order||'\u2014'}
+];
+var h='';
+fields.forEach(function(f){
+h+='<div class="detail"><div class="label">'+f.label+'</div><div class="value">'+esc(f.value||'\u2014')+'</div></div>';
+});
+dets.innerHTML=h;
+
+var isHigh=(order.priority||'').toLowerCase()==='high';
+document.getElementById('priorityToggle').checked=isHigh;
+document.getElementById('priorityLabel').textContent=isHigh?'HIGH PRIORITY':'No Priority';
+document.getElementById('priorityDate').value=order.priority_date||'';
+document.getElementById('priorityRemarks').value=order.planner_remarks||'';
+
+document.getElementById('priorityToggle').onchange=function(){
+document.getElementById('priorityLabel').textContent=this.checked?'HIGH PRIORITY':'No Priority';
+};
+
+document.getElementById('actionPanel').classList.add('show');
+document.getElementById('priorityDate').focus();
+}
+
+function closeActionPanel(){
+panelOpen=false;
+document.getElementById('actionPanel').classList.remove('show');
+selectedOrderId=null;
+document.getElementById('assignBtn').disabled=true;
+filterOrders();
+}
+
+function savePriority(){
+if(!selectedOrderId)return;
+var isHigh=document.getElementById('priorityToggle').checked;
+var priorityDate=document.getElementById('priorityDate').value;
+var remarks=document.getElementById('priorityRemarks').value.trim();
+
+if(isHigh&&!priorityDate){
+showToast('Please set a packing date for high priority orders.','error');
+document.getElementById('priorityDate').focus();
+return;
+}
+
+var fd=new URLSearchParams();
+fd.append('action','planner-save');
+fd.append('order_id',selectedOrderId);
+fd.append('priority',isHigh?'High':'');
+fd.append('priority_date',priorityDate);
+fd.append('planner_remarks',remarks);
+
+fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+if(d.error){showToast(d.error,'error');return;}
+showToast('Priority saved','success');
+closeActionPanel();
+loadOrders();
+})
+.catch(function(){showToast('Save failed','error');});
+}
+
+function showView(view){
+var btns=document.querySelectorAll('.view-btn');
+btns.forEach(function(b,i){
+b.className='view-btn'+((view==='desk'&&i===0)||(view==='report'&&i===1)?' active':'');
+});
+document.getElementById('deskView').style.display=view==='desk'?'block':'none';
+document.getElementById('reportView').className='report-section'+(view==='report'?' show':'');
+if(view==='report'){
+var df=document.getElementById('reportDateFrom');
+var dt=document.getElementById('reportDateTo');
+if(!df.value){df.value=new Date().toISOString().slice(0,10);}
+if(!dt.value){dt.value=new Date().toISOString().slice(0,10);}
+loadReport();
+}
+}
+
+function loadReport(){
+var df=document.getElementById('reportDateFrom').value;
+var dt=document.getElementById('reportDateTo').value;
+var url=API+'?action=priority-report';
+if(df)url+='&date_from='+df;
+if(dt)url+='&date_to='+dt;
+var b=document.getElementById('reportBody');
+b.innerHTML='<tr class="loading-row"><td colspan="7"><span class="spinner"></span>Loading report...</td></tr>';
+fetch(url,{credentials:'same-origin'})
+.then(function(r){return r.json();})
+.then(function(d){
+if(d.error){showToast(d.error,'error');return;}
+var rows=d.rows||[];
+renderReport(rows);
+})
+.catch(function(e){showToast('Failed to load report: '+e.message,'error');});
+}
+
+function renderReport(rows){
+var b=document.getElementById('reportBody');
+var s=document.getElementById('reportSummary');
+if(rows.length===0){
+b.innerHTML='<tr><td colspan="7" class="empty">No high priority orders found</td></tr>';
+s.innerHTML='';
+return;
+}
+var h='';
+rows.forEach(function(o){
+h+='<tr>';
+h+='<td class="order-num">'+esc(o.order_number)+'</td>';
+h+='<td>'+esc(o.dealer_name)+'</td>';
+h+='<td>'+esc(o.customer_name)+'</td>';
+h+='<td>'+esc(o.order_type)+'</td>';
+h+='<td>'+esc(o.planner_stage_label||o.workflow_stage)+'</td>';
+h+='<td class="date-cell">'+(o.priority_date||'\u2014')+'</td>';
+h+='<td class="remarks-cell" title="'+esc(o.planner_remarks)+'">'+esc(o.planner_remarks||'\u2014')+'</td>';
+h+='</tr>';
+});
+b.innerHTML=h;
+
+var total=rows.length;
+var withDate=rows.filter(function(r){return r.priority_date;}).length;
+var withRemarks=rows.filter(function(r){return r.planner_remarks;}).length;
+var withoutDate=total-withDate;
+var withoutRemarks=total-withRemarks;
+s.innerHTML=
+'<div class="report-card"><div class="num">'+total+'</div><div class="lbl">High Priority</div></div>'+
+'<div class="report-card"><div class="num">'+withDate+'</div><div class="lbl">With Date</div></div>'+
+'<div class="report-card"><div class="num">'+withoutDate+'</div><div class="lbl">No Date</div></div>'+
+'<div class="report-card"><div class="num">'+withRemarks+'</div><div class="lbl">With Remarks</div></div>'+
+'<div class="report-card"><div class="num">'+withoutRemarks+'</div><div class="lbl">No Remarks</div></div>';
+}
+
+function showToast(msg,type){
+var t=document.getElementById('toast');
+t.textContent=msg;
+t.className='toast '+type+' show';
+setTimeout(function(){t.classList.remove('show');},3000);
+}
+
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function startAutoRefresh(){
+if(refreshTimer){clearInterval(refreshTimer);}
+refreshTimer=setInterval(function(){
+if(panelOpen)return;
+if(document.getElementById('app').style.display!=='none'){
+var deskVisible=document.getElementById('deskView').style.display!=='none';
+if(deskVisible)loadOrders();
+}
+},30000);
+}
+
+init();
+</script>
+</body>
+</html>
