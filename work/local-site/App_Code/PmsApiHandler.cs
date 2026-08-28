@@ -97,7 +97,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         new SampleUser("Sanya Roy","marketing.user","Marketing User","",true,"","demo123",0),
         new SampleUser("Kavya Optimisation","optimisation.user","Optimisation User","",true,"f44ad66605d1879d535a9a441efad475","51e6fde60343696dadcaff1830f6385f6893320a91c72cbb456321c7e08bf1a8",120000),
         new SampleUser("Ramesh Procurement","procurement.user","Procurement User","",true,"759d8d1031ccaf334cdc8e13be0c37d5","9ebab4bee5ed68d8583be0c443e07b886c134fdd3962628c49aab7843e9305e6",120000),
-        new SampleUser("Pooja Planner","planner.user","Production Planner User","",true,"","demo123",0),
+        new SampleUser("Vicky Planner","planner.user","Production Planner User","",true,"","demo123",0),
         new SampleUser("Hari Hot Press","hotpress.user","Machine User","Hot Press",true,"c56e12a095deb296b05c67ded2f7c57d","72f67fdeb779e64bb242011c79aaa585c8959b93184993c334ba8681ccc2f520",120000),
         new SampleUser("Naveen Cutting","cutting.user","Machine User","Cutting",true,"21d862b78cedc60b5cd41aeac4000c29","0b78a83a1d71883afdbc978ad14f10b526906b4b5ec3c4eca22fad7f0eb5260e",120000),
         new SampleUser("Suresh Edgebanding","edgebanding.user","Machine User","Edgebanding",true,"d697b7e8c1313abb34f8dde74d96c16b","1554c92a37b4e4fe2bf1b56f5f92bf43230cf45b17f835ccf4eac541ac3f56a5",120000),
@@ -381,6 +381,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     break;
                 case "planner-board-vs-actual":
                     HandlePlannerBoardVsActual(context);
+                    break;
+                case "planner-board-clear":
+                    HandlePlannerBoardClear(context);
                     break;
                 default:
                     WriteError(context, 404, "API route not found.");
@@ -6006,6 +6009,30 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var stationId = IntRequired(Value(context, "station_id"), "Station is required.");
             Execute(conn, "DELETE FROM tbl_planner_board WHERE order_id = " + orderId + " AND station_id = " + stationId);
             WriteJson(context, Obj("ok", true, "message", "Order removed from machine."));
+        }
+    }
+
+    private void HandlePlannerBoardClear(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var stationIdRaw = Value(context, "station_id");
+            int stationId;
+            if (!string.IsNullOrEmpty(stationIdRaw) && int.TryParse(stationIdRaw, out stationId))
+            {
+                var count = Convert.ToInt32(Scalar(conn, "SELECT COUNT(*) FROM tbl_planner_board WHERE station_id = " + stationId) ?? 0);
+                Execute(conn, "DELETE FROM tbl_planner_board WHERE station_id = " + stationId);
+                WriteJson(context, Obj("ok", true, "cleared", count, "message", count + " orders cleared from machine."));
+            }
+            else
+            {
+                var count = Convert.ToInt32(Scalar(conn, "SELECT COUNT(*) FROM tbl_planner_board") ?? 0);
+                Execute(conn, "DELETE FROM tbl_planner_board");
+                WriteJson(context, Obj("ok", true, "cleared", count, "message", count + " orders cleared from all machines."));
+            }
         }
     }
 
