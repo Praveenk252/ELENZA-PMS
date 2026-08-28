@@ -231,8 +231,11 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "dispatch-boxes-add":
                     HandleDispatchBoxAdd(context);
                     break;
-                case "packing-boxes-set":
+case "packing-boxes-set":
                     HandlePackingBoxesSet(context);
+                    break;
+                case "packing-box-plan-set":
+                    HandlePackingBoxPlanSet(context);
                     break;
                 case "dispatch-boxes-state":
                     HandleDispatchBoxState(context);
@@ -1673,6 +1676,55 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         }
     }
 
+    private void HandlePackingBoxPlanSet(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureSchema(conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var stationName = Require(Value(context, "station_name"), "Station is required.");
+            if (!IsPackingStationName(stationName) && S(user, "role_name") == "Machine User")
+                throw new ApiFailure(403, "Planned box qty entry is available for packing station users.");
+            if (S(user, "role_name") == "Machine User" && stationName != S(user, "station_name"))
+                throw new ApiFailure(403, "Machine user can only update assigned station orders.");
+            var boxQty = N(Value(context, "box_qty"));
+            if (!boxQty.HasValue || boxQty.Value < 0) throw new ApiFailure(400, "Planned box qty must be 0 or more.");
+            var order = FindOrderById(conn, orderId);
+            if (order == null) throw new ApiFailure(404, "Order not found.");
+            if (!string.Equals(OrderClassForOrder(order), "Main Order", StringComparison.OrdinalIgnoreCase))
+                throw new ApiFailure(400, "Planned box qty can only be assigned to a Main Order.");
+            if (!IsPackingPlanEligible(order))
+                throw new ApiFailure(400, "Planned box qty can only be recorded before packing starts.");
+            var previousQty = D(order, "planned_box_qty");
+            Execute(conn, "UPDATE tbl_orders SET planned_box_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
+                boxQty.Value, I(user, "user_id"), "Packing Box Plan Saved", orderId);
+            Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Packing Box Plan Saved",
+                previousQty > 0 ? previousQty.ToString("0.##", CultureInfo.InvariantCulture) : "",
+                boxQty.Value.ToString("0.##", CultureInfo.InvariantCulture), "", null);
+            try
+            {
+                AddHistory(conn, orderId, null, "BOX_PLAN_UPDATED", previousQty.ToString(CultureInfo.InvariantCulture), boxQty.Value.ToString(CultureInfo.InvariantCulture), null, null,
+                    "Planned box qty: " + boxQty.Value.ToString("0.##", CultureInfo.InvariantCulture), I(user, "user_id"));
+            }
+            catch { }
+            WriteJson(context, Obj("ok", true, "planned_box_qty", boxQty.Value));
+        }
+    }
+
+    private bool IsPackingPlanEligible(Dictionary<string, object> order)
+    {
+        var workflowStage = S(order, "workflow_stage_code");
+        if (string.Equals(workflowStage, "QUOTATION_CREATED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(workflowStage, "DISPATCH_READY", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(workflowStage, "DISPATCHED", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+        return !string.Equals(S(order, "dispatch_status_code"), "DISPATCHED", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void HandlePackingHistory(HttpContext context)
     {
         using (var conn = OpenConnection(context))
@@ -2487,6 +2539,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 "created_by", I(order, "created_by"),
                 "quotation_remarks", S(order, "quotation_remarks"),
                 "packing_balance_box_qty", I(order, "packing_balance_box_qty"),
+                "planned_box_qty", D(order, "planned_box_qty"),
                 "box_count", boxCountLookup.ContainsKey(I(order, "order_id")) ? boxCountLookup[I(order, "order_id")] : 0
             ));
         }
@@ -2637,7 +2690,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var previousStatus = !string.IsNullOrWhiteSpace(previousStationName) && stationStatuses.ContainsKey(previousStationName) ? stationStatuses[previousStationName] : "";
             var currentStatus = stationStatuses.ContainsKey(selectedStation) ? stationStatuses[selectedStation] : "PENDING";
             var partialPending = string.Equals(currentStatus, "PARTIAL_COMPLETED", StringComparison.OrdinalIgnoreCase) || string.Equals(previousStatus, "PARTIAL_COMPLETED", StringComparison.OrdinalIgnoreCase);
-            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "main_sub", S(order, "main_order") + " / " + S(order, "sub_order"), "previous_station", EmptyAs(previousStationName, "-"), "current_station", selectedStation, "next_station", EmptyAs(NextStationName(orderSequenceNames, selectedStation), "-"), "status", Label(statusLookup, "QUEUE", currentStatus), "remarks", stationRemarks.ContainsKey(selectedStation) ? Convert.ToString(stationRemarks[selectedStation]) : "", "actions_allowed", true, "partial_pending", partialPending, "partial_pending_source", string.Equals(previousStatus, "PARTIAL_COMPLETED", StringComparison.OrdinalIgnoreCase) ? previousStationName : "", "packing_balance_box_qty", D(order, "packing_balance_box_qty"), "box_count", boxCountLookup.ContainsKey(I(order, "order_id")) ? boxCountLookup[I(order, "order_id")] : 0));
+            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "main_sub", S(order, "main_order") + " / " + S(order, "sub_order"), "previous_station", EmptyAs(previousStationName, "-"), "current_station", selectedStation, "next_station", EmptyAs(NextStationName(orderSequenceNames, selectedStation), "-"), "status", Label(statusLookup, "QUEUE", currentStatus), "remarks", stationRemarks.ContainsKey(selectedStation) ? Convert.ToString(stationRemarks[selectedStation]) : "", "actions_allowed", true, "partial_pending", partialPending, "partial_pending_source", string.Equals(previousStatus, "PARTIAL_COMPLETED", StringComparison.OrdinalIgnoreCase) ? previousStationName : "", "packing_balance_box_qty", D(order, "packing_balance_box_qty"), "planned_box_qty", D(order, "planned_box_qty"), "box_count", boxCountLookup.ContainsKey(I(order, "order_id")) ? boxCountLookup[I(order, "order_id")] : 0));
         }
         return Obj("available_stations", available, "selected_station", selectedStation, "rows", rows);
     }
@@ -2739,6 +2792,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             "planner_stage_key", stageKey,
             "planner_stage_label", PlanningStageLabel(stageKey),
             "packing_balance_box_qty", D(order, "packing_balance_box_qty"),
+            "planned_box_qty", D(order, "planned_box_qty"),
             "box_count", D(order, "packing_balance_box_qty")
         );
     }
@@ -2884,7 +2938,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (stationFilter != "all" && !((List<string>)order["visible_stations"]).Contains(stationFilter) && !(stationFilter == "Correction Queue" && B(order, "correction_queue"))) continue;
             if (!string.IsNullOrWhiteSpace(dateFrom) && string.CompareOrdinal(orderDate, dateFrom) < 0) continue;
             if (!string.IsNullOrWhiteSpace(dateTo) && string.CompareOrdinal(orderDate, dateTo) > 0) continue;
-            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "workflow_stage", workflowStage, "visible_stations", visibleStations, "last_action", S(order, "last_action"), "updated_at", FormatDateTime(DT(order, "updated_at")), "updated_sort", DateSortKey(DT(order, "updated_at")), "dispatch_status", dispatchStatus, "panel_qty", D(order, "panel_qty") > 0 ? D(order, "panel_qty").ToString("0.##", CultureInfo.InvariantCulture) : "", "board_qty", D(order, "number_of_boards") > 0 ? D(order, "number_of_boards").ToString("0.##", CultureInfo.InvariantCulture) : ""));
+            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "workflow_stage", workflowStage, "visible_stations", visibleStations, "last_action", S(order, "last_action"), "updated_at", FormatDateTime(DT(order, "updated_at")), "updated_sort", DateSortKey(DT(order, "updated_at")), "dispatch_status", dispatchStatus, "panel_qty", D(order, "panel_qty") > 0 ? D(order, "panel_qty").ToString("0.##", CultureInfo.InvariantCulture) : "", "board_qty", D(order, "number_of_boards") > 0 ? D(order, "number_of_boards").ToString("0.##", CultureInfo.InvariantCulture) : "", "planned_box_qty", D(order, "planned_box_qty") > 0 ? D(order, "planned_box_qty").ToString("0.##", CultureInfo.InvariantCulture) : ""));
         }
 
         rows = SortReportRows(rows, sortKey);
@@ -4105,7 +4159,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN order_class_code TEXT(80)");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN board_qty_decimal DOUBLE");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN panel_qty DOUBLE");
-        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUBLE");
+TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUBLE");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN planned_box_qty DOUBLE");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN dispatch_balance_box_qty DOUBLE");
         TryExecute(conn, "ALTER TABLE tbl_production_planner ADD COLUMN priority_date DATETIME");
         TryExecute(conn, "CREATE UNIQUE INDEX ux_tbl_dealers_code ON tbl_dealers (dealer_code)");

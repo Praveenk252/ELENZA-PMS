@@ -322,6 +322,30 @@
 
         <div class="card">
           <div class="card-head">
+            <h2>Box Plan</h2>
+            <span class="tag" id="plan-count">0 Orders</span>
+          </div>
+          <form id="plan-form" class="form-grid">
+            <label>Order Number</label>
+            <div>
+              <input id="plan-order-input" list="plan-order-options" placeholder="Searchable dropdown" required>
+              <datalist id="plan-order-options"></datalist>
+            </div>
+
+            <label>Planned Box Qty</label>
+            <div>
+              <input id="plan-box-input" type="number" min="0" step="1" placeholder="Tentative box qty before packing" required>
+            </div>
+
+            <div class="action-row">
+              <button class="primary" type="submit">Save Box Plan</button>
+            </div>
+          </form>
+          <div class="helper" id="plan-helper">Record the tentative box qty for confirmed main orders before packing starts.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
             <h3>History</h3>
             <span class="tag" id="history-count">0 Rows</span>
           </div>
@@ -350,6 +374,7 @@
       planningRows: [],
       productionRows: [],
       packingRows: [],
+      planRows: [],
       historyRows: [],
       saving: false
     };
@@ -373,6 +398,13 @@
       submitButton: document.querySelector("#packing-form button[type='submit']"),
       queueCount: document.querySelector("#queue-count"),
       selectionHelper: document.querySelector("#selection-helper"),
+      planForm: document.querySelector("#plan-form"),
+      planOrderInput: document.querySelector("#plan-order-input"),
+      planOrderOptions: document.querySelector("#plan-order-options"),
+      planBoxInput: document.querySelector("#plan-box-input"),
+      planSubmitButton: document.querySelector("#plan-form button[type='submit']"),
+      planCount: document.querySelector("#plan-count"),
+      planHelper: document.querySelector("#plan-helper"),
       historyBody: document.querySelector("#history-body"),
       historyCount: document.querySelector("#history-count")
     };
@@ -390,6 +422,8 @@
       refs.logoutButton.addEventListener("click", onLogout);
       refs.packingForm.addEventListener("submit", onPackingSave);
       refs.orderInput.addEventListener("input", syncSelectedOrder);
+      refs.planForm.addEventListener("submit", onPlanSave);
+      refs.planOrderInput.addEventListener("input", syncSelectedPlanOrder);
     }
 
     async function restoreSession() {
@@ -467,6 +501,10 @@
         });
         const historyState = await apiGet("packing-history");
         state.historyRows = historyState.rows || [];
+        state.planRows = state.planningRows.filter((row) => {
+          const orderClass = String(row.order_class_code || row.order_class || "").toLowerCase();
+          return orderClass === "main order";
+        });
         renderLoggedIn();
       } catch (error) {
         showMessage(error.message, "error", true);
@@ -477,10 +515,13 @@
       refs.authShell.classList.remove("hidden");
       refs.appShell.classList.add("hidden");
       refs.orderOptions.innerHTML = "";
+      refs.planOrderOptions.innerHTML = "";
       refs.historyBody.innerHTML = "";
       refs.queueCount.textContent = "0 Orders";
+      refs.planCount.textContent = "0 Orders";
       refs.historyCount.textContent = "0 Rows";
       refs.selectionHelper.textContent = "Choose a packing order to load current packed and balance boxes.";
+      refs.planHelper.textContent = "Record the tentative box qty for confirmed main orders before packing starts.";
     }
 
     function renderLoggedIn() {
@@ -491,6 +532,10 @@
       fillDatalist(refs.orderOptions, state.planningRows.map(orderLabel));
       refs.orderInput.value = "";
       syncSelectedOrder();
+      refs.planCount.textContent = `${state.planRows.length} Orders`;
+      fillDatalist(refs.planOrderOptions, state.planRows.map(orderLabel));
+      refs.planOrderInput.value = "";
+      syncSelectedPlanOrder();
       renderHistory();
     }
 
@@ -621,6 +666,69 @@
         || state.planningRows.find((row) => String(row.order_number || "").trim().toLowerCase() === value)
         || state.planningRows.find((row) => orderLabel(row).toLowerCase().includes(value))
         || null;
+    }
+
+    function syncSelectedPlanOrder() {
+      const row = findSelectedPlanOrder();
+      if (!row) {
+        refs.planBoxInput.value = "";
+        refs.planBoxInput.disabled = true;
+        refs.planSubmitButton.disabled = true;
+        refs.planHelper.textContent = state.planRows.length ? "Select a main order to record its planned box qty." : "No eligible main orders are available before packing.";
+        return;
+      }
+      const packingRow = state.productionRows.find((item) => String(item.order_id) === String(row.order_id)) || {};
+      const planned = Number(row.planned_box_qty || 0);
+      const boxed = Number(packingRow.box_count || 0);
+      refs.planBoxInput.value = planned > 0 ? String(planned) : "";
+      refs.planBoxInput.disabled = false;
+      refs.planSubmitButton.disabled = false;
+      refs.planHelper.textContent = `Dealer: ${row.dealer_name || "-"} | Customer: ${customerLabel(row.customer_name)} | Planned box qty: ${planned} | Actual packed boxes: ${boxed}`;
+      refs.planBoxInput.focus();
+    }
+
+    function findSelectedPlanOrder() {
+      const value = refs.planOrderInput.value.trim().toLowerCase();
+      if (!value) return null;
+      return state.planRows.find((row) => orderLabel(row).trim().toLowerCase() === value)
+        || state.planRows.find((row) => String(row.order_number || "").trim().toLowerCase() === value)
+        || state.planRows.find((row) => orderLabel(row).toLowerCase().includes(value))
+        || null;
+    }
+
+    async function onPlanSave(event) {
+      event.preventDefault();
+      if (state.saving) return;
+      const row = findSelectedPlanOrder();
+      if (!row) {
+        syncSelectedPlanOrder();
+        return;
+      }
+      const plannedQty = Number(refs.planBoxInput.value || "0");
+      if (!Number.isFinite(plannedQty) || plannedQty < 0) {
+        showMessage("Planned box qty must be 0 or more.", "error");
+        return;
+      }
+      state.saving = true;
+      refs.planSubmitButton.disabled = true;
+      refs.planSubmitButton.textContent = "Saving...";
+      try {
+        await apiPost("packing-box-plan-set", {
+          order_id: Number(row.order_id),
+          station_name: state.session.station_name || "Packed",
+          box_qty: String(plannedQty)
+        });
+        await loadPackingState();
+        refs.planOrderInput.value = orderLabel(row);
+        syncSelectedPlanOrder();
+        showMessage("Box plan saved.", "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+        refs.planSubmitButton.disabled = false;
+        refs.planSubmitButton.textContent = "Save Box Plan";
+      } finally {
+        state.saving = false;
+      }
     }
 
     function findSelectedPackingOrder() {
