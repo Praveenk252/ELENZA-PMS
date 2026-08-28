@@ -5918,6 +5918,26 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (dealerIds.Count > 0) { var drows = QueryAll(conn, "SELECT dealer_id, dealer_name FROM tbl_dealers WHERE dealer_id IN (" + string.Join(",", dealerIds.Select(v => v.ToString()).ToArray()) + ")"); foreach (var d in drows) dealerLookup[Convert.ToInt32(I(d, "dealer_id"))] = S(d, "dealer_name"); }
             var plannerLookup = new Dictionary<int, Dictionary<string, object>>();
             if (orderIdsForPlanner.Count > 0) { var prows = QueryAll(conn, "SELECT order_id, sla_date, [priority] FROM tbl_production_planner WHERE order_id IN (" + string.Join(",", orderIdsForPlanner.Select(v => v.ToString()).ToArray()) + ")"); foreach (var p in prows) plannerLookup[Convert.ToInt32(I(p, "order_id"))] = p; }
+            var stationCompletionLookup = new Dictionary<int, string>();
+            try
+            {
+                if (orderIdsForPlanner.Count > 0)
+                {
+                    var ids = string.Join(",", orderIdsForPlanner.Select(v => v.ToString()).ToArray());
+                    var sqRows = QueryAll(conn, "SELECT q.order_id, m.machine_name, q.queue_status_code, m.sequence_no FROM tbl_order_station_queue AS q INNER JOIN tbl_machines AS m ON q.station_id = m.machine_id WHERE q.order_id IN (" + ids + ") AND (q.queue_status_code = 'COMPLETED' OR q.queue_status_code = 'PARTIAL_COMPLETED') ORDER BY m.sequence_no DESC");
+                    foreach (var sq in sqRows)
+                    {
+                        var oid = Convert.ToInt32(I(sq, "order_id"));
+                        if (!stationCompletionLookup.ContainsKey(oid))
+                        {
+                            var status = S(sq, "queue_status_code");
+                            var name = S(sq, "machine_name");
+                            stationCompletionLookup[oid] = string.Equals(status, "PARTIAL_COMPLETED", StringComparison.OrdinalIgnoreCase) ? name + " \u26A0" : name + " done";
+                        }
+                    }
+                }
+            }
+            catch { }
             var unplanned = activeOrders.Select(o =>
             {
                 var tid = Convert.ToInt32(I(o, "order_type_id"));
@@ -5932,7 +5952,13 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var plannedStations = orderStationMap.ContainsKey(oid) ? orderStationMap[oid] : new List<Dictionary<string, object>>();
                 var plannedNames = string.Join(", ", plannedStations.Select(ps => S(ps, "station_name")));
                 var plannedDates = string.Join(", ", plannedStations.Select(ps => S(ps, "planned_date")).Where(d => !string.IsNullOrEmpty(d)));
-                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "number_of_boards"), "panel_qty", S(o, "panel_qty"), "workflow_stage", WorkflowStageLabel(S(o, "workflow_stage_code")), "confirmation_date", confDate, "edd", edd, "priority", priority, "planned_stations", plannedNames, "planned_dates", plannedDates);
+                var wfCode = S(o, "workflow_stage_code");
+                string stageLabel;
+                if (string.Equals(wfCode, "PRODUCTION_STARTED", StringComparison.OrdinalIgnoreCase) && stationCompletionLookup.ContainsKey(oid))
+                    stageLabel = stationCompletionLookup[oid] + " done";
+                else
+                    stageLabel = WorkflowStageLabel(wfCode);
+                return Obj("order_id", I(o, "order_id"), "order_number", S(o, "order_number"), "customer_name", S(o, "customer_name"), "dealer_name", dealerName ?? "", "order_type", typeName ?? "", "board_qty", S(o, "number_of_boards"), "panel_qty", S(o, "panel_qty"), "workflow_stage", stageLabel, "confirmation_date", confDate, "edd", edd, "priority", priority, "planned_stations", plannedNames, "planned_dates", plannedDates);
             }).ToList();
             WriteJson(context, Obj("ok", true, "machines", machines.Select(m => Obj("machine_id", I(m, "machine_id"), "machine_name", S(m, "machine_name"), "sequence_no", I(m, "sequence_no"))).ToList(), "unplanned", unplanned, "board", boardResult));
         }

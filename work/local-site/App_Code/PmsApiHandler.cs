@@ -1696,8 +1696,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var oid = Convert.ToInt32(I(r, "order_id"));
                 var packedBoxes = boxLookup.ContainsKey(oid) ? boxLookup[oid] : 0;
                 var balanceBoxes = Convert.ToDouble(I(r, "packing_balance_box_qty"));
-                var packedDate = I(r, "packed_date");
-                var actedAt = packedDate != null && packedDate != DBNull.Value ? Convert.ToDateTime(packedDate).ToString("dd-MM-yyyy HH:mm") : FormatDateTime(DT(r, "updated_at"));
+                var packedDateRaw = r.ContainsKey("packed_date") ? r["packed_date"] : null;
+                var actedAt = packedDateRaw != null && packedDateRaw != DBNull.Value ? Convert.ToDateTime(packedDateRaw).ToString("dd-MM-yyyy HH:mm") : FormatDateTime(DT(r, "updated_at"));
                 return Obj(
                     "order_id", oid,
                     "order_number", S(r, "order_number"),
@@ -6355,7 +6355,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             var dealerRole = QueryOne(conn, "SELECT role_id FROM tbl_roles WHERE role_name = 'Dealer'");
             if (dealerRole == null)
             {
-                Execute(conn, "INSERT INTO tbl_roles (role_name, home_section, is_active) VALUES ('Dealer', 'dashboard', TRUE)");
+                Execute(conn, "INSERT INTO tbl_roles (role_name, home_section) VALUES ('Dealer', 'dashboard')");
                 dealerRole = QueryOne(conn, "SELECT role_id FROM tbl_roles WHERE role_name = 'Dealer'");
             }
             var now = IstNow();
@@ -7024,9 +7024,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     }
 
     private static DateTime _lastAutoAdvanceProbeUtc = DateTime.MinValue;
-    private static Timer _autoAdvanceTimer;
+    private Timer _autoAdvanceTimer;
 
-    public static void StartAutoAdvanceScheduler()
+    public void StartAutoAdvanceScheduler()
     {
         if (_autoAdvanceTimer != null) return;
         _autoAdvanceTimer = new Timer(_ =>
@@ -7035,7 +7035,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
     }
 
-    public static void RunAutoAdvancePlannerBoardIfDue()
+    public void RunAutoAdvancePlannerBoardIfDue()
     {
         var nowUtc = DateTime.UtcNow;
         if ((nowUtc - _lastAutoAdvanceProbeUtc).TotalMinutes < 55) return;
