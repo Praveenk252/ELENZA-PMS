@@ -120,6 +120,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             EnsureDbReady(context);
 
             try { RunRemarksReportSchedulerIfDue(); } catch { }
+            try { RunAutoAdvancePlannerBoardIfDue(); } catch { }
 
             var action = Value(context, "action").ToLowerInvariant();
             switch (action)
@@ -6764,6 +6765,72 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         _lastRemarksSchedulerProbeUtc = nowUtc;
         string message;
         try { TrySendRemarksReport(ResolveSiteRoot(null), false, out message); } catch { }
+    }
+
+    private static DateTime _lastAutoAdvanceProbeUtc = DateTime.MinValue;
+    private static Timer _autoAdvanceTimer;
+
+    public static void StartAutoAdvanceScheduler()
+    {
+        if (_autoAdvanceTimer != null) return;
+        _autoAdvanceTimer = new Timer(_ =>
+        {
+            try { RunAutoAdvancePlannerBoardIfDue(); } catch { }
+        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
+    }
+
+    public static void RunAutoAdvancePlannerBoardIfDue()
+    {
+        var nowUtc = DateTime.UtcNow;
+        if ((nowUtc - _lastAutoAdvanceProbeUtc).TotalMinutes < 55) return;
+        _lastAutoAdvanceProbeUtc = nowUtc;
+        try
+        {
+            var siteRoot = ResolveSiteRoot(null);
+            using (var conn = new OleDbConnection(System.Configuration.ConfigurationManager.ConnectionStrings["PmsDb"].ConnectionString))
+            {
+                conn.Open();
+                TryExecute(conn, "CREATE TABLE IF NOT EXISTS tbl_scheduler_log (log_id COUNTER PRIMARY KEY, scheduler_name TEXT(100), ran_at DATETIME, message MEMO)");
+                var lastRun = Scalar(conn, "SELECT MAX(ran_at) FROM tbl_scheduler_log WHERE scheduler_name = 'AutoAdvancePlannerBoard'");
+                if (lastRun != null)
+                {
+                    var lastRunTime = Convert.ToDateTime(lastRun);
+                    if ((IstNow() - lastRunTime).TotalMinutes < 55) return;
+                }
+                var now = IstNow();
+                var machines = QueryAll(conn, "SELECT machine_id, machine_name, sequence_no FROM tbl_machines WHERE is_active = TRUE ORDER BY sequence_no");
+                if (machines.Count == 0) return;
+                var machineDict = machines.ToDictionary(m => Convert.ToInt32(m["machine_id"]));
+                var machineList = machines.Select(m => Convert.ToInt32(m["machine_id"])).ToList();
+                var plannerBoard = QueryAll(conn, "SELECT board_id, order_id, station_id FROM tbl_planner_board");
+                if (plannerBoard.Count == 0)
+                {
+                    Execute(conn, "INSERT INTO tbl_scheduler_log (scheduler_name, ran_at, message) VALUES ('AutoAdvancePlannerBoard', " + SqlDateLiteral(now) + ", 'No orders in planner board')");
+                    return;
+                }
+                var advanced = 0;
+                var skipped = 0;
+                foreach (var pbRow in plannerBoard)
+                {
+                    var orderId = Convert.ToInt32(pbRow["order_id"]);
+                    var currentStationId = Convert.ToInt32(pbRow["station_id"]);
+                    if (!machineDict.ContainsKey(currentStationId)) { skipped++; continue; }
+                    var currentMachine = machineDict[currentStationId];
+                    var currentSeqNo = Convert.ToInt32(currentMachine["sequence_no"]);
+                    var completedRows = QueryAll(conn, "SELECT queue_status_code FROM tbl_order_station_queue WHERE order_id = " + orderId + " AND station_id = " + currentStationId + " AND (queue_status_code = 'COMPLETED' OR queue_status_code = 'PARTIAL_COMPLETED')");
+                    if (completedRows.Count == 0) { skipped++; continue; }
+                    var currentIdx = machineList.IndexOf(currentStationId);
+                    if (currentIdx < 0 || currentIdx >= machineList.Count - 1) { skipped++; continue; }
+                    var nextStationId = machineList[currentIdx + 1];
+                    var existingNext = QueryAll(conn, "SELECT board_id FROM tbl_planner_board WHERE order_id = " + orderId + " AND station_id = " + nextStationId);
+                    if (existingNext.Count > 0) { skipped++; continue; }
+                    Execute(conn, "INSERT INTO tbl_planner_board (order_id, station_id, assigned_by, assigned_at) VALUES (" + orderId + ", " + nextStationId + ", 0, " + SqlDateLiteral(now) + ")");
+                    advanced++;
+                }
+                Execute(conn, "INSERT INTO tbl_scheduler_log (scheduler_name, ran_at, message) VALUES ('AutoAdvancePlannerBoard', " + SqlDateLiteral(now) + ", 'Advanced " + advanced + " orders, skipped " + skipped + "')");
+            }
+        }
+        catch { }
     }
 }
 
