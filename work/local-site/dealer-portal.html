@@ -131,6 +131,7 @@ td.wrap{white-space:normal}
         </div>
       </div>
       <div class="topbar-actions">
+        <button class="ghost" onclick="toggleProfile()">My Profile</button>
         <button class="ghost" onclick="loadState()">Refresh</button>
         <button class="ghost" onclick="doLogout()">Logout</button>
       </div>
@@ -194,7 +195,7 @@ td.wrap{white-space:normal}
         </div>
       </div>
 
-      <div class="card">
+      <div class="card hidden" id="profileCard">
         <div class="card-head">
           <h2>My Profile</h2>
           <button class="ghost" id="editProfileBtn" onclick="toggleProfileEdit(true)">Edit Contact Details</button>
@@ -466,6 +467,12 @@ function toggleProfileEdit(on){
   document.getElementById('profileView').classList.toggle('hidden',!!on);
   document.getElementById('profileEdit').classList.toggle('hidden',!on);
   document.getElementById('editProfileBtn').style.display=on?'none':'';
+}
+
+function toggleProfile(){
+  var card=document.getElementById('profileCard');
+  card.classList.toggle('hidden');
+  if(!card.classList.contains('hidden'))card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function doLogout(){
