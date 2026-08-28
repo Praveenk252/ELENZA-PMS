@@ -49,7 +49,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         { "Machine User", new[] { "production", "history", "settings" } },
         { "Dispatch User", new[] { "dispatch", "history", "settings" } },
         { "Management", new[] { "reports", "history", "settings" } },
-        { "Dealer", new[] { "dashboard" } }
+        { "Dealer", new[] { "dashboard" } },
+        { "Accounts", new[] { "dashboard", "reports" } }
     };
 
     private static readonly HashSet<string> ProcurementStatusCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -385,6 +386,24 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     break;
                 case "planner-board-clear":
                     HandlePlannerBoardClear(context);
+                    break;
+                case "packing-history":
+                    HandlePackingHistory(context);
+                    break;
+                case "dealer-login-generate":
+                    HandleDealerLoginGenerate(context);
+                    break;
+                case "dealer-ledger-add":
+                    HandleDealerLedgerAdd(context);
+                    break;
+                case "dealer-ledger-list":
+                    HandleDealerLedgerList(context);
+                    break;
+                case "dealer-ledger-delete":
+                    HandleDealerLedgerDelete(context);
+                    break;
+                case "dealer-portal-state":
+                    HandleDealerPortalState(context);
                     break;
                 default:
                     WriteError(context, 404, "API route not found.");
@@ -1648,6 +1667,49 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             }
             catch { }
             WriteJson(context, Obj("ok", true, "box_count", boxQty));
+        }
+    }
+
+    private void HandlePackingHistory(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Machine User");
+            var packingStation = FindMachineByName(conn, "Packed");
+            if (packingStation == null) packingStation = FindMachineByName(conn, "Packing");
+            if (packingStation == null) throw new ApiFailure(404, "Packing station not found.");
+            var stationId = Convert.ToInt32(I(packingStation, "machine_id"));
+            var rows = QueryAll(conn,
+                "SELECT TOP 200 o.order_id, o.order_number, o.confirmation_date, o.packing_balance_box_qty, o.packing_ready_date, o.packed_date, o.updated_at, d.dealer_name, o.customer_name FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) INNER JOIN tbl_order_station_queue AS q ON o.order_id = q.order_id WHERE q.station_id = " + stationId + " AND q.is_visible = TRUE ORDER BY o.updated_at DESC, o.order_id DESC");
+            var orderIds = rows.Select(r => Convert.ToInt32(I(r, "order_id"))).Where(v => v > 0).Distinct().ToList();
+            var boxLookup = new Dictionary<int, int>();
+            if (orderIds.Count > 0)
+            {
+                var ids = string.Join(",", orderIds.Select(v => v.ToString()).ToArray());
+                var boxRows = QueryAll(conn, "SELECT order_id, COUNT(*) AS box_count FROM tbl_dispatch_boxes WHERE order_id IN (" + ids + ") GROUP BY order_id");
+                foreach (var br in boxRows) boxLookup[Convert.ToInt32(I(br, "order_id"))] = Convert.ToInt32(I(br, "box_count"));
+            }
+            var result = rows.Select(r =>
+            {
+                var oid = Convert.ToInt32(I(r, "order_id"));
+                var packedBoxes = boxLookup.ContainsKey(oid) ? boxLookup[oid] : 0;
+                var balanceBoxes = Convert.ToDouble(I(r, "packing_balance_box_qty"));
+                var packedDate = I(r, "packed_date");
+                var actedAt = packedDate != null && packedDate != DBNull.Value ? Convert.ToDateTime(packedDate).ToString("dd-MM-yyyy HH:mm") : FormatDateTime(DT(r, "updated_at"));
+                return Obj(
+                    "order_id", oid,
+                    "order_number", S(r, "order_number"),
+                    "customer_name", S(r, "customer_name"),
+                    "dealer_name", S(r, "dealer_name"),
+                    "confirmation_date", ((DateTime?)DT(r, "confirmation_date")).HasValue ? ((DateTime?)DT(r, "confirmation_date")).Value.ToString("dd-MM-yyyy") : "",
+                    "packed_boxes", packedBoxes,
+                    "balance_boxes", balanceBoxes,
+                    "acted_at", actedAt
+                );
+            }).ToList();
+            WriteJson(context, Obj("ok", true, "rows", result));
         }
     }
 
@@ -4054,6 +4116,8 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         TryExecute(conn, "ALTER TABLE tbl_planner_board ADD COLUMN planned_date DATETIME");
         TryExecute(conn, "ALTER TABLE tbl_planner_board ADD COLUMN remarks TEXT(500)");
         TryExecute(conn, "CREATE UNIQUE INDEX ux_planner_board_order_station ON tbl_planner_board (order_id, station_id)");
+        TryExecute(conn, "CREATE TABLE tbl_dealer_ledger (ledger_id COUNTER PRIMARY KEY, dealer_id LONG NOT NULL, entry_date DATETIME NOT NULL, payment_mode TEXT(30), amount DOUBLE NOT NULL, reference_no TEXT(100), order_id LONG, remarks MEMO, created_by LONG, created_at DATETIME)");
+        TryExecute(conn, "CREATE INDEX ix_tbl_dealer_ledger_dealer ON tbl_dealer_ledger (dealer_id, entry_date)");
     }
 
     private void EnsureDispatchBoxSchema(OleDbConnection conn)
@@ -4083,6 +4147,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         EnsureRoleRow(conn, "Procurement User", "procurement");
         EnsureRoleRow(conn, "Production Planner User", "planner");
         EnsureRoleRow(conn, "Dealer", "dashboard");
+        EnsureRoleRow(conn, "Accounts", "dashboard");
     }
 
     private void EnsureRoleRow(OleDbConnection conn, string roleName, string homeSection)
@@ -6270,6 +6335,197 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             list.Add(Obj("step", stepNo, "code", steps[i].code, "label", steps[i].label, "state", state, "timestamp", ts));
         }
         return list;
+    }
+
+    private void HandleDealerLoginGenerate(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin");
+            var dealerId = IntRequired(Value(context, "dealer_id"), "Dealer ID is required.");
+            var dealer = QueryOne(conn, "SELECT * FROM tbl_dealers WHERE dealer_id = ?", dealerId);
+            if (dealer == null) throw new ApiFailure(404, "Dealer not found.");
+            var mobile = S(dealer, "mobile_number").Trim();
+            var suffix = mobile.Length >= 4 ? mobile.Substring(mobile.Length - 4) : mobile;
+            var loginId = "Dealer" + S(dealer, "dealer_type").ToUpper() + suffix;
+            var existing = QueryOne(conn, "SELECT user_id FROM tbl_users WHERE login_id = ?", loginId);
+            if (existing != null) throw new ApiFailure(409, "Login ID already exists: " + loginId);
+            var dealerRole = QueryOne(conn, "SELECT role_id FROM tbl_roles WHERE role_name = 'Dealer'");
+            if (dealerRole == null)
+            {
+                Execute(conn, "INSERT INTO tbl_roles (role_name, home_section, is_active) VALUES ('Dealer', 'dashboard', TRUE)");
+                dealerRole = QueryOne(conn, "SELECT role_id FROM tbl_roles WHERE role_name = 'Dealer'");
+            }
+            var now = IstNow();
+            Execute(conn, "INSERT INTO tbl_users (full_name, login_id, password_hash, password_salt, password_iterations, role_id, assigned_station_id, dealer_id, is_active, created_at, updated_at) VALUES (?, ?, ?, '', 0, ?, NULL, ?, TRUE, " + SqlDateLiteral(now) + ", " + SqlDateLiteral(now) + ")",
+                S(dealer, "dealer_name"), loginId, "demo123", I(dealerRole, "role_id"), dealerId);
+            Audit(conn, I(user, "user_id"), "Masters", "User", S(dealer, "dealer_name"), "Dealer Login Generated", "", loginId, "Dealer M" + suffix, null);
+            WriteJson(context, Obj("ok", true, "login_id", loginId, "password", "demo123", "message", "Dealer login created: " + loginId));
+        }
+    }
+
+    private void HandleDealerPortalState(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var dealerId = I(user, "dealer_id");
+            if (dealerId <= 0) throw new ApiFailure(403, "Your account is not linked to a dealer.");
+            var dealer = QueryOne(conn, "SELECT * FROM tbl_dealers WHERE dealer_id = ?", dealerId);
+            if (dealer == null) throw new ApiFailure(404, "Dealer not found.");
+            var orders = QueryAll(conn, "SELECT * FROM tbl_orders WHERE dealer_id = ? ORDER BY updated_at DESC, order_id DESC", dealerId);
+            var orderIds = orders.Select(o => I(o, "order_id")).Where(v => v > 0).Distinct().ToList();
+            var historyByOrder = new Dictionary<int, List<Dictionary<string, object>>>();
+            if (orderIds.Count > 0)
+            {
+                var ids = string.Join(",", orderIds.Select(v => v.ToString()).ToArray());
+                var hist = QueryAll(conn, "SELECT h.order_id, h.acted_at, h.action_code, h.new_status_code FROM tbl_order_history AS h WHERE h.order_id IN (" + ids + ") ORDER BY h.acted_at DESC, h.history_id DESC");
+                foreach (var row in hist)
+                {
+                    var oid = I(row, "order_id");
+                    if (!historyByOrder.ContainsKey(oid)) historyByOrder[oid] = new List<Dictionary<string, object>>();
+                    historyByOrder[oid].Add(row);
+                }
+            }
+            var statusLookup = LoadStatusLookup(conn);
+            var ledger = QueryAll(conn, "SELECT * FROM tbl_dealer_ledger WHERE dealer_id = ? ORDER BY entry_date DESC, ledger_id DESC", dealerId);
+            var ledgerResult = ledger.Select(l => Obj(
+                "ledger_id", I(l, "ledger_id"),
+                "entry_date", FormatDateTime(DT(l, "entry_date")),
+                "payment_mode", S(l, "payment_mode"),
+                "amount", I(l, "amount"),
+                "reference_no", S(l, "reference_no"),
+                "order_id", I(l, "order_id"),
+                "remarks", S(l, "remarks")
+            )).ToList();
+            var runningBalance = ledger.Sum(l => Convert.ToDouble(I(l, "amount")));
+            var orderList = orders.Select(r =>
+            {
+                var step = DealerTrackingStep(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"));
+                var oid = I(r, "order_id");
+                var hrows = historyByOrder.ContainsKey(oid) ? historyByOrder[oid] : new List<Dictionary<string, object>>();
+                return Obj(
+                    "order_id", oid,
+                    "order_number", S(r, "order_number"),
+                    "customer_name", S(r, "customer_name"),
+                    "order_type", S(r, "order_type_name"),
+                    "workflow_stage_code", S(r, "workflow_stage_code"),
+                    "dispatch_status_code", S(r, "dispatch_status_code"),
+                    "workflow_stage", Label(statusLookup, "WORKFLOW", S(r, "workflow_stage_code")),
+                    "dispatch_status", Label(statusLookup, "DISPATCH", S(r, "dispatch_status_code")),
+                    "approx_value", S(r, "approx_value"),
+                    "confirmation_date", S(r, "confirmation_date"),
+                    "updated_at", S(r, "updated_at"),
+                    "tracking_step", step,
+                    "tracking", BuildDealerTracking(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"), r, hrows)
+                );
+            }).ToList();
+            WriteJson(context, Obj(
+                "ok", true,
+                "dealer", Obj(
+                    "dealer_id", I(dealer, "dealer_id"),
+                    "dealer_code", S(dealer, "dealer_code"),
+                    "dealer_name", S(dealer, "dealer_name"),
+                    "company_name", S(dealer, "company_name"),
+                    "dealer_type", S(dealer, "dealer_type"),
+                    "customer_type_code", S(dealer, "customer_type_code"),
+                    "city", S(dealer, "city"),
+                    "pin_code", S(dealer, "pin_code"),
+                    "gst_number", S(dealer, "gst_number"),
+                    "contact_person", S(dealer, "contact_person"),
+                    "mobile_number", S(dealer, "mobile_number"),
+                    "whatsapp_number", S(dealer, "whatsapp_number"),
+                    "email", S(dealer, "email"),
+                    "payment_terms", S(dealer, "payment_terms"),
+                    "credit_limit_lakh", I(dealer, "credit_limit_lakh"),
+                    "address", S(dealer, "address"),
+                    "area", S(dealer, "area")
+                ),
+                "orders", orderList,
+                "ledger", ledgerResult,
+                "running_balance", runningBalance
+            ));
+        }
+    }
+
+    private void HandleDealerLedgerAdd(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin");
+            var dealerId = IntRequired(Value(context, "dealer_id"), "Dealer ID is required.");
+            var amountRaw = Value(context, "amount");
+            double amount;
+            if (!double.TryParse(amountRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out amount) || amount == 0)
+                throw new ApiFailure(400, "Amount is required and must be non-zero.");
+            var paymentMode = Value(context, "payment_mode", "Cash");
+            var entryDateRaw = Value(context, "entry_date");
+            DateTime entryDate = string.IsNullOrWhiteSpace(entryDateRaw) ? IstNow() : (ParseDate(entryDateRaw) ?? IstNow());
+            var referenceNo = Value(context, "reference_no", "");
+            var orderIdRaw = Value(context, "order_id");
+            int orderId;
+            int.TryParse(orderIdRaw, out orderId);
+            var remarks = Value(context, "remarks", "");
+            var now = IstNow();
+            Execute(conn, "INSERT INTO tbl_dealer_ledger (dealer_id, entry_date, payment_mode, amount, reference_no, order_id, remarks, created_by, created_at) VALUES (?, " + SqlDateLiteral(entryDate) + ", ?, ?, ?, ?, ?, ?, " + SqlDateLiteral(now) + ")",
+                dealerId, paymentMode, amount, referenceNo, orderId > 0 ? (object)orderId : null, remarks, I(user, "user_id"));
+            Audit(conn, I(user, "user_id"), "Accounts", "Dealer Ledger", "Dealer " + dealerId, "Ledger Entry Added", "", amount.ToString("0.##", CultureInfo.InvariantCulture) + " " + paymentMode, remarks, null);
+            WriteJson(context, Obj("ok", true, "message", "Ledger entry added."));
+        }
+    }
+
+    private void HandleDealerLedgerList(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var role = S(user, "role_name");
+            int dealerId;
+            if (role == "Admin" || role == "Accounts")
+            {
+                dealerId = Convert.ToInt32(Value(context, "dealer_id", "0"));
+                if (dealerId <= 0) throw new ApiFailure(400, "Dealer ID required for admin.");
+            }
+            else
+            {
+                dealerId = Convert.ToInt32(I(user, "dealer_id"));
+                if (dealerId <= 0) throw new ApiFailure(403, "Your account is not linked to a dealer.");
+            }
+            var ledger = QueryAll(conn, "SELECT * FROM tbl_dealer_ledger WHERE dealer_id = ? ORDER BY entry_date DESC, ledger_id DESC", dealerId);
+            var result = ledger.Select(l => Obj(
+                "ledger_id", I(l, "ledger_id"),
+                "entry_date", FormatDateTime(DT(l, "entry_date")),
+                "payment_mode", S(l, "payment_mode"),
+                "amount", I(l, "amount"),
+                "reference_no", S(l, "reference_no"),
+                "order_id", I(l, "order_id"),
+                "remarks", S(l, "remarks")
+            )).ToList();
+            var runningBalance = ledger.Sum(l => Convert.ToDouble(I(l, "amount")));
+            WriteJson(context, Obj("ok", true, "rows", result, "running_balance", runningBalance));
+        }
+    }
+
+    private void HandleDealerLedgerDelete(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin");
+            var ledgerId = IntRequired(Value(context, "ledger_id"), "Ledger ID is required.");
+            var entry = QueryOne(conn, "SELECT * FROM tbl_dealer_ledger WHERE ledger_id = ?", ledgerId);
+            if (entry == null) throw new ApiFailure(404, "Ledger entry not found.");
+            Execute(conn, "DELETE FROM tbl_dealer_ledger WHERE ledger_id = ?", ledgerId);
+            Audit(conn, I(user, "user_id"), "Accounts", "Dealer Ledger", "Dealer " + I(entry, "dealer_id"), "Ledger Entry Deleted", I(entry, "amount").ToString(), "", "", null);
+            WriteJson(context, Obj("ok", true, "message", "Ledger entry deleted."));
+        }
     }
 
     private void HandleRemarksRequestCreate(HttpContext context)
