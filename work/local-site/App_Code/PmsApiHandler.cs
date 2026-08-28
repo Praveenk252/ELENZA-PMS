@@ -405,6 +405,9 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 case "dealer-portal-state":
                     HandleDealerPortalState(context);
                     break;
+                case "dealer-profile-update":
+                    HandleDealerProfileUpdate(context);
+                    break;
                 default:
                     WriteError(context, 404, "API route not found.");
                     break;
@@ -6337,6 +6340,63 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
         return list;
     }
 
+    private List<object> BuildDealerOrderStations(OleDbConnection conn, Dictionary<string, object> order, List<Dictionary<string, object>> queueRows)
+    {
+        var sequence = ResolveOrderSequenceStations(conn, order);
+        var queueByStation = new Dictionary<int, Dictionary<string, object>>();
+        foreach (var q in queueRows)
+        {
+            queueByStation[I(q, "station_id")] = q;
+        }
+        var list = new List<object>();
+        var currentMarked = false;
+        foreach (var st in sequence)
+        {
+            var stationId = I(st, "station_id");
+            Dictionary<string, object> q = null;
+            queueByStation.TryGetValue(stationId, out q);
+            var statusCode = q != null ? S(q, "queue_status_code") : "";
+            var isVisible = q != null && B(q, "is_visible");
+            var done = !string.IsNullOrWhiteSpace(statusCode) && statusCode.IndexOf("COMPLETED", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (done) isVisible = false;
+            string state;
+            if (done) state = "done";
+            else if (!currentMarked) { state = isVisible ? "current" : "pending"; if (isVisible) currentMarked = true; }
+            else state = "pending";
+            list.Add(Obj(
+                "station_id", stationId,
+                "name", S(st, "machine_name"),
+                "state", state,
+                "status_code", statusCode,
+                "is_visible", isVisible,
+                "updated_at", q != null ? FormatDateTime(DT(q, "updated_at")) : ""
+            ));
+        }
+        if (!currentMarked && queueRows.Count > 0)
+        {
+            var visiblePending = list
+                .Select(s => s as Dictionary<string, object>)
+                .Where(d => d != null && string.Equals(S(d, "state"), "pending", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (visiblePending.Count > 0)
+            {
+                visiblePending[0]["state"] = "current";
+                currentMarked = true;
+            }
+        }
+        return list;
+    }
+
+    private static string DealerOrderTab(string wf, string ds, string currentStage)
+    {
+        if (string.Equals(wf, "DISPATCHED", StringComparison.OrdinalIgnoreCase) || string.Equals(ds, "DISPATCHED", StringComparison.OrdinalIgnoreCase)) return "Dispatched";
+        if (string.Equals(wf, "DISPATCH_READY", StringComparison.OrdinalIgnoreCase) || string.Equals(ds, "PENDING_DISPATCH", StringComparison.OrdinalIgnoreCase) || string.Equals(ds, "PARTIALLY_DISPATCHED", StringComparison.OrdinalIgnoreCase)) return "Packed";
+        var s = string.IsNullOrWhiteSpace(currentStage) ? "" : currentStage.ToLowerInvariant();
+        if (s == "packed" || s == "packing" || s == "dispatch") return "Packed";
+        if (string.Equals(wf, "PACKED", StringComparison.OrdinalIgnoreCase)) return "Packed";
+        return "In Production";
+    }
+
     private void HandleDealerLoginGenerate(HttpContext context)
     {
         using (var conn = OpenConnection(context))
@@ -6376,9 +6436,12 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
             if (dealerId <= 0) throw new ApiFailure(403, "Your account is not linked to a dealer.");
             var dealer = QueryOne(conn, "SELECT * FROM tbl_dealers WHERE dealer_id = ?", dealerId);
             if (dealer == null) throw new ApiFailure(404, "Dealer not found.");
-            var orders = QueryAll(conn, "SELECT * FROM tbl_orders WHERE dealer_id = ? ORDER BY updated_at DESC, order_id DESC", dealerId);
+            var orders = QueryAll(conn, "SELECT * FROM tbl_orders WHERE dealer_id = ? ORDER BY updated_at DESC, order_id DESC", dealerId)
+                .Where(r => !string.Equals(OrderClassForOrder(r), "Sub Order", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             var orderIds = orders.Select(o => I(o, "order_id")).Where(v => v > 0).Distinct().ToList();
             var historyByOrder = new Dictionary<int, List<Dictionary<string, object>>>();
+            var queueByOrder = new Dictionary<int, List<Dictionary<string, object>>>();
             if (orderIds.Count > 0)
             {
                 var ids = string.Join(",", orderIds.Select(v => v.ToString()).ToArray());
@@ -6388,6 +6451,13 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     var oid = I(row, "order_id");
                     if (!historyByOrder.ContainsKey(oid)) historyByOrder[oid] = new List<Dictionary<string, object>>();
                     historyByOrder[oid].Add(row);
+                }
+                var qu = QueryAll(conn, "SELECT q.order_id, q.station_id, q.queue_status_code, q.is_visible, q.updated_at FROM tbl_order_station_queue AS q WHERE q.order_id IN (" + ids + ")");
+                foreach (var row in qu)
+                {
+                    var oid = I(row, "order_id");
+                    if (!queueByOrder.ContainsKey(oid)) queueByOrder[oid] = new List<Dictionary<string, object>>();
+                    queueByOrder[oid].Add(row);
                 }
             }
             var statusLookup = LoadStatusLookup(conn);
@@ -6407,6 +6477,19 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 var step = DealerTrackingStep(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"));
                 var oid = I(r, "order_id");
                 var hrows = historyByOrder.ContainsKey(oid) ? historyByOrder[oid] : new List<Dictionary<string, object>>();
+                var qrows = queueByOrder.ContainsKey(oid) ? queueByOrder[oid] : new List<Dictionary<string, object>>();
+                var stations = BuildDealerOrderStations(conn, r, qrows);
+                var currentStage = stations
+                    .Select(s => s as Dictionary<string, object>)
+                    .Where(d => d != null && string.Equals(S(d, "state"), "current", StringComparison.OrdinalIgnoreCase))
+                    .Select(d => S(d, "name"))
+                    .FirstOrDefault();
+                var tab = DealerOrderTab(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"), currentStage);
+                if (string.IsNullOrWhiteSpace(currentStage))
+                {
+                    currentStage = Label(statusLookup, "WORKFLOW", S(r, "workflow_stage_code"));
+                    if (string.Equals(tab, "Dispatched", StringComparison.OrdinalIgnoreCase)) currentStage = "Dispatched";
+                }
                 return Obj(
                     "order_id", oid,
                     "order_number", S(r, "order_number"),
@@ -6417,10 +6500,13 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     "workflow_stage", Label(statusLookup, "WORKFLOW", S(r, "workflow_stage_code")),
                     "dispatch_status", Label(statusLookup, "DISPATCH", S(r, "dispatch_status_code")),
                     "approx_value", S(r, "approx_value"),
-                    "confirmation_date", S(r, "confirmation_date"),
-                    "updated_at", S(r, "updated_at"),
+                    "confirmation_date", FormatDateTime(DT(r, "confirmation_date")),
+                    "updated_at", FormatDateTime(DT(r, "updated_at")),
                     "tracking_step", step,
-                    "tracking", BuildDealerTracking(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"), r, hrows)
+                    "tracking", BuildDealerTracking(S(r, "workflow_stage_code"), S(r, "dispatch_status_code"), r, hrows),
+                    "current_stage", string.IsNullOrWhiteSpace(currentStage) ? "-" : currentStage,
+                    "tab", tab,
+                    "stations", stations
                 );
             }).ToList();
             WriteJson(context, Obj(
@@ -6440,7 +6526,6 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                     "whatsapp_number", S(dealer, "whatsapp_number"),
                     "email", S(dealer, "email"),
                     "payment_terms", S(dealer, "payment_terms"),
-                    "credit_limit_lakh", I(dealer, "credit_limit_lakh"),
                     "address", S(dealer, "address"),
                     "area", S(dealer, "area")
                 ),
@@ -6448,6 +6533,33 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
                 "ledger", ledgerResult,
                 "running_balance", runningBalance
             ));
+        }
+    }
+
+    private void HandleDealerProfileUpdate(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            var dealerId = I(user, "dealer_id");
+            if (dealerId <= 0) throw new ApiFailure(403, "Your account is not linked to a dealer.");
+            var dealer = QueryOne(conn, "SELECT * FROM tbl_dealers WHERE dealer_id = ?", dealerId);
+            if (dealer == null) throw new ApiFailure(404, "Dealer not found.");
+            var old = dealer;
+            var contactPerson = Value(context, "contact_person", S(dealer, "contact_person"));
+            var mobile = Value(context, "mobile_number", S(dealer, "mobile_number"));
+            var whatsapp = Value(context, "whatsapp_number", S(dealer, "whatsapp_number"));
+            var email = Value(context, "email", S(dealer, "email"));
+            var address = Value(context, "address", S(dealer, "address"));
+            var area = Value(context, "area", S(dealer, "area"));
+            var city = Value(context, "city", S(dealer, "city"));
+            var pinCode = Value(context, "pin_code", S(dealer, "pin_code"));
+            Execute(conn,
+                "UPDATE tbl_dealers SET contact_person = ?, mobile_number = ?, whatsapp_number = ?, email = ?, address = ?, area = ?, city = ?, pin_code = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + " WHERE dealer_id = ?",
+                contactPerson, mobile, whatsapp, email, address, area, city, pinCode, I(user, "user_id"), dealerId);
+            Audit(conn, I(user, "user_id"), "Dealer", "Dealer", dealerId.ToString(), "Dealer Profile Updated", S(old, "contact_person"), contactPerson, "Dealer self update via portal", null);
+            WriteJson(context, Obj("ok", true));
         }
     }
 
