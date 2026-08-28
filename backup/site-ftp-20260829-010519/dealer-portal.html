@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dealer Portal</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0f172a;--blue:#0f6cbd;--green:#15803d;--orange:#f59e0b;--red:#b42318;--slate:#66768f;--border:#d7e2ef;--bg:#f4f8fc;--white:#fff}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--navy);font-size:14px}
+.shell{max-width:1180px;margin:0 auto;padding:24px}
+.auth,.app{background:rgba(255,255,255,.78);backdrop-filter:blur(10px);border:1px solid rgba(215,226,239,.9);border-radius:28px;box-shadow:0 14px 40px rgba(34,60,110,.08)}
+.auth{max-width:420px;margin:60px auto;padding:32px}
+.app{padding:24px}
+.hidden{display:none!important}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.brand img{width:72px;height:auto}
+.brand small{display:block;color:var(--blue);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.brand h1{margin:4px 0 0;font-size:28px;line-height:1}
+.brand p{margin:0;color:var(--slate);font-size:13px}
+label{display:grid;gap:6px;font-size:13px;font-weight:600;margin-bottom:12px}
+input,select,button{font:inherit;font-size:13px}
+input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--navy)}
+button{border:0;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:#fff;width:100%}
+.primary:hover{background:#0e5bb5}
+.ghost{background:rgba(15,108,205,.08);color:var(--navy)}
+.danger{background:var(--danger-soft,#fdeaea);color:var(--red)}
+.error-banner{background:var(--danger-soft,#fdeaea);color:var(--red);padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;margin-bottom:14px}
+.success-banner{background:var(--green-soft,#e9f8ef);color:var(--green);padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;margin-bottom:14px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.topbar-actions button{padding:10px 14px;font-size:12px}
+.avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#4b8fd1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex:0 0 auto}
+.layout{display:grid;gap:18px}
+.card{background:var(--card,#fff);border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 4px 16px rgba(34,60,110,.05)}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.card-head h2,.card-head h3{margin:0;font-size:16px}
+.tag{padding:6px 12px;border-radius:999px;background:rgba(15,108,205,.08);color:var(--slate);font-size:11px;font-weight:700;white-space:nowrap}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.tab{padding:8px 14px;border-radius:999px;background:rgba(15,108,205,.08);color:var(--slate);font-weight:700;font-size:12px}
+.tab.on{background:var(--blue);color:#fff}
+.toolbar{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.toolbar input,.toolbar select{flex:1;min-width:150px;width:auto}
+.table-wrap{border:1px solid var(--border);border-radius:14px;overflow:auto;background:#fff;max-height:52vh}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px 10px;border-bottom:1px solid #e8eef6;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#eff5fb;z-index:1;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--blue)}
+td.wrap{white-space:normal}
+.empty{padding:20px;color:var(--slate);text-align:center}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700}
+.badge.production{background:#e8f0fe;color:var(--blue)}
+.badge.preproduction{background:#f1f0fb;color:#6d4fc1}
+.badge.packed{background:#fef3c7;color:#b45309}
+.badge.dispatched{background:#e9f8ef;color:var(--green)}
+.tracking{display:flex;align-items:flex-start;gap:0;margin:16px 0 6px;overflow-x:auto;padding-bottom:6px}
+.step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;min-width:88px;max-width:88px;position:relative;cursor:default}
+.step .dot{width:26px;height:26px;border-radius:50%;border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--slate);background:#fff;z-index:2}
+.step.done .dot{background:var(--green);border-color:var(--green);color:#fff}
+.step.current .dot{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(15,108,205,.2)}
+.step .lbl{font-size:10px;font-weight:600;color:var(--slate);text-align:center;line-height:1.25;min-height:24px}
+.step.done .lbl,.step.current .lbl{color:var(--navy)}
+.step .ts{font-size:9px;color:var(--slate);text-align:center}
+.step-line{height:3px;background:var(--border);flex:0 0 auto;margin-top:12px;min-width:14px}
+.step.done+.step-line{background:var(--green)}
+.step.current+.step-line{background:var(--green)}
+.step.done .dot,.step.current .dot{border:0}
+.profile-head{display:flex;gap:14px;align-items:center;margin-bottom:14px}
+.profile-head h3{margin:0;font-size:15px}
+.profile-head p{margin:2px 0 0;color:var(--slate);font-size:12px}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:13px}
+.profile-grid .lbl{color:var(--slate);font-weight:600}
+.profile-grid .val{color:var(--navy)}
+.ledger-form{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-items:end;margin-bottom:14px}
+.ledger-form .full{grid-column:1/-1}
+.form-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.profile-grid{grid-template-columns:1fr}.ledger-form{grid-template-columns:1fr}.step{min-width:72px;max-width:72px}.step .lbl{font-size:8px}}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s;font-size:12px;font-weight:600;color:#123d63}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc}
+.order-row{cursor:pointer}
+.order-row:hover{background:#f0f7ff}
+.order-row.selected{background:#e5effa}
+.detail-panel{margin-top:12px;padding:14px;border:1px solid var(--border);border-radius:14px;background:#fafcfe}
+.stage-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.stage-line .cur{background:var(--blue);color:#fff;padding:6px 12px;border-radius:999px;font-weight:700;font-size:12px}
+.stage-line .sub{color:var(--slate);font-size:12px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="auth" id="authShell">
+    <div class="brand">
+      <img src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+      <div>
+        <small>ElenzaIndia.com</small>
+        <h1>Dealer Portal</h1>
+        <p>Track your orders and account</p>
+      </div>
+    </div>
+    <div class="error-banner hidden" id="authError"></div>
+    <form id="loginForm">
+      <label>Username
+        <input id="loginUser" type="text" placeholder="e.g. DealerM1004" autocomplete="username" required>
+      </label>
+      <label>Password
+        <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password" required>
+      </label>
+      <button class="primary" type="submit" id="loginBtn">Sign In</button>
+    </form>
+    <div class="auth-quick-links">
+      <div class="auth-quick-links-grid">
+        <a href="index.html" class="auth-quick-link">&#127968; Admin</a>
+        <a href="stations.html" class="auth-quick-link">&#127981; Stations</a>
+        <a href="planner-portal.html" class="auth-quick-link">&#128197; Planner</a>
+        <a href="packing-portal.html" class="auth-quick-link">&#128230; Packing</a>
+        <a href="remarks-reply.html" class="auth-quick-link">&#128172; Remarks</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="app hidden" id="appShell">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="avatar" id="userAvatar">D</div>
+        <div>
+          <h1 style="font-size:20px;margin:0">Dealer Portal</h1>
+          <p id="sessionMeta" style="color:var(--slate);font-size:12px;margin:2px 0 0">Dealer workspace</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost" onclick="toggleProfile()">My Profile</button>
+        <button class="ghost" onclick="loadState()">Refresh</button>
+        <button class="ghost" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+
+    <div id="appMsg" class="hidden"></div>
+
+    <div class="layout">
+      <div class="card">
+        <div class="card-head">
+          <h2>My Orders</h2>
+          <span class="tag" id="orderCount">0 Orders</span>
+        </div>
+        <div class="tabs" id="orderTabs">
+          <button class="tab on" data-tab="">All</button>
+          <button class="tab" data-tab="Pre-Production">Pre-Production</button>
+          <button class="tab" data-tab="In Production">In Production</button>
+          <button class="tab" data-tab="Packed">Packed</button>
+          <button class="tab" data-tab="Dispatched">Dispatched</button>
+        </div>
+        <div class="toolbar">
+          <input id="orderSearch" type="search" placeholder="Search order no, customer, type or stage...">
+          <select id="orderTypeFilter"><option value="">All Types</option></select>
+        </div>
+        <div class="table-wrap">
+          <table id="orderTable">
+            <thead><tr>
+              <th class="sortable" data-key="order_number">Order Number</th>
+              <th class="sortable" data-key="customer_name">Customer</th>
+              <th class="sortable" data-key="order_type">Type</th>
+              <th class="sortable" data-key="approx_value">Value</th>
+              <th class="sortable" data-key="current_stage">Current Stage</th>
+              <th class="sortable" data-key="tab">Status</th>
+              <th class="sortable" data-key="confirmation_date">Confirmation Date</th>
+            </tr></thead>
+            <tbody id="orderBody"></tbody>
+          </table>
+        </div>
+        <div class="detail-panel hidden" id="trackingPanel">
+          <h3 id="trackingTitle">Order Tracking</h3>
+          <div class="stage-line"><span class="cur" id="curStageBadge">-</span><span class="sub" id="curStageSub">-</span></div>
+          <div class="tracking" id="trackingSteps"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Account Ledger</h2>
+          <span class="tag" id="ledgerBalance">Balance: 0</span>
+        </div>
+        <div class="table-wrap" style="max-height:40vh">
+          <table>
+            <thead><tr>
+              <th>Date</th>
+              <th>Mode</th>
+              <th>Amount</th>
+              <th>Reference</th>
+              <th>Remarks</th>
+            </tr></thead>
+            <tbody id="ledgerBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card hidden" id="profileCard">
+        <div class="card-head">
+          <h2>My Profile</h2>
+          <button class="ghost" id="editProfileBtn" onclick="toggleProfileEdit(true)">Edit Contact Details</button>
+        </div>
+        <div id="profileView">
+          <div class="profile-head">
+            <div class="avatar" id="bigAvatar">D</div>
+            <div>
+              <h3 id="profileName">-</h3>
+              <p id="profileCompany">-</p>
+            </div>
+          </div>
+          <div class="profile-grid" id="profileGrid"></div>
+        </div>
+        <div id="profileEdit" class="hidden">
+          <form id="profileForm" style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px">
+            <label>Contact Person
+              <input name="contact_person" type="text">
+            </label>
+            <label>Mobile Number
+              <input name="mobile_number" type="tel">
+            </label>
+            <label>WhatsApp Number
+              <input name="whatsapp_number" type="tel">
+            </label>
+            <label>Email
+              <input name="email" type="email">
+            </label>
+            <label>Address
+              <input name="address" type="text">
+            </label>
+            <label>Area
+              <input name="area" type="text">
+            </label>
+            <label>City
+              <input name="city" type="text">
+            </label>
+            <label>Pin Code
+              <input name="pin_code" type="text">
+            </label>
+            <div class="form-actions" style="grid-column:1/-1">
+              <button class="primary" type="submit">Save Changes</button>
+              <button class="ghost" type="button" onclick="toggleProfileEdit(false)">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+var API='/api.ashx';
+var state={session:null,dealer:null,orders:[],ledger:[],runningBalance:0};
+var ui={tab:'',search:'',type:'',sortKey:'updated_at',sortDir:-1};
+
+document.getElementById('loginForm').onsubmit=function(e){
+  e.preventDefault();
+  var u=document.getElementById('loginUser').value.trim();
+  var p=document.getElementById('loginPass').value;
+  if(!u||!p)return;
+  document.getElementById('loginBtn').disabled=true;
+  apiPost('login',{username:u,password:p}).then(function(d){
+    document.getElementById('loginBtn').disabled=false;
+    if(d.error){showAuthError(d.error);return;}
+    state.session=d.user;
+    if(String(state.session.role_name||'').toLowerCase()!=='dealer'&&String(state.session.role_name||'').toLowerCase()!=='admin'){
+      showAuthError('This portal is for dealer accounts only.');return;
+    }
+    loadState();
+  }).catch(function(err){document.getElementById('loginBtn').disabled=false;showAuthError(err.message||'Login failed');});
+};
+
+document.getElementById('orderTabs').addEventListener('click',function(e){
+  var b=e.target.closest('.tab');if(!b)return;
+  document.querySelectorAll('#orderTabs .tab').forEach(function(t){t.classList.remove('on');});
+  b.classList.add('on');ui.tab=b.getAttribute('data-tab');renderOrders();
+});
+document.getElementById('orderSearch').addEventListener('input',function(){ui.search=this.value.trim().toLowerCase();renderOrders();});
+document.getElementById('orderTypeFilter').addEventListener('change',function(){ui.type=this.value;renderOrders();});
+document.querySelectorAll('#orderTable th.sortable').forEach(function(th){
+  th.addEventListener('click',function(){
+    var k=th.getAttribute('data-key');
+    if(ui.sortKey===k){ui.sortDir=-ui.sortDir;}else{ui.sortKey=k;ui.sortDir=k==='confirmation_date'||k==='approx_value'?1:-1;}
+    renderOrders();
+  });
+});
+document.getElementById('profileForm').onsubmit=function(e){
+  e.preventDefault();
+  var payload={};
+  ['contact_person','mobile_number','whatsapp_number','email','address','area','city','pin_code'].forEach(function(k){
+    payload[k]=document.getElementById('profileForm').elements[k].value.trim();
+  });
+  apiPost('dealer-profile-update',payload).then(function(){
+    showAppMsg('Profile updated','success');
+    toggleProfileEdit(false);
+    loadState();
+  }).catch(function(err){showAppMsg(err.message||'Update failed','error');});
+};
+
+function showAuthError(m){var el=document.getElementById('authError');el.textContent=m;el.classList.remove('hidden');setTimeout(function(){el.classList.add('hidden');},5000);}
+function showAppMsg(m,t){var el=document.getElementById('appMsg');el.textContent=m;el.className=t==='error'?'error-banner':'success-banner';setTimeout(function(){el.className='hidden';},4000);}
+
+function loadState(){
+  if(!state.session)return;
+  apiGet('dealer-portal-state').then(function(d){
+    if(d.error){showAppMsg(d.error,'error');return;}
+    state.dealer=d.dealer;
+    state.orders=d.orders||[];
+    state.ledger=d.ledger||[];
+    state.runningBalance=d.running_balance||0;
+    renderAll();
+    document.getElementById('authShell').classList.add('hidden');
+    document.getElementById('appShell').classList.remove('hidden');
+    document.getElementById('sessionMeta').textContent=(state.dealer.dealer_name||'Dealer')+' | '+state.session.role_name;
+  }).catch(function(err){showAppMsg(err.message||'Failed to load','error');});
+}
+
+function renderAll(){
+  renderOrders();
+  renderLedger();
+  renderProfile();
+}
+
+function initials(name){
+  return String(name||'D').trim().split(/\s+/).slice(0,2).map(function(w){return w[0]?w[0].toUpperCase():'';}).join('')||'D';
+}
+
+function renderOrders(){
+  var body=document.getElementById('orderBody');
+  var orders=state.orders;
+  var counts={All:orders.length,'Pre-Production':0,'In Production':0,Packed:0,Dispatched:0};
+  orders.forEach(function(o){counts[o.tab]=(counts[o.tab]||0)+1;});
+  document.querySelectorAll('#orderTabs .tab').forEach(function(t){
+    var k=t.getAttribute('data-tab')||'All';
+    t.textContent=k+(k==='All'?' ('+counts.All+')':' ('+(counts[k]||0)+')');
+    t.className='tab'+(ui.tab===t.getAttribute('data-tab')?' on':'');
+  });
+  var types=[];
+  orders.forEach(function(o){if(o.order_type&&types.indexOf(o.order_type)<0)types.push(o.order_type);});
+  var sel=document.getElementById('orderTypeFilter');
+  var curType=sel.value;
+  sel.innerHTML='<option value="">All Types</option>'+types.map(function(t){return'<option value="'+esc(t)+'">'+esc(t)+'</option>';}).join('');
+  sel.value=curType;
+  var shown=orders.filter(function(o){
+    if(ui.tab&&o.tab!==ui.tab)return false;
+    if(ui.type&&o.order_type!==ui.type)return false;
+    if(ui.search){
+      var hay=(o.order_number+' '+o.customer_name+' '+o.order_type+' '+o.workflow_stage+' '+o.current_stage+' '+o.dispatch_status).toLowerCase();
+      if(hay.indexOf(ui.search)<0)return false;
+    }
+    return true;
+  });
+  var getVal=function(o,k){
+    if(k==='confirmation_date'||k==='updated_at')return o[k]||'';
+    return String(o[k]==null?'':o[k]);
+  };
+  shown.sort(function(a,b){
+    var av=getVal(a,ui.sortKey),bv=getVal(b,ui.sortKey);
+    if(isFinite(av)&&isFinite(bv))return (Number(av)-Number(bv))*ui.sortDir;
+    return av.localeCompare(bv)*ui.sortDir;
+  });
+  document.getElementById('orderCount').textContent=shown.length+' / '+orders.length+' Orders';
+  if(!shown.length){body.innerHTML='<tr><td colspan="7" class="empty">No orders found</td></tr>';return;}
+  var h='';
+  shown.forEach(function(o){
+    var badge='<span class="badge production">'+(o.tab||'In Production')+'</span>';
+    if(o.tab==='Pre-Production')badge='<span class="badge preproduction">Pre-Production</span>';
+    if(o.tab==='Packed')badge='<span class="badge packed">Packed</span>';
+    if(o.tab==='Dispatched')badge='<span class="badge dispatched">Dispatched</span>';
+    h+='<tr class="order-row" onclick="showTracking('+o.order_id+')">';
+    h+='<td><strong>'+esc(o.order_number)+'</strong></td>';
+    h+='<td>'+esc(o.customer_name||'-')+'</td>';
+    h+='<td>'+esc(o.order_type||'-')+'</td>';
+    h+='<td>'+esc(o.approx_value||'-')+'</td>';
+    h+='<td>'+esc(o.current_stage||'-')+'</td>';
+    h+='<td>'+badge+'</td>';
+    h+='<td>'+esc(shortDate(o.confirmation_date||''))+'</td>';
+    h+='</tr>';
+  });
+  body.innerHTML=h;
+}
+
+function showTracking(orderId){
+  var order=state.orders.find(function(o){return o.order_id===orderId;});
+  if(!order)return;
+  var panel=document.getElementById('trackingPanel');
+  panel.classList.remove('hidden');
+  document.querySelectorAll('.order-row.selected').forEach(function(r){r.classList.remove('selected');});
+  var tr=document.querySelector('#orderBody tr[onclick="showTracking('+orderId+')"]');
+  if(tr)tr.classList.add('selected');
+  document.getElementById('trackingTitle').textContent=order.order_number+' - Tracking';
+  document.getElementById('curStageBadge').textContent='Current: '+(order.current_stage||'-');
+  var ds=order.dispatch_status||'-',wf=order.workflow_stage||'-';
+  document.getElementById('curStageSub').textContent='Workflow: '+wf+' | Dispatch: '+ds+' | Updated: '+(order.updated_at?shortDate(order.updated_at):'-');
+  var milestones=order.milestones||order.stations||[];
+  var h='';
+  if(!milestones.length){
+    h='<div class="empty">No tracking history available</div>';
+  }
+  milestones.forEach(function(s,i){
+    var st=String(s.state||'pending');
+    h+='<div class="step '+st+'" title="'+esc(s.name)+'">';
+    h+='<div class="dot">'+(st==='done'?'&#10003;':st==='current'?'&#9679;':(i+1))+'</div>';
+    h+='<div class="lbl">'+esc(s.name)+'</div>';
+    if(s.time||s.updated_at)h+='<div class="ts">'+esc(shortTime(s.time||s.updated_at))+'</div>';
+    h+='</div>';
+    if(i<milestones.length-1)h+='<div class="step-line"></div>';
+  });
+  document.getElementById('trackingSteps').innerHTML=h;
+}
+
+function renderLedger(){
+  var body=document.getElementById('ledgerBody');
+  var ledger=state.ledger;
+  document.getElementById('ledgerBalance').textContent='Balance: '+formatAmount(state.runningBalance);
+  if(!ledger.length){body.innerHTML='<tr><td colspan="5" class="empty">No ledger entries</td></tr>';return;}
+  var h='';
+  ledger.forEach(function(l){
+    var amt=Number(l.amount||0);
+    var color=amt>0?'color:var(--green);font-weight:700':'color:var(--red);font-weight:700';
+    h+='<tr>';
+    h+='<td>'+esc(shortDate(l.entry_date||''))+'</td>';
+    h+='<td>'+esc(l.payment_mode||'-')+'</td>';
+    h+='<td style="'+color+'">'+formatAmount(amt)+'</td>';
+    h+='<td>'+esc(l.reference_no||'-')+'</td>';
+    h+='<td>'+esc(l.remarks||'-')+'</td>';
+    h+='</tr>';
+  });
+  body.innerHTML=h;
+}
+
+function renderProfile(){
+  var d=state.dealer;
+  if(!d)return;
+  var ini=initials(d.dealer_name);
+  document.getElementById('userAvatar').textContent=ini;
+  document.getElementById('bigAvatar').textContent=ini;
+  document.getElementById('profileName').textContent=d.dealer_name||'-';
+  document.getElementById('profileCompany').textContent=[d.company_name,d.dealer_code].filter(Boolean).join(' | ')||'-';
+  var items=[
+    ['Dealer Code',d.dealer_code],
+    ['Dealer Type',d.dealer_type],
+    ['Customer Type',d.customer_type_code],
+    ['City',d.city],
+    ['Pin Code',d.pin_code],
+    ['GST Number',d.gst_number],
+    ['Contact Person',d.contact_person],
+    ['Mobile',d.mobile_number],
+    ['WhatsApp',d.whatsapp_number],
+    ['Email',d.email],
+    ['Payment Terms',d.payment_terms],
+    ['Address',d.address],
+    ['Area',d.area]
+  ];
+  var h='';
+  items.forEach(function(item){
+    h+='<div class="lbl">'+esc(item[0])+'</div><div class="val">'+esc(item[1]||'-')+'</div>';
+  });
+  document.getElementById('profileGrid').innerHTML=h;
+  var f=document.getElementById('profileForm');
+  if(f){
+    ['contact_person','mobile_number','whatsapp_number','email','address','area','city','pin_code'].forEach(function(k){
+      if(f.elements[k])f.elements[k].value=d[k]==null?'':String(d[k]);
+    });
+  }
+}
+
+function toggleProfileEdit(on){
+  document.getElementById('profileView').classList.toggle('hidden',!!on);
+  document.getElementById('profileEdit').classList.toggle('hidden',!on);
+  document.getElementById('editProfileBtn').style.display=on?'none':'';
+}
+
+function toggleProfile(){
+  var card=document.getElementById('profileCard');
+  card.classList.toggle('hidden');
+  if(!card.classList.contains('hidden'))card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function doLogout(){
+  apiPost('logout',{}).then(function(){}).catch(function(){});
+  state.session=null;state.dealer=null;state.orders=[];state.ledger=[];
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('authShell').classList.remove('hidden');
+}
+
+function apiGet(action){
+  return fetch(API+'?action='+action,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.ok===false||d.error)throw new Error(d.error||d.message||'Request failed');
+    return d;
+  });
+}
+
+function apiPost(action,payload){
+  var params=new URLSearchParams();params.append('action',action);
+  if(payload)Object.keys(payload).forEach(function(k){params.append(k,payload[k]==null?'':payload[k]);});
+  return fetch(API,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params.toString()}).then(function(r){return r.json();}).then(function(d){
+    if(d.ok===false||d.error)throw new Error(d.error||d.message||'Request failed');
+    return d;
+  });
+}
+
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function shortTime(v){var r=String(v||'').trim();if(!r)return'';var m=r.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);if(m)return m[3]+'-'+m[2]+'-'+m[1].slice(-2)+' '+m[4]+':'+m[5];var d=r.match(/^(\d{4})-(\d{2})-(\d{2})/);if(d)return d[3]+'-'+d[2]+'-'+d[1].slice(-2);return r;}
+function shortDate(v){var r=String(v||'').trim();if(!r)return'-';var m=r.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[3]+'-'+m[2]+'-'+m[1].slice(-2);return r;}
+function formatAmount(v){var n=Number(v||0);return(n>=0?'+':'')+n.toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2});}
+
+(function(){
+  try{var s=sessionStorage.getItem('dp_session');if(s){state.session=JSON.parse(s);loadState();}}catch(e){}
+})();
+</script>
+</body>
+</html>
