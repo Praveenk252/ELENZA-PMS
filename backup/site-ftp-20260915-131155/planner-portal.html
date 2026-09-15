@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elenza Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f8fc;
+      --card:#ffffff;
+      --line:#d7e2ef;
+      --text:#1f2b3d;
+      --muted:#66768f;
+      --blue:#0f6cbd;
+      --blue-soft:#e8f1fb;
+      --green:#15803d;
+      --green-soft:#e9f8ef;
+      --high:#ffe7e7;
+      --medium:#fff4db;
+      --low:#edf8ff;
+      --shadow:0 14px 40px rgba(34,60,110,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Plus Jakarta Sans",sans-serif;
+      background:linear-gradient(180deg,#eef6ff 0,#f7fbff 160px,var(--bg) 160px);
+      color:var(--text);
+    }
+    .shell{max-width:1680px;margin:0 auto;padding:24px}
+    .auth,.app{
+      background:rgba(255,255,255,.75);
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(215,226,239,.9);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+    }
+    .auth{max-width:460px;margin:48px auto;padding:28px}
+    .brand{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+    .brand img{width:84px;height:auto}
+    .brand small{display:block;color:var(--blue);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .brand h1,.topbar h1{margin:4px 0 0;font-size:34px;line-height:1}
+    .brand p,.topbar p{margin:0;color:var(--muted)}
+    .stack{display:grid;gap:14px}
+    label{display:grid;gap:7px;font-size:14px;font-weight:600}
+    input,select,button{
+      font:inherit;
+    }
+    input,select{
+      width:100%;
+      padding:14px 16px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+    }
+    button{
+      border:0;
+      border-radius:16px;
+      padding:14px 18px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .primary{background:var(--blue);color:#fff}
+    .ghost{background:var(--blue-soft);color:var(--text)}
+    .app{padding:22px}
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .topbar-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .banner{
+      margin-bottom:18px;
+      padding:14px 16px;
+      border-radius:16px;
+      background:var(--green-soft);
+      color:var(--green);
+      font-weight:700;
+    }
+    .toolbar{
+      display:grid;
+      grid-template-columns:1.3fr .9fr .9fr;
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .tabs{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
+    }
+    .tab-btn.active{background:var(--blue);color:#fff}
+    .panel{display:none}
+    .panel.active{display:block}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:16px;
+      box-shadow:var(--shadow);
+    }
+    .card-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .card-head h2{margin:0;font-size:22px}
+    .tag{
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--blue-soft);
+      color:var(--muted);
+      font-size:13px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .table-wrap{
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:auto;
+      background:#fff;
+      max-height:70vh;
+    }
+    table{
+      width:100%;
+      min-width:1320px;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+    th,td{
+      padding:8px 10px;
+      border-bottom:1px solid #e8eef6;
+      text-align:left;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background:#eff5fb;
+      z-index:1;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    #consolidated-body td:first-child,
+    [data-panel="consolidated"] thead th:first-child{
+      position:sticky;
+      left:0;
+      z-index:2;
+      background:#fff;
+    }
+    [data-panel="consolidated"] thead th:first-child{
+      background:#eff5fb;
+      z-index:3;
+    }
+    td.wrap, th.wrap{white-space:normal}
+    td.stage-cell{min-width:120px}
+    td.order-cell{min-width:260px}
+    td.dealer-cell{min-width:220px}
+    td.customer-cell{min-width:180px}
+    td.slim-cell{min-width:96px}
+    tbody tr.priority-high{background:var(--high)}
+    tbody tr.priority-medium{background:var(--medium)}
+    tbody tr.priority-low{background:var(--low)}
+    .machine-group{margin-bottom:16px}
+    .machine-group h3{margin:0 0 10px;font-size:18px}
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      background:var(--blue-soft);
+      color:var(--blue);
+      font-weight:700;
+      font-size:12px;
+    }
+    .dt{font-weight:700;color:var(--text)}
+    .tm{color:var(--muted)}
+    .remark{color:#334155;font-size:12.5px;line-height:1.45;white-space:normal}
+    .pill-pending{background:var(--medium);color:#9a6700}
+    .priority-cell{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .mini-select{min-width:120px;padding:10px 12px;border-radius:12px}
+    .mini-btn{padding:10px 12px;border-radius:12px;background:var(--blue-soft)}
+    .qty-cell{display:flex;align-items:center;gap:6px}
+    .qty-input{width:76px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);font-size:13px;text-align:right}
+    .qty-input:focus{outline:2px solid var(--blue);outline-offset:-1px}
+    .empty{padding:20px;color:var(--muted)}
+    .hidden{display:none!important}
+    @media (max-width: 900px){
+      .shell{padding:14px}
+      .topbar,.toolbar{grid-template-columns:1fr;display:grid}
+      .topbar-actions{justify-content:stretch}
+      .topbar-actions button{flex:1}
+      .brand h1,.topbar h1{font-size:28px}
+    }
+    .auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+    .auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+    .auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+    .auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+    .auth-quick-link-icon{font-size:18px;line-height:1}
+    .auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+    .auth-quick-link-desc{display:none}
+    @media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="auth" id="auth-shell">
+      <div class="brand">
+        <img src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+        <div>
+          <small>ElenzaIndia.com</small>
+          <h1>Planner Login</h1>
+          <p>Dedicated production planning workspace</p>
+        </div>
+      </div>
+      <div id="auth-message" class="banner hidden"></div>
+      <form id="login-form" class="stack">
+        <label>
+          <span>Username</span>
+          <input id="login-username" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="primary" type="submit">Sign In</button>
+      </form>
+      <div class="auth-quick-links">
+        <div class="auth-quick-links-grid">
+          <a href="stations.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏭</span><span class="auth-quick-link-label">Stations</span><span class="auth-quick-link-desc">Station workflow</span></a>
+          <a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+          <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+          <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+          <a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+          <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+          <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+          <a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+          <a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="app hidden" id="app-shell">
+      <div class="topbar">
+        <div class="brand" style="margin:0">
+          <img src="assets/elenza-logo.png" alt="ElenzaIndia.com logo">
+          <div>
+            <small>ElenzaIndia.com</small>
+            <h1>Production Planner</h1>
+            <p id="session-meta">Planner workspace</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost" id="refresh-button" type="button">Refresh Data</button>
+          <button class="ghost" id="logout-button" type="button">Logout</button>
+        </div>
+      </div>
+
+      <div id="app-message" class="banner hidden"></div>
+
+      <div class="toolbar">
+        <label>
+          <span>Search</span>
+          <input id="search-input" type="search" placeholder="Order / Dealer / Customer / Station">
+        </label>
+        <label>
+          <span>Status</span>
+          <select id="status-filter">
+            <option value="all">All</option>
+          </select>
+        </label>
+        <label>
+          <span>Priority</span>
+          <select id="priority-filter">
+            <option value="all">All</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+            <option value="blank">Blank</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="tabs">
+        <button class="ghost tab-btn active" data-tab="consolidated" type="button">All Orders</button>
+        <button class="ghost tab-btn" data-tab="machine" type="button">Machine Wise</button>
+        <button class="ghost tab-btn" data-tab="priority" type="button">Priority Desk</button>
+        <button class="ghost tab-btn" data-tab="remarks" type="button">Remarks Reply Status</button>
+      </div>
+
+      <section class="panel active" data-panel="consolidated">
+        <div class="card">
+          <div class="card-head">
+            <h2>Consolidated Planner List</h2>
+            <div class="topbar-actions">
+              <button class="ghost" id="export-consolidated" type="button">Export Excel</button>
+              <span class="tag" id="consolidated-count">0 Orders</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Confirmation Date</th>
+                  <th>Order Number</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Customer Type</th>
+                  <th>Order Type</th>
+                  <th>Order Class</th>
+                  <th>Panel Qty</th>
+                  <th>Board Qty</th>
+                  <th>Current Stage</th>
+                  <th>Priority</th>
+                  <th>EDD</th>
+                </tr>
+              </thead>
+              <tbody id="consolidated-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="machine">
+        <div class="card">
+          <div class="card-head">
+            <h2>Machine Wise Visibility</h2>
+            <div class="topbar-actions">
+              <button class="ghost" id="export-machine" type="button">Export Excel</button>
+              <span class="tag" id="machine-count">0 Machines</span>
+            </div>
+          </div>
+          <div id="machine-groups"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="priority">
+        <div class="card">
+          <div class="card-head">
+            <h2>Priority Desk</h2>
+            <div class="topbar-actions">
+              <button class="ghost" id="export-priority" type="button">Export Excel</button>
+              <span class="tag" id="priority-count">0 Orders</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Confirmation Date</th>
+                  <th>Order Number</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Customer Type</th>
+                  <th>Order Class</th>
+                  <th>Panel Qty</th>
+                  <th>Board Qty</th>
+                  <th>Current Stage</th>
+                  <th>Priority</th>
+                </tr>
+              </thead>
+              <tbody id="priority-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="remarks">
+        <div class="card">
+          <div class="card-head">
+            <h2>Remarks Reply Status</h2>
+            <div class="topbar-actions">
+              <button class="ghost" id="refresh-remarks" type="button">Refresh</button>
+            </div>
+          </div>
+          <h3 style="margin:6px 0 10px;font-size:17px;">Replies Done Today <span class="tag" id="remarks-done-count">0</span></h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Replied Date</th>
+                  <th>Replied Time</th>
+                  <th>Order</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Replied By</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="remarks-done-body"></tbody>
+            </table>
+          </div>
+          <h3 style="margin:22px 0 10px;font-size:17px;">Pending Replies <span class="tag" id="remarks-pending-count">0</span></h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Requested Date</th>
+                  <th>Requested Time</th>
+                  <th>Order</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Requested By</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="remarks-pending-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script>
+    const state = {
+      session: null,
+      planningRows: [],
+      tab: "consolidated",
+      search: "",
+      status: "all",
+      priority: "all",
+      remarksData: null,
+      masters: {}
+    };
+
+    const refs = {
+      authShell: document.querySelector("#auth-shell"),
+      appShell: document.querySelector("#app-shell"),
+      authMessage: document.querySelector("#auth-message"),
+      appMessage: document.querySelector("#app-message"),
+      loginForm: document.querySelector("#login-form"),
+      loginUsername: document.querySelector("#login-username"),
+      loginPassword: document.querySelector("#login-password"),
+      sessionMeta: document.querySelector("#session-meta"),
+      refreshButton: document.querySelector("#refresh-button"),
+      logoutButton: document.querySelector("#logout-button"),
+      searchInput: document.querySelector("#search-input"),
+      statusFilter: document.querySelector("#status-filter"),
+      priorityFilter: document.querySelector("#priority-filter"),
+      exportConsolidated: document.querySelector("#export-consolidated"),
+      exportMachine: document.querySelector("#export-machine"),
+      exportPriority: document.querySelector("#export-priority"),
+      tabButtons: Array.from(document.querySelectorAll("[data-tab]")),
+      consolidatedBody: document.querySelector("#consolidated-body"),
+      consolidatedCount: document.querySelector("#consolidated-count"),
+      machineGroups: document.querySelector("#machine-groups"),
+      machineCount: document.querySelector("#machine-count"),
+      priorityBody: document.querySelector("#priority-body"),
+      priorityCount: document.querySelector("#priority-count")
+    };
+
+    init();
+
+    async function init() {
+      bindEvents();
+      await restoreSession();
+    }
+
+    function bindEvents() {
+      refs.loginForm.addEventListener("submit", onLogin);
+      refs.refreshButton.addEventListener("click", loadPlannerState);
+      refs.logoutButton.addEventListener("click", onLogout);
+      refs.exportConsolidated.addEventListener("click", exportConsolidatedExcel);
+      refs.exportMachine.addEventListener("click", exportMachineExcel);
+      refs.exportPriority.addEventListener("click", exportPriorityExcel);
+      refs.searchInput.addEventListener("input", () => {
+        state.search = refs.searchInput.value.trim().toLowerCase();
+        renderAll();
+      });
+      refs.statusFilter.addEventListener("change", () => {
+        state.status = refs.statusFilter.value;
+        renderAll();
+      });
+      refs.priorityFilter.addEventListener("change", () => {
+        state.priority = refs.priorityFilter.value;
+        renderAll();
+      });
+      refs.tabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.tab = button.dataset.tab;
+          renderTabs();
+        });
+      });
+      const refreshRemarksButton = document.querySelector("#refresh-remarks");
+      if (refreshRemarksButton) refreshRemarksButton.addEventListener("click", loadRemarksReport);
+      refs.consolidatedBody.addEventListener("change", onPriorityChange);
+      refs.consolidatedBody.addEventListener("click", onPrioritySave);
+      refs.machineGroups.addEventListener("change", onPriorityChange);
+      refs.machineGroups.addEventListener("click", onPrioritySave);
+      refs.priorityBody.addEventListener("change", onPriorityChange);
+      refs.priorityBody.addEventListener("click", onPrioritySave);
+    }
+
+    async function restoreSession() {
+      try {
+        const session = await apiGet("session");
+        if (session.authenticated && session.user) {
+          state.session = session.user;
+          await loadPlannerState();
+          return;
+        }
+      } catch {}
+      renderLoggedOut();
+    }
+
+    async function onLogin(event) {
+      event.preventDefault();
+      try {
+        const result = await apiPost("login", {
+          username: refs.loginUsername.value.trim().toLowerCase(),
+          password: refs.loginPassword.value
+        });
+        state.session = result.user;
+        refs.loginPassword.value = "";
+        await loadPlannerState();
+        showMessage("Planner session ready.", "success");
+      } catch (error) {
+        showMessage(error.message, "error", true);
+      }
+    }
+
+    async function onLogout() {
+      try {
+        await apiPost("logout", {});
+      } catch {}
+      state.session = null;
+      state.planningRows = [];
+      renderLoggedOut();
+    }
+
+    async function loadPlannerState() {
+      if (!state.session) return;
+      const role = String(state.session.role_name || "");
+      if (role !== "Production Planner User" && role !== "Admin") {
+        renderLoggedOut();
+        showMessage("This page is only for planner login.", "error", true);
+        return;
+      }
+      try {
+        const result = await apiGet("app-state");
+        state.session = result.session || state.session;
+        state.masters = result.masters || {};
+        state.planningRows = normalizeRows(result.planning?.rows || []);
+        hydrateStatusFilter(state.planningRows);
+        renderLoggedIn();
+      } catch (error) {
+        showMessage(error.message, "error", true);
+      }
+    }
+
+    function normalizeStationName(name) {
+      if (name === "Drilling 2") return "Drilling";
+      return name;
+    }
+
+    function highestSequenceStation(visibleStations) {
+      const machines = state.masters.machines || [];
+      const seqMap = new Map();
+      machines.forEach((m) => { seqMap.set(m.name, m.sequence_no); });
+      const stations = String(visibleStations || "-").split(",").map((s) => s.trim()).filter(Boolean);
+      if (!stations.length) return "";
+      let best = stations[0];
+      let bestSeq = seqMap.get(best) || 0;
+      stations.forEach((s) => {
+        const seq = seqMap.get(s) || 0;
+        if (seq > bestSeq) { best = s; bestSeq = seq; }
+      });
+      return normalizeStationName(best);
+    }
+
+    function normalizeRows(rows) {
+      return rows
+        .filter((row) => row && String(row.dispatch_status || "").toLowerCase() !== "dispatched")
+        .map((row) => {
+          const rawStations = row.visible_stations || "-";
+          const normalizedStations = Array.isArray(rawStations)
+            ? rawStations.map(normalizeStationName)
+            : String(rawStations).split(",").map((s) => normalizeStationName(s.trim())).filter(Boolean);
+          return {
+            ...row,
+            priority: String(row.priority || "").trim(),
+            planner_stage_label: row.planner_stage_label || row.workflow_stage || "",
+            visible_stations: normalizedStations,
+            dealer_name: row.dealer_name || "-",
+            customer_name: row.customer_name || "-",
+            order_type: row.order_type || "-",
+            edd: row.edd || row.sla_date || ""
+          };
+        });
+    }
+
+    function hydrateStatusFilter(rows) {
+      const current = state.status;
+      const values = ["all", ...new Set(rows.map((row) => row.planner_stage_label).filter(Boolean))];
+      refs.statusFilter.innerHTML = values
+        .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value === "all" ? "All" : value)}</option>`)
+        .join("");
+      refs.statusFilter.value = values.includes(current) ? current : "all";
+      state.status = refs.statusFilter.value;
+    }
+
+    function renderLoggedOut() {
+      refs.authShell.classList.remove("hidden");
+      refs.appShell.classList.add("hidden");
+    }
+
+    function renderLoggedIn() {
+      refs.authShell.classList.add("hidden");
+      refs.appShell.classList.remove("hidden");
+      refs.sessionMeta.textContent = `${state.session.full_name} | ${state.session.role_name}`;
+      renderTabs();
+      renderAll();
+    }
+
+    function renderTabs() {
+      refs.tabButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === state.tab));
+      document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === state.tab));
+      if (state.tab === "remarks") loadRemarksReport();
+    }
+
+    async function loadRemarksReport() {
+      if (!state.session) return;
+      try {
+        const result = await apiGet("remarks-report");
+        state.remarksData = result;
+        renderRemarksReport();
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    function renderRemarksReport() {
+      const data = state.remarksData || { done_rows: [], pending_rows: [] };
+      const doneRows = data.done_rows || [];
+      const pendingRows = data.pending_rows || [];
+      document.querySelector("#remarks-done-count").textContent = String(doneRows.length);
+      document.querySelector("#remarks-pending-count").textContent = String(pendingRows.length);
+
+      document.querySelector("#remarks-done-body").innerHTML = doneRows.length ? doneRows.map((row) => `
+        <tr>
+          <td class="slim-cell"><span class="dt">${escapeHtml(row.replied_date)}</span></td>
+          <td class="slim-cell"><span class="tm">${escapeHtml(row.replied_time)}</span></td>
+          <td class="order-cell wrap">${escapeHtml(row.order_number)}</td>
+          <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
+          <td class="customer-cell wrap">${escapeHtml(row.customer_name)}</td>
+          <td class="slim-cell">${escapeHtml(row.replier_name)}</td>
+          <td class="wrap"><div class="remark">${escapeHtml(row.reply_remarks)}</div></td>
+        </tr>
+      `).join("") : `<tr><td colspan="7" class="empty">No replies completed today.</td></tr>`;
+
+      document.querySelector("#remarks-pending-body").innerHTML = pendingRows.length ? pendingRows.map((row) => {
+        const orderLabel = row.order_count > 1 ? `${escapeHtml(row.order_number)} (+${row.order_count - 1} more)` : escapeHtml(row.order_number);
+        return `
+        <tr>
+          <td class="slim-cell"><span class="dt">${escapeHtml(row.requested_date)}</span></td>
+          <td class="slim-cell"><span class="tm">${escapeHtml(row.requested_time)}</span></td>
+          <td class="order-cell wrap">${orderLabel}</td>
+          <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
+          <td class="customer-cell wrap">${escapeHtml(row.customer_name)}</td>
+          <td class="slim-cell">${escapeHtml(row.requester_name)}</td>
+          <td class="slim-cell"><span class="pill pill-pending">Pending</span></td>
+        </tr>
+      `;
+      }).join("") : `<tr><td colspan="7" class="empty">No pending replies. Everything is answered.</td></tr>`;
+    }
+
+    function getFilteredRows() {
+      let rows = [...state.planningRows];
+      if (state.search) {
+        rows = rows.filter((row) => [
+          row.order_number,
+          row.dealer_name,
+          row.customer_name,
+          row.visible_stations,
+          row.planner_stage_label
+        ].join(" ").toLowerCase().includes(state.search));
+      }
+      if (state.status !== "all") {
+        rows = rows.filter((row) => row.planner_stage_label === state.status);
+      }
+      if (state.priority !== "all") {
+        rows = rows.filter((row) => {
+          if (state.priority === "blank") return !row.priority;
+          return row.priority === state.priority;
+        });
+      }
+      return rows.sort(comparePriorityThenOrder);
+    }
+
+    function comparePriorityThenOrder(a, b) {
+      const rank = (value) => ({ High: 0, Medium: 1, Low: 2 }[value] ?? 3);
+      const diff = rank(a.priority) - rank(b.priority);
+      if (diff !== 0) return diff;
+      return String(a.order_number || "").localeCompare(String(b.order_number || ""));
+    }
+
+    function renderAll() {
+      const rows = getFilteredRows();
+      renderConsolidated(rows);
+      renderMachineWise(rows);
+      renderPriorityDesk(rows);
+    }
+
+    function renderConsolidated(rows) {
+      refs.consolidatedCount.textContent = `${rows.length} Orders`;
+      refs.consolidatedBody.innerHTML = rows.length ? rows.map((row) => `
+        <tr class="${priorityClass(row.priority)}">
+          <td class="slim-cell">${escapeHtml(shortDate(row.confirmation_date))}</td>
+          <td class="order-cell wrap">${escapeHtml(row.order_number)}</td>
+          <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
+          <td class="customer-cell wrap">${escapeHtml(customerLabel(row.customer_name))}</td>
+          <td class="slim-cell">${escapeHtml(row.customer_type || "-")}</td>
+          <td class="slim-cell">${escapeHtml(row.order_type)}</td>
+          <td class="slim-cell">${escapeHtml(row.order_class || "-")}</td>
+          ${renderQtyEditor(row)}
+          <td class="stage-cell"><span class="pill">${escapeHtml(row.planner_stage_label)}</span></td>
+          <td>${renderPriorityEditor(row)}</td>
+          <td class="slim-cell">${escapeHtml(shortDate(row.edd || "-"))}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="12" class="empty">No planner rows available.</td></tr>`;
+    }
+
+    function renderMachineWise(rows) {
+      const groups = new Map();
+      rows.forEach((row) => {
+        const currentStation = highestSequenceStation(row.visible_stations);
+        if (currentStation) {
+          if (!groups.has(currentStation)) groups.set(currentStation, []);
+          groups.get(currentStation).push(row);
+        }
+      });
+      refs.machineCount.textContent = `${groups.size} Machines`;
+      if (!groups.size) {
+        refs.machineGroups.innerHTML = `<div class="empty">No machine-wise rows available.</div>`;
+        return;
+      }
+      refs.machineGroups.innerHTML = Array.from(groups.entries()).map(([station, stationRows]) => `
+        <div class="machine-group">
+          <div class="card-head">
+            <h3>${escapeHtml(station)}</h3>
+            <div class="topbar-actions">
+              <button class="ghost mini-export" type="button" data-export-machine="${escapeHtml(station)}">Export Excel</button>
+              <span class="tag">${stationRows.length} Orders</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Confirmation Date</th>
+                  <th>Order Number</th>
+                  <th>Dealer</th>
+                  <th>Customer</th>
+                  <th>Customer Type</th>
+                  <th>Order Class</th>
+                  <th>Panel Qty</th>
+                  <th>Board Qty</th>
+                  <th>Current Stage</th>
+                  <th>Priority</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${stationRows.sort(comparePriorityThenOrder).map((row) => `
+                  <tr class="${priorityClass(row.priority)}">
+                    <td class="slim-cell">${escapeHtml(shortDate(row.confirmation_date))}</td>
+                    <td class="order-cell wrap">${escapeHtml(row.order_number)}</td>
+                    <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
+                    <td class="customer-cell wrap">${escapeHtml(customerLabel(row.customer_name))}</td>
+                    <td class="slim-cell">${escapeHtml(row.customer_type || "-")}</td>
+                    <td class="slim-cell">${escapeHtml(row.order_class || "-")}</td>
+                    ${renderQtyEditor(row)}
+                    <td class="stage-cell">${escapeHtml(row.planner_stage_label)}</td>
+                    <td>${renderPriorityEditor(row)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderPriorityDesk(rows) {
+      const priorityRows = rows.filter((row) => {
+        const stage = String(row.planner_stage_label || row.workflow_stage || "").toLowerCase();
+        const dispatch = String(row.dispatch_status || "").toLowerCase();
+        return stage !== "packed" && stage !== "dispatch" && stage !== "dispatched" && dispatch !== "dispatched";
+      });
+      refs.priorityCount.textContent = `${priorityRows.length} Orders`;
+      refs.priorityBody.innerHTML = priorityRows.length ? priorityRows.map((row) => `
+        <tr class="${priorityClass(row.priority)}" data-order-id="${row.order_id}">
+          <td class="slim-cell">${escapeHtml(shortDate(row.confirmation_date))}</td>
+          <td class="order-cell wrap">${escapeHtml(row.order_number)}</td>
+          <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
+          <td class="customer-cell wrap">${escapeHtml(customerLabel(row.customer_name))}</td>
+          <td class="slim-cell">${escapeHtml(row.customer_type || "-")}</td>
+          <td class="slim-cell">${escapeHtml(row.order_class || "-")}</td>
+          ${renderQtyEditor(row)}
+          <td class="stage-cell">${escapeHtml(row.planner_stage_label)}</td>
+          <td>${renderPriorityEditor(row)}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="10" class="empty">No priority rows available.</td></tr>`;
+    }
+
+    function renderPriorityEditor(row) {
+      return `
+        <div class="priority-cell">
+          <select class="mini-select" data-priority-edit="${row.order_id}">
+            ${["", "High", "Medium", "Low"].map((value) => `<option value="${escapeHtml(value)}" ${value === row.priority ? "selected" : ""}>${escapeHtml(value || "Blank")}</option>`).join("")}
+          </select>
+          <button class="mini-btn" type="button" data-priority-save="${row.order_id}">Save</button>
+        </div>
+      `;
+    }
+
+    function renderQtyEditor(row) {
+      const panel = String(row.panel_qty ?? "").trim();
+      const board = String(row.board_qty ?? "").trim();
+      return `
+        <td class="slim-cell"><input class="qty-input" type="number" min="0" step="0.01" inputmode="decimal" data-qty-panel="${row.order_id}" value="${escapeHtml(panel)}" aria-label="Panel Qty for ${escapeHtml(row.order_number)}"></td>
+        <td class="slim-cell"><div class="qty-cell"><input class="qty-input" type="number" min="0" step="0.01" inputmode="decimal" data-qty-board="${row.order_id}" value="${escapeHtml(board)}" aria-label="Board Qty for ${escapeHtml(row.order_number)}"><button class="mini-btn" type="button" data-qty-save="${row.order_id}" title="Save quantities">Save</button></div></td>
+      `;
+    }
+
+    function onPriorityChange(event) {
+      const select = event.target.closest("[data-priority-edit]");
+      if (!select) return;
+      const row = state.planningRows.find((item) => String(item.order_id) === String(select.dataset.priorityEdit));
+      if (row) row.priority = select.value;
+      renderAll();
+    }
+
+    async function onPrioritySave(event) {
+      const exportMachineButton = event.target.closest("[data-export-machine]");
+      if (exportMachineButton) {
+        exportSingleMachineExcel(exportMachineButton.dataset.exportMachine || "");
+        return;
+      }
+      const qtyButton = event.target.closest("[data-qty-save]");
+      if (qtyButton) {
+        await onQtySave(qtyButton);
+        return;
+      }
+      const button = event.target.closest("[data-priority-save]");
+      if (!button) return;
+      const orderId = Number(button.dataset.prioritySave);
+      const row = state.planningRows.find((item) => item.order_id === orderId);
+      if (!row) return;
+      try {
+        await apiPost("planner-save", {
+          order_id: orderId,
+          sla_date: row.edd || "",
+          urgency: row.urgency || "",
+          priority: row.priority || "",
+          planner_remarks: row.planner_remarks || ""
+        });
+        await loadPlannerState();
+        showMessage(`Priority updated for ${row.order_number}.`, "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    async function onQtySave(button) {
+      const orderId = Number(button.dataset.qtySave);
+      const row = state.planningRows.find((item) => item.order_id === orderId);
+      if (!row) return;
+      const panelInput = document.querySelector(`[data-qty-panel="${orderId}"]`);
+      const boardInput = document.querySelector(`[data-qty-board="${orderId}"]`);
+      if (!panelInput || !boardInput) return;
+      const panel = panelInput.value.trim();
+      const board = boardInput.value.trim();
+      if (panel === "" || board === "") {
+        showMessage("Enter both Board Qty and Panel Qty before saving.", "error");
+        return;
+      }
+      if (Number(panel) < 0 || Number(board) < 0 || Number.isNaN(Number(panel)) || Number.isNaN(Number(board))) {
+        showMessage("Quantities must be numbers greater than or equal to 0.", "error");
+        return;
+      }
+      button.disabled = true;
+      try {
+        await apiPost("qty-save", { order_id: orderId, board_qty: board, panel_qty: panel });
+        await loadPlannerState();
+        showMessage(`Quantities updated for ${row.order_number}.`, "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function apiGet(action) {
+      const response = await fetch(`/api.ashx?action=${action}`, { credentials: "same-origin" });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.message || "Request failed.");
+      return result;
+    }
+
+    async function apiPost(action, payload) {
+      const params = new URLSearchParams();
+      Object.entries(payload).forEach(([key, value]) => params.append(key, value == null ? "" : value));
+      const response = await fetch(`/api.ashx?action=${action}`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+        body: params.toString()
+      });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.message || "Request failed.");
+      return result;
+    }
+
+    function customerLabel(value) {
+      return value ? `(${value})` : "-";
+    }
+
+    function priorityClass(priority) {
+      if (priority === "High") return "priority-high";
+      if (priority === "Medium") return "priority-medium";
+      if (priority === "Low") return "priority-low";
+      return "";
+    }
+
+    function showMessage(message, tone, auth = false) {
+      const node = auth ? refs.authMessage : refs.appMessage;
+      node.textContent = message;
+      node.classList.remove("hidden");
+      node.style.background = tone === "error" ? "#fdeaea" : "var(--green-soft)";
+      node.style.color = tone === "error" ? "#b42318" : "var(--green)";
+    }
+
+    function calcDelay(row) {
+      const cd = String(row.confirmation_date || "").trim();
+      if (!cd || !cd.match(/^\d{4}-\d{2}-\d{2}/)) return "";
+      const confirmDate = new Date(cd.slice(0, 10));
+      const today = new Date();
+      const diffDays = Math.floor((today - confirmDate) / (1000 * 60 * 60 * 24));
+      const orderType = String(row.order_type || row.order_type_name || "").toLowerCase();
+      let slaDays = 8;
+      if (orderType.includes("pu") || orderType.includes("production")) slaDays = 15;
+      if (orderType.includes("snag")) slaDays = 2;
+      if (diffDays > slaDays) return `Delay by ${diffDays - slaDays} days`;
+      return "";
+    }
+
+    function plannerExportRows(rows) {
+      return rows.map((row) => {
+        const delay = calcDelay(row);
+        const orderNum = row.order_number || "";
+        return {
+          "Confirmation Date": shortDate(row.confirmation_date || ""),
+          "Order Number": orderNum,
+          "Dealer": row.dealer_name || "",
+          "Customer": customerLabel(row.customer_name),
+          "Customer Type": row.customer_type || "",
+          "Order Type": row.order_type || row.order_type_name || "",
+          "Order Class": row.order_class || "",
+          "Panel Qty": row.panel_qty || "",
+          "Board Qty": row.board_qty || "",
+          "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
+          "Priority": row.priority || "",
+          "EDD": shortDate(row.edd || ""),
+          "Status": delay
+        };
+      });
+    }
+
+    function machineExportRows(rows, station) {
+      return rows.map((row) => {
+        const delay = calcDelay(row);
+        return {
+          "Machine": station || "",
+          "Priority": row.priority || "",
+          "Confirmation Date": shortDate(row.confirmation_date || ""),
+          "Order Number": row.order_number || "",
+          "Dealer": row.dealer_name || "",
+          "Customer": customerLabel(row.customer_name),
+          "Customer Type": row.customer_type || "",
+          "Order Type": row.order_type || row.order_type_name || "",
+          "Order Class": row.order_class || "",
+          "Panel Qty": row.panel_qty || "",
+          "Board Qty": row.board_qty || "",
+          "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
+          "Status": delay
+        };
+      });
+    }
+
+    function shortDate(value) {
+      const raw = String(value || "").trim();
+      if (!raw || raw === "-") return "-";
+      const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${match[3]}-${match[2]}-${match[1].slice(-2)}`;
+      return raw;
+    }
+
+    function qtyLabel(value) {
+      const text = String(value ?? "").trim();
+      return text || "-";
+    }
+
+    function exportDateStamp() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = String(now.getFullYear());
+      return `${dd}-${mm}-${yyyy}`;
+    }
+
+    function downloadWorkbook(fileName, sheets) {
+      if (!window.XLSX) {
+        showMessage("Excel export library not loaded.", "error");
+        return;
+      }
+      const workbook = XLSX.utils.book_new();
+
+      const thinBorder = [
+        { top: { style: "thin", color: { rgb: "B0B0B0" } } },
+        { bottom: { style: "thin", color: { rgb: "B0B0B0" } } },
+        { left: { style: "thin", color: { rgb: "B0B0B0" } } },
+        { right: { style: "thin", color: { rgb: "B0B0B0" } } }
+      ];
+
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11, name: "Calibri" },
+        fill: { fgColor: { rgb: "1E3A5F" } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: thinBorder
+      };
+
+      const groupStyle = {
+        font: { bold: true, color: { rgb: "1E3A5F" }, sz: 11, name: "Calibri" },
+        fill: { fgColor: { rgb: "D6E4F0" } },
+        alignment: { vertical: "center" },
+        border: thinBorder
+      };
+
+      const rowEven = {
+        fill: { fgColor: { rgb: "F2F7FB" } },
+        border: thinBorder,
+        alignment: { vertical: "center", wrapText: true }
+      };
+
+      const rowOdd = {
+        border: thinBorder,
+        alignment: { vertical: "center", wrapText: true }
+      };
+
+      const highPriStyle = {
+        fill: { fgColor: { rgb: "FECDD3" } },
+        border: thinBorder,
+        alignment: { vertical: "center", wrapText: true },
+        font: { color: { rgb: "9B1C1C" }, sz: 10, name: "Calibri" }
+      };
+
+      sheets.forEach((sheet) => {
+        const safeName = String(sheet.name || "Sheet1").replace(/[\\/?*\\[\\]:]/g, " ").slice(0, 31) || "Sheet1";
+        const rows = sheet.rows.length ? sheet.rows : [{ "No Data": "" }];
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+
+        const keys = Object.keys(rows[0] || {});
+
+        // Header row
+        keys.forEach((key, ci) => {
+          const addr = XLSX.utils.encode_cell({ r: 0, c: ci });
+          if (worksheet[addr]) worksheet[addr].s = headerStyle;
+        });
+
+        // Data rows
+        let dataRowIdx = 0;
+        rows.forEach((row, ri) => {
+          if (ri === 0) return;
+          const isGroupRow = keys.some(k => String(row[k] || "").startsWith("---"));
+          const isHighPri = String(row["Priority"] || "").toLowerCase() === "high";
+          keys.forEach((key, ci) => {
+            const addr = XLSX.utils.encode_cell({ r: ri, c: ci });
+            if (worksheet[addr]) {
+              if (isGroupRow) {
+                worksheet[addr].s = groupStyle;
+              } else if (isHighPri) {
+                worksheet[addr].s = highPriStyle;
+              } else {
+                worksheet[addr].s = dataRowIdx % 2 === 0 ? rowEven : rowOdd;
+              }
+            }
+          });
+          if (!isGroupRow) dataRowIdx++;
+        });
+
+        // Auto-width
+        const colWidths = keys.map((key) => {
+          let maxLen = key.length;
+          rows.forEach((row) => {
+            const val = String(row[key] || "");
+            if (val.length > maxLen) maxLen = val.length;
+          });
+          return { wch: Math.min(maxLen + 4, 45) };
+        });
+        worksheet["!cols"] = colWidths;
+
+        // Freeze header row
+        worksheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, safeName);
+      });
+      XLSX.writeFile(workbook, fileName);
+    }
+
+    function exportConsolidatedExcel() {
+      const rows = getFilteredRows();
+      const sheets = [];
+
+      // 1. Consolidated sheet
+      sheets.push({ name: "All Orders", rows: plannerExportRows(rows.sort((a, b) => {
+        const da = a.confirmation_date || "";
+        const db = b.confirmation_date || "";
+        return da.localeCompare(db);
+      })) });
+
+      // 2. Customer Type sheets with machine grouping
+      const ctGroups = new Map();
+      rows.forEach((row) => {
+        const ct = String(row.customer_type || "Unknown").trim();
+        if (!ctGroups.has(ct)) ctGroups.set(ct, []);
+        ctGroups.get(ct).push(row);
+      });
+
+      Array.from(ctGroups.entries()).sort((a, b) => a[0].localeCompare(b[0])).forEach(([ct, ctRows]) => {
+        ctRows.sort((a, b) => (a.confirmation_date || "").localeCompare(b.confirmation_date || ""));
+
+        const machineGroups = new Map();
+        ctRows.forEach((row) => {
+          const currentStation = highestSequenceStation(row.visible_stations) || "Unassigned";
+          if (!machineGroups.has(currentStation)) machineGroups.set(currentStation, []);
+          machineGroups.get(currentStation).push(row);
+        });
+
+        const ctSheetRows = [];
+        Array.from(machineGroups.entries()).forEach(([machine, machineRows]) => {
+          ctSheetRows.push({ "Machine": `--- ${machine} ---`, "Priority": "", "Confirmation Date": "", "Order Number": "", "Dealer": "", "Customer": "", "Customer Type": "", "Order Type": "", "Order Class": "", "Panel Qty": "", "Board Qty": "", "Visible Stations": "", "EDD": "", "Status": "" });
+          machineRows.forEach((row) => {
+            ctSheetRows.push({
+              "Machine": machine,
+              "Priority": row.priority || "",
+              "Confirmation Date": shortDate(row.confirmation_date || ""),
+              "Order Number": row.order_number || "",
+              "Dealer": row.dealer_name || "",
+              "Customer": customerLabel(row.customer_name),
+              "Customer Type": row.customer_type || "",
+              "Order Type": row.order_type || row.order_type_name || "",
+              "Order Class": row.order_class || "",
+              "Panel Qty": row.panel_qty || "",
+              "Board Qty": row.board_qty || "",
+              "Visible Stations": Array.isArray(row.visible_stations) ? row.visible_stations.join(", ") : "",
+              "EDD": shortDate(row.edd || ""),
+              "Status": calcDelay(row)
+            });
+          });
+        });
+
+        const sheetName = ct.slice(0, 31).replace(/[\\/?*[\]:]/g, " ");
+        sheets.push({ name: sheetName, rows: ctSheetRows });
+      });
+
+      // 3. High Priority sheet (main orders only)
+      const highPriorityRows = rows.filter(r => r.priority === "High" && String(r.order_class || "").toLowerCase() !== "sub order")
+        .sort((a, b) => (a.confirmation_date || "").localeCompare(b.confirmation_date || ""));
+      sheets.push({ name: "High Priority", rows: plannerExportRows(highPriorityRows) });
+
+      // 4. Medium Priority sheet (main orders only)
+      const medPriorityRows = rows.filter(r => r.priority === "Medium" && String(r.order_class || "").toLowerCase() !== "sub order")
+        .sort((a, b) => (a.confirmation_date || "").localeCompare(b.confirmation_date || ""));
+      sheets.push({ name: "Medium Priority", rows: plannerExportRows(medPriorityRows) });
+
+      downloadWorkbook(`WIP Orders Dated ${exportDateStamp()}.xlsx`, sheets);
+    }
+
+    function exportMachineExcel() {
+      const rows = getFilteredRows();
+      const groups = new Map();
+      rows.forEach((row) => {
+        const currentStation = highestSequenceStation(row.visible_stations);
+        if (currentStation) {
+          if (!groups.has(currentStation)) groups.set(currentStation, []);
+          groups.get(currentStation).push(row);
+        }
+      });
+      const sheets = Array.from(groups.entries()).map(([station, stationRows]) => ({
+        name: station,
+        rows: machineExportRows(stationRows.sort(comparePriorityThenOrder), station)
+      }));
+      downloadWorkbook(`Machine Wise WIP Orders Dated ${exportDateStamp()}.xlsx`, sheets.length ? sheets : [{ name: "Machine Wise", rows: [] }]);
+    }
+
+    function exportSingleMachineExcel(station) {
+      const rows = getFilteredRows().filter((row) => highestSequenceStation(row.visible_stations) === station);
+      downloadWorkbook(`${station || "Machine"} WIP Orders Dated ${exportDateStamp()}.xlsx`, [
+        { name: station || "Machine", rows: machineExportRows(rows.sort(comparePriorityThenOrder), station) }
+      ]);
+    }
+
+    function exportPriorityExcel() {
+      const rows = getFilteredRows();
+      downloadWorkbook(`Priority WIP Orders Dated ${exportDateStamp()}.xlsx`, [
+        { name: "Priority Desk", rows: plannerExportRows(rows) }
+      ]);
+    }
+
+    function slugify(value) {
+      return String(value || "machine").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "machine";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+  </script>
+</body>
+</html>
