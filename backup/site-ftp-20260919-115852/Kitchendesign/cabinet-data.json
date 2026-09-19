@@ -1,0 +1,2913 @@
+{
+  "defaults": {
+    "counterDepth": 610,
+    "islandDepth": 600,
+    "wallA": 3600,
+    "wallC": 2400,
+    "plinthHeight": 100,
+    "counterThickness": 20,
+    "dadoHeight": 600,
+    "islandWidth": 1200,
+    "counterHeight": 800,
+    "wallB": 2400,
+    "carcassDepth": 560
+  },
+  "standards": [
+    200,
+    300,
+    400,
+    450,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+  ],
+  "hardware": {
+    "perShutter": [
+      {
+        "uom": "Pair",
+        "name": "0-Crank Hinge SC",
+        "rate": 66.5,
+        "qty": 1
+      },
+      {
+        "uom": "Nos",
+        "name": "Handle 160mm",
+        "rate": 75,
+        "qty": 1
+      },
+      {
+        "name": "Screw 4x16mm",
+        "rate": 0.5,
+        "qty": 8
+      }
+    ],
+    "wall": [
+      {
+        "name": "Minifix 3-Part",
+        "rate": 4,
+        "qty": 6
+      },
+      {
+        "name": "Wooden Dowels",
+        "rate": 0.6,
+        "qty": 6
+      },
+      {
+        "name": "Wall Bracket",
+        "rate": 15,
+        "qty": 2
+      },
+      {
+        "name": "Screw 4x19mm",
+        "rate": 0.4,
+        "qty": 12
+      },
+      {
+        "name": "Shelf Pin",
+        "rate": 2,
+        "qty": 4
+      }
+    ],
+    "tall": [
+      {
+        "name": "Minifix 3-Part",
+        "rate": 4,
+        "qty": 8
+      },
+      {
+        "name": "Wooden Dowels",
+        "rate": 0.6,
+        "qty": 8
+      },
+      {
+        "name": "PVC Legs 100mm",
+        "rate": 10.5,
+        "qty": 4
+      },
+      {
+        "name": "Screw 4x19mm",
+        "rate": 0.4,
+        "qty": 16
+      },
+      {
+        "name": "Skirting Clips",
+        "rate": 4,
+        "qty": 2
+      },
+      {
+        "name": "Cabinet Connector",
+        "rate": 4,
+        "qty": 4
+      },
+      {
+        "name": "Shelf Pin",
+        "rate": 2,
+        "qty": 8
+      },
+      {
+        "name": "Soft-close Hinge",
+        "rate": 66.5,
+        "qty": 6
+      }
+    ],
+    "base": [
+      {
+        "name": "Minifix 3-Part",
+        "rate": 4,
+        "qty": 8
+      },
+      {
+        "name": "Wooden Dowels",
+        "rate": 0.6,
+        "qty": 8
+      },
+      {
+        "name": "PVC Legs 100mm",
+        "rate": 10.5,
+        "qty": 4
+      },
+      {
+        "name": "Screw 4x19mm",
+        "rate": 0.4,
+        "qty": 16
+      },
+      {
+        "name": "Skirting Clips",
+        "rate": 4,
+        "qty": 2
+      },
+      {
+        "name": "Cabinet Connector",
+        "rate": 4,
+        "qty": 4
+      },
+      {
+        "name": "Shelf Pin",
+        "rate": 2,
+        "qty": 4
+      }
+    ]
+  },
+  "catalog": {
+    "drawer3": [
+      {
+        "cp": 4671,
+        "sku": "BC3WD505670",
+        "c18": 20.92,
+        "d": 560,
+        "sh18": 3.72,
+        "w": 500,
+        "c6": 9.82,
+        "desc": "Base Cabinet With 3 Wooden Drawer 500 x 560 x 700 ",
+        "h": 700,
+        "hw": 1718
+      },
+      {
+        "cp": 5471,
+        "sku": "BC3WD605670",
+        "c18": 22.6,
+        "d": 560,
+        "sh18": 4.47,
+        "w": 600,
+        "c6": 12.1,
+        "desc": "Base Cabinet With 3 Wooden Drawer 600 x 560 x 700 ",
+        "h": 700,
+        "hw": 2137.44
+      },
+      {
+        "cp": 5515,
+        "sku": "BC3WD705670",
+        "c18": 24.28,
+        "d": 560,
+        "sh18": 5.21,
+        "w": 700,
+        "c6": 14.37,
+        "desc": "Base Cabinet With 3 Wooden Drawer 700 x 560 x 700 ",
+        "h": 700,
+        "hw": 1800
+      },
+      {
+        "cp": 9990,
+        "sku": "BC3CCT455670",
+        "c18": 11.69,
+        "d": 560,
+        "sh18": 3.35,
+        "w": 450,
+        "c6": 3.09,
+        "desc": "Base Module 3 Baskets - CCT, CNS, THALI (SC Tele) 450 x 560 x 700",
+        "h": 700,
+        "hw": 8336.01
+      },
+      {
+        "cp": 11610,
+        "sku": "BC3CCT605670",
+        "c18": 12.87,
+        "d": 560,
+        "sh18": 4.47,
+        "w": 600,
+        "c6": 4.18,
+        "desc": "Base Module 3 Baskets - CCT, CNS, THALI (SC Tele) 600 x 560 x 700",
+        "h": 700,
+        "hw": 9648.48
+      },
+      {
+        "cp": 8522,
+        "sku": "BC3CCTIND455670",
+        "c18": 11.69,
+        "d": 560,
+        "sh18": 3.35,
+        "w": 450,
+        "c6": 3.09,
+        "desc": "Base Cabinet - Tandem With PVC Cutlery, CNS, THALI (SC Tele) 450 x 560 x 700",
+        "h": 700,
+        "hw": 6867.63
+      },
+      {
+        "cp": 9873,
+        "sku": "BC3CCTIND605670",
+        "c18": 12.87,
+        "d": 560,
+        "sh18": 4.47,
+        "w": 600,
+        "c6": 4.18,
+        "desc": "Base Cabinet - Tandem With PVC Cutlery, CNS, THALI (SC Tele) 600 x 560 x 700",
+        "h": 700,
+        "hw": 7911.56
+      },
+      {
+        "cp": 6550,
+        "sku": "BC3IND605670",
+        "c18": 20.91,
+        "d": 560,
+        "sh18": 4.47,
+        "w": 600,
+        "c6": 4.26,
+        "desc": "Base Cabinet With 3 Tandem Drawer 600 x 560 x 700",
+        "h": 700,
+        "hw": 3849
+      },
+      {
+        "cp": 6949,
+        "sku": "BC3IND705670",
+        "c18": 23.36,
+        "d": 560,
+        "sh18": 5.21,
+        "w": 700,
+        "c6": 5,
+        "desc": "Base Cabinet With 3 Tandem Drawer 700 x 560 x 700",
+        "h": 700,
+        "hw": 3890
+      },
+      {
+        "cp": 7348,
+        "sku": "BC3IND805670",
+        "c18": 25.81,
+        "d": 560,
+        "sh18": 5.96,
+        "w": 800,
+        "c6": 5.74,
+        "desc": "Base Cabinet With 3 Tandem Drawer 800 x 560 x 700",
+        "h": 700,
+        "hw": 3931
+      },
+      {
+        "cp": 7747,
+        "sku": "BC3IND905670",
+        "c18": 28.27,
+        "d": 560,
+        "sh18": 6.71,
+        "w": 900,
+        "c6": 6.48,
+        "desc": "Base Cabinet With 3 Tandem Drawer 900 x 560 x 700",
+        "h": 700,
+        "hw": 3972
+      }
+    ],
+    "doubleDoor": [
+      {
+        "cp": 3349,
+        "sku": "BC2SH1S805670",
+        "c18": 18.8,
+        "d": 560,
+        "sh18": 5.98,
+        "w": 800,
+        "c6": 5.63,
+        "desc": "Base Cabinet With 2 Shutter And 1Adj shelf 800 x 560 x 700",
+        "h": 700,
+        "hw": 578.2
+      },
+      {
+        "cp": 3628,
+        "sku": "BC2SH1S905670",
+        "c18": 20.15,
+        "d": 560,
+        "sh18": 6.73,
+        "w": 900,
+        "c6": 6.36,
+        "desc": "Base Cabinet With 2 Shutter And 1Adj shelf 900 x 560 x 700",
+        "h": 700,
+        "hw": 599.2
+      }
+    ],
+    "wallSingle": [
+      {
+        "cp": 1267,
+        "sku": "WC1SHL1S303060",
+        "c18": 6.34,
+        "d": 300,
+        "sh18": 1.92,
+        "w": 300,
+        "c6": 1.7,
+        "desc": "Wall Cabinet With 1 Left Side Shutter And 1Adj shelf 300 x 300 x 600",
+        "h": 600,
+        "hw": 355.98
+      },
+      {
+        "cp": 1267,
+        "sku": "WC1SHR1S303060",
+        "c18": 6.34,
+        "d": 300,
+        "sh18": 1.92,
+        "w": 300,
+        "c6": 1.7,
+        "desc": "Wall Cabinet With 1 Right Side Shutter And 1Adj shelf 300 x 300 x 600",
+        "h": 600,
+        "hw": 355.98
+      },
+      {
+        "cp": 1567,
+        "sku": "WC1SHL1S453060",
+        "c18": 7.75,
+        "d": 300,
+        "sh18": 2.88,
+        "w": 450,
+        "c6": 2.63,
+        "desc": "Wall Cabinet With 1 Left Side Shutter And 1Adj shelf 450 x 300 x 600",
+        "h": 600,
+        "hw": 355.98
+      },
+      {
+        "cp": 1567,
+        "sku": "WC1SHR1S453060",
+        "c18": 7.75,
+        "d": 300,
+        "sh18": 2.88,
+        "w": 450,
+        "c6": 2.63,
+        "desc": "Wall Cabinet With 1 Right Side Shutter And 1Adj shelf 450 x 300 x 600",
+        "h": 600,
+        "hw": 355.98
+      },
+      {
+        "cp": 1667,
+        "sku": "WC1SHR1S503060",
+        "c18": 8.22,
+        "d": 300,
+        "sh18": 3.21,
+        "w": 500,
+        "c6": 2.94,
+        "desc": "Wall Cabinet With 1 Left Side Shutter And 1Adj shelf 500 x 300 x 600",
+        "h": 600,
+        "hw": 356
+      },
+      {
+        "cp": 1667,
+        "sku": "WC1SHR1S503060",
+        "c18": 8.22,
+        "d": 300,
+        "sh18": 3.21,
+        "w": 500,
+        "c6": 2.94,
+        "desc": "Wall Cabinet With 1 Right Side Shutter And 1Adj shelf 500 x 300 x 600",
+        "h": 600,
+        "hw": 356
+      },
+      {
+        "cp": 1867,
+        "sku": "WC1SHL1S603060",
+        "c18": 9.15,
+        "d": 300,
+        "sh18": 3.85,
+        "w": 600,
+        "c6": 3.56,
+        "desc": "Wall Cabinet With 1 Left Side Shutter And 1Adj shelf 600 x 300 x 600",
+        "h": 600,
+        "hw": 355.98
+      },
+      {
+        "cp": 1867,
+        "sku": "WC1SHR1S603060",
+        "c18": 9.15,
+        "d": 300,
+        "sh18": 3.85,
+        "w": 600,
+        "c6": 3.56,
+        "desc": "Wall Cabinet With 1 Right Side Shutter And 1Adj shelf 600 x 300 x 600",
+        "h": 600,
+        "hw": 355.98
+      },
+      {
+        "cp": 3680,
+        "sku": "WC1AGSHL1S453060",
+        "c18": 7.75,
+        "d": 300,
+        "sh18": 0,
+        "w": 450,
+        "c6": 2.63,
+        "desc": "Wall Cabinet With 1 Left Side Black Alu Frosted Glass Shutter And 1Adj shelf 450 x 300 x 600",
+        "h": 600,
+        "hw": 1513.42
+      },
+      {
+        "cp": 3680,
+        "sku": "WC1AGSHR1S453060",
+        "c18": 7.75,
+        "d": 300,
+        "sh18": 0,
+        "w": 450,
+        "c6": 2.63,
+        "desc": "Wall Cabinet With 1 Right Side Black Alu Frosted Glass Shutter And 1Adj shelf 450 x 300 x 600",
+        "h": 600,
+        "hw": 1513.42
+      },
+      {
+        "cp": 3957,
+        "sku": "WC1AGSHL1S503060",
+        "c18": 8.22,
+        "d": 300,
+        "sh18": 0,
+        "w": 500,
+        "c6": 2.94,
+        "desc": "Wall Cabinet With 1 Left Side Black Alu Frosted Glass Shutter And 1Adj shelf 500 x 300 x 600",
+        "h": 600,
+        "hw": 1584
+      },
+      {
+        "cp": 3957,
+        "sku": "WC1AGSHR1S503060",
+        "c18": 8.22,
+        "d": 300,
+        "sh18": 0,
+        "w": 500,
+        "c6": 2.94,
+        "desc": "Wall Cabinet With 1 Right Side Black Alu Frosted Glass Shutter And 1Adj shelf 500 x 300 x 600",
+        "h": 600,
+        "hw": 1584
+      },
+      {
+        "cp": 4512,
+        "sku": "WC1AGSHL1S603060",
+        "c18": 9.15,
+        "d": 300,
+        "sh18": 0,
+        "w": 600,
+        "c6": 3.56,
+        "desc": "Wall Cabinet With 1 Left Side Black Alu Frosted Glass Shutter And 1Adj shelf 600 x 300 x 600",
+        "h": 600,
+        "hw": 1726.18
+      },
+      {
+        "cp": 4512,
+        "sku": "WC1AGSHR1S603060",
+        "c18": 9.15,
+        "d": 300,
+        "sh18": 0,
+        "w": 600,
+        "c6": 3.56,
+        "desc": "Wall Cabinet With 1 Right Side Black Alu Frosted Glass Shutter And 1Adj shelf 600 x 300 x 600",
+        "h": 600,
+        "hw": 1726.18
+      }
+    ],
+    "midTallSingle": [
+      {
+        "cp": 4094,
+        "sku": "MTC1SHL1F2AS4556132",
+        "c18": 28,
+        "d": 560,
+        "sh18": 6.36,
+        "w": 450,
+        "c6": 5.92,
+        "desc": "Mid Tall Cabinet With 1 Fix and 2 Adj Shelf  1 Left Side Shutter 450 x 560 x 1320",
+        "h": 1320,
+        "hw": 419.85
+      },
+      {
+        "cp": 4094,
+        "sku": "MTC1SHR1F2AS4556132",
+        "c18": 28,
+        "d": 560,
+        "sh18": 6.36,
+        "w": 450,
+        "c6": 5.92,
+        "desc": "Mid Tall Cabinet With 1 Fix and 2 Adj Shelf  1 Right Side Shutter 450 x 560 x 1320",
+        "h": 1320,
+        "hw": 419.85
+      },
+      {
+        "cp": 4906,
+        "sku": "MTC1SHL1F2AS6056132",
+        "c18": 32.38,
+        "d": 560,
+        "sh18": 8.48,
+        "w": 600,
+        "c6": 8.02,
+        "desc": "Mid Tall Cabinet With 1 Fix and 2 Adj Shelf  1 Left Side Shutter 600 x 560 x 1320",
+        "h": 1320,
+        "hw": 451.35
+      },
+      {
+        "cp": 4906,
+        "sku": "MTC1SHR1F2AS6056132",
+        "c18": 32.38,
+        "d": 560,
+        "sh18": 8.48,
+        "w": 600,
+        "c6": 8.02,
+        "desc": "Mid Tall Cabinet With 1 Fix and 2 Adj Shelf  1 Right Side Shutter 600 x 560 x 1320",
+        "h": 1320,
+        "hw": 451.35
+      },
+      {
+        "cp": 13212,
+        "sku": "MTPC1SHL4556132",
+        "c18": 20.9,
+        "d": 560,
+        "sh18": 6.36,
+        "w": 450,
+        "c6": 5.92,
+        "desc": "Mid Tall Pantry Cabinet  1 Left Side Shutter 450 x 560 x 1320",
+        "h": 1320,
+        "hw": 10185.45
+      },
+      {
+        "cp": 13212,
+        "sku": "MTPC1SHR4556132",
+        "c18": 20.9,
+        "d": 560,
+        "sh18": 6.36,
+        "w": 450,
+        "c6": 5.92,
+        "desc": "Mid Tall Pantry Cabinet  1 Right Side Shutter 450 x 560 x 1320",
+        "h": 1320,
+        "hw": 10185.45
+      }
+    ],
+    "tallOven": [
+      {
+        "cp": 15302,
+        "sku": "TPC1SHL4556192",
+        "c18": 28.14,
+        "d": 560,
+        "sh18": 9.25,
+        "w": 450,
+        "c6": 8.67,
+        "desc": "Tall Pantry Cabinet 1 Left Side Shutter 450 x 560 x 1920",
+        "h": 1920,
+        "hw": 11103.7
+      },
+      {
+        "cp": 15302,
+        "sku": "TPC1SHR4556192",
+        "c18": 28.14,
+        "d": 560,
+        "sh18": 9.25,
+        "w": 450,
+        "c6": 8.67,
+        "desc": "Tall Pantry Cabinet 1 Right Side Shutter 450 x 560 x 1920",
+        "h": 1920,
+        "hw": 11103.7
+      }
+    ],
+    "cornerBlind": [
+      {
+        "cp": 4173,
+        "sku": "BDC1SHL1S1155670",
+        "c18": 27.71,
+        "d": 560,
+        "sh18": 5.1,
+        "w": 1150,
+        "c6": 8.17,
+        "desc": "Base D Corner  Cabinet  1 Left Side Shutter And 1Adj shelf 1150 x 560 x 700",
+        "h": 700,
+        "hw": 538.1
+      },
+      {
+        "cp": 4173,
+        "sku": "BDC1SHR1S1155670",
+        "c18": 27.71,
+        "d": 560,
+        "sh18": 5.1,
+        "w": 1150,
+        "c6": 8.17,
+        "desc": "Base D Corner  Cabinet  1 Right Side Shutter And 1Adj shelf 1150 x 560 x 700",
+        "h": 700,
+        "hw": 538.1
+      },
+      {
+        "cp": 13287,
+        "sku": "BDC1SHL1MC1155670",
+        "c18": 22.2,
+        "d": 560,
+        "sh18": 5.1,
+        "w": 1150,
+        "c6": 8.17,
+        "desc": "Base D Corner  Cabinet  1 Left Side Shutter With Magic Corner 1150 x 560 x 700",
+        "h": 700,
+        "hw": 10155.1
+      },
+      {
+        "cp": 13287,
+        "sku": "BDC1SHR1MC1155670",
+        "c18": 22.2,
+        "d": 560,
+        "sh18": 5.1,
+        "w": 1150,
+        "c6": 8.17,
+        "desc": "Base D Corner  Cabinet  1 Right Side Shutter With Magic Corner 1150 x 560 x 700",
+        "h": 700,
+        "hw": 10155.1
+      },
+      {
+        "cp": 8982,
+        "sku": "BDC1SHL1AC1155670",
+        "c18": 22.2,
+        "d": 560,
+        "sh18": 5.1,
+        "w": 1150,
+        "c6": 8.17,
+        "desc": "Base D Corner  Cabinet  1 Left Side Shutter With Amoeba Corner 1150 x 560 x 700",
+        "h": 700,
+        "hw": 5850.1
+      },
+      {
+        "cp": 8982,
+        "sku": "BDC1SHR1AC1155670",
+        "c18": 22.2,
+        "d": 560,
+        "sh18": 5.1,
+        "w": 1150,
+        "c6": 8.17,
+        "desc": "Base D Corner  Cabinet  1 Right Side Shutter With Amoeba Corner 1150 x 560 x 700",
+        "h": 700,
+        "hw": 5850.1
+      },
+      {
+        "cp": 5321,
+        "sku": "BLC2SH1S905670",
+        "c18": 39.43,
+        "d": 560,
+        "sh18": 4.81,
+        "w": 900,
+        "c6": 6.36,
+        "desc": "Base 'L' Corner Cabinet With 2 Way Opening Shutter And 1 Adj shelf 900 x 560 x 700",
+        "h": 700,
+        "hw": 759.8
+      },
+      {
+        "cp": 23399,
+        "sku": "BLC2SH1CRSL905670",
+        "c18": 31.49,
+        "d": 560,
+        "sh18": 4.81,
+        "w": 900,
+        "c6": 6.36,
+        "desc": "Base 'L' Corner Cabinet With 2 Way Opening shutter And  3/4Th Carousel Corner 900 x 560 x700",
+        "h": 700,
+        "hw": 19563.4
+      }
+    ],
+    "tallSingle": [
+      {
+        "cp": 5533,
+        "sku": "TC1SHL1F3AS1L4556192",
+        "c18": 37.59,
+        "d": 560,
+        "sh18": 9.25,
+        "w": 450,
+        "c6": 8.67,
+        "desc": "Tall Cabinet With 1 Fix and 3 Adj Shelf And 1 Left Side Shutter 450 x 560 x 1920",
+        "h": 1920,
+        "hw": 471.1
+      },
+      {
+        "cp": 5533,
+        "sku": "TC1SHR1F3AS1L4556192",
+        "c18": 37.59,
+        "d": 560,
+        "sh18": 9.25,
+        "w": 450,
+        "c6": 8.67,
+        "desc": "Tall Cabinet With 1 Fix and 3 Adj Shelf And 1 Right Side Shutter 450 x 560 x 1920",
+        "h": 1920,
+        "hw": 471.1
+      },
+      {
+        "cp": 6597,
+        "sku": "TC1SHL1F3AS1L6056192",
+        "c18": 42.83,
+        "d": 560,
+        "sh18": 12.35,
+        "w": 600,
+        "c6": 11.73,
+        "desc": "Tall Cabinet With 1 Fix and 3 Adj Shelf  And 1 Left Side Shutter 600 x 560 x 1920",
+        "h": 1920,
+        "hw": 502.6
+      },
+      {
+        "cp": 6597,
+        "sku": "TC1SHR1F3AS1L6056192",
+        "c18": 42.83,
+        "d": 560,
+        "sh18": 12.35,
+        "w": 600,
+        "c6": 11.73,
+        "desc": "Tall Cabinet With 1 Fix and 3 Adj Shelf  And 1 Right Side Shutter 600 x 560 x 1920",
+        "h": 1920,
+        "hw": 502.6
+      }
+    ],
+    "singleDoor": [
+      {
+        "cp": 1812,
+        "sku": "BC1SHL1S305670",
+        "c18": 12.01,
+        "d": 560,
+        "sh18": 2.24,
+        "w": 300,
+        "c6": 2,
+        "desc": "Base Cabinet With 1 Left Side Shutter And 1 Adj shelf 300 X 560 X 700",
+        "h": 700,
+        "hw": 326.7
+      },
+      {
+        "cp": 1812,
+        "sku": "BC1SHR1S305670",
+        "c18": 12.01,
+        "d": 560,
+        "sh18": 2.24,
+        "w": 300,
+        "c6": 2,
+        "desc": "Base Cabinet With 1 Right Side Shutter And 1 Adj shelf 300 X 560 X 700",
+        "h": 700,
+        "hw": 326.7
+      },
+      {
+        "cp": 2230,
+        "sku": "BC1SHL1S455670",
+        "c18": 14.05,
+        "d": 560,
+        "sh18": 3.37,
+        "w": 450,
+        "c6": 3.09,
+        "desc": "Base Cabinet With 1 Left Side Shutter And 1Adj shelf 450 x 560 x 700",
+        "h": 700,
+        "hw": 358.2
+      },
+      {
+        "cp": 2230,
+        "sku": "BC1SHR1S455670",
+        "c18": 14.05,
+        "d": 560,
+        "sh18": 3.37,
+        "w": 450,
+        "c6": 3.09,
+        "desc": "Base Cabinet With 1 Right Side Shutter And 1Adj shelf 450 x 560 x 700",
+        "h": 700,
+        "hw": 358.2
+      },
+      {
+        "cp": 2369,
+        "sku": "BC1SHR1S505670",
+        "c18": 14.73,
+        "d": 560,
+        "sh18": 3.74,
+        "w": 500,
+        "c6": 3.45,
+        "desc": "Base Cabinet With 1 Left Side Shutter And 1Adj shelf 500 x 560 x 700",
+        "h": 700,
+        "hw": 368.7
+      },
+      {
+        "cp": 2369,
+        "sku": "BC1SHR1S505670",
+        "c18": 14.73,
+        "d": 560,
+        "sh18": 3.74,
+        "w": 500,
+        "c6": 3.45,
+        "desc": "Base Cabinet With 1 Right Side Shutter And 1Adj shelf 500 x 560 x 700",
+        "h": 700,
+        "hw": 368.7
+      },
+      {
+        "cp": 2647,
+        "sku": "BC1SHL1S605670",
+        "c18": 16.08,
+        "d": 560,
+        "sh18": 4.49,
+        "w": 600,
+        "c6": 4.18,
+        "desc": "Base Cabinet With 1 Left Side Shutter And 1Adj shelf 600 x 560 x 700",
+        "h": 700,
+        "hw": 389.7
+      },
+      {
+        "cp": 2647,
+        "sku": "BC1SHR1S605670",
+        "c18": 16.08,
+        "d": 560,
+        "sh18": 4.49,
+        "w": 600,
+        "c6": 4.18,
+        "desc": "Base Cabinet With 1 Right Side Shutter And 1Adj shelf 600 x 560 x 700",
+        "h": 700,
+        "hw": 389.7
+      }
+    ],
+    "wallOpen": [
+      {
+        "cp": 893,
+        "sku": "WOC1AS303060",
+        "c18": 6.34,
+        "d": 300,
+        "sh18": 0,
+        "w": 300,
+        "c6": 1.7,
+        "desc": "Wall  Open Cabinet With 1 Shelf 300 x 300 x 600",
+        "h": 600,
+        "hw": 209.48
+      },
+      {
+        "cp": 1016,
+        "sku": "WOC1AS403060",
+        "c18": 7.28,
+        "d": 300,
+        "sh18": 0,
+        "w": 400,
+        "c6": 2.32,
+        "desc": "Wall  Open Cabinet With 1 Shelf 400 x 300 x 600",
+        "h": 600,
+        "hw": 209
+      },
+      {
+        "cp": 1078,
+        "sku": "WOC1AS453060",
+        "c18": 7.75,
+        "d": 300,
+        "sh18": 0,
+        "w": 450,
+        "c6": 2.63,
+        "desc": "Wall  Open Cabinet With 1 Shelf 450 x 300 x 600",
+        "h": 600,
+        "hw": 209
+      },
+      {
+        "cp": 1140,
+        "sku": "WOC1AS503060",
+        "c18": 8.22,
+        "d": 300,
+        "sh18": 0,
+        "w": 500,
+        "c6": 2.94,
+        "desc": "Wall  Open Cabinet With 1 Shelf 500 x 300 x 600",
+        "h": 600,
+        "hw": 209
+      },
+      {
+        "cp": 1263,
+        "sku": "WOC1AS603060",
+        "c18": 9.15,
+        "d": 300,
+        "sh18": 0,
+        "w": 600,
+        "c6": 3.56,
+        "desc": "Wall  Open Cabinet With 1 Shelf 600 x 300 x 600",
+        "h": 600,
+        "hw": 209
+      },
+      {
+        "cp": 2556,
+        "sku": "WOC1AS703060",
+        "c18": 10.09,
+        "d": 300,
+        "sh18": 0,
+        "w": 700,
+        "c6": 4.18,
+        "desc": "Wall  Open Cabinet With 1 Shelf 700 x 300 x 600",
+        "h": 600,
+        "hw": 209
+      },
+      {
+        "cp": 661,
+        "sku": "WOC403030",
+        "c18": 4.29,
+        "d": 300,
+        "sh18": 0,
+        "w": 400,
+        "c6": 1.11,
+        "desc": "Wall Open Cabinet 400 x 300 x 300",
+        "h": 300,
+        "hw": 201
+      },
+      {
+        "cp": 815,
+        "sku": "WOC603030",
+        "c18": 5.58,
+        "d": 300,
+        "sh18": 0,
+        "w": 600,
+        "c6": 1.7,
+        "desc": "Wall Open Cabinet 600 x 300 x 300",
+        "h": 300,
+        "hw": 201.48
+      },
+      {
+        "cp": 892,
+        "sku": "WOC703030",
+        "c18": 6.23,
+        "d": 300,
+        "sh18": 0,
+        "w": 700,
+        "c6": 2,
+        "desc": "Wall Open Cabinet 700 x 300 x 300",
+        "h": 300,
+        "hw": 201
+      },
+      {
+        "cp": 969,
+        "sku": "WOC803030",
+        "c18": 6.87,
+        "d": 300,
+        "sh18": 0,
+        "w": 800,
+        "c6": 2.29,
+        "desc": "Wall Open Cabinet 800 x 300 x 300",
+        "h": 300,
+        "hw": 201.48
+      },
+      {
+        "cp": 1046,
+        "sku": "WOC903030",
+        "c18": 7.52,
+        "d": 300,
+        "sh18": 0,
+        "w": 900,
+        "c6": 2.59,
+        "desc": "Wall Open Cabinet 900 x 300 x 300",
+        "h": 300,
+        "hw": 201.48
+      }
+    ],
+    "sink": [
+      {
+        "cp": 3062,
+        "sku": "BSCWB1SHLAWB605679",
+        "c18": 9.52,
+        "d": 560,
+        "sh18": 4.49,
+        "w": 600,
+        "c6": 0,
+        "desc": "Base Sink Cabinet without Bottom with Autolid Waste bin & 1 Left Side Shutter 600 x 560 x 790",
+        "h": 790,
+        "hw": 1658.7
+      },
+      {
+        "cp": 3062,
+        "sku": "BSCWB1SHRAWB605679",
+        "c18": 9.52,
+        "d": 560,
+        "sh18": 4.49,
+        "w": 600,
+        "c6": 0,
+        "desc": "Base Sink Cabinet without Bottom with Autolid Waste bin & 1 Right Side Shutter 600 x 560 x 790",
+        "h": 790,
+        "hw": 1658.7
+      },
+      {
+        "cp": 3507,
+        "sku": "BSCWB2SHAWB605679",
+        "c18": 9.52,
+        "d": 560,
+        "sh18": 5.98,
+        "w": 800,
+        "c6": 0,
+        "desc": "Base Sink Cabinet without Bottom with Autolid Waste Bin With 2 Shutter 800 x 560 x 790",
+        "h": 790,
+        "hw": 1927.2
+      },
+      {
+        "cp": 3658,
+        "sku": "BSCWB2SHAWB905679",
+        "c18": 9.52,
+        "d": 560,
+        "sh18": 6.73,
+        "w": 900,
+        "c6": 0,
+        "desc": "Base Sink Cabinet without Bottom with Autolid Waste bin With 2 Shutter 900 x 560 x 790",
+        "h": 790,
+        "hw": 1988.2
+      },
+      {
+        "cp": 3171,
+        "sku": "BSCWAB1SHLAWB605679",
+        "c18": 11.84,
+        "d": 560,
+        "sh18": 4.49,
+        "w": 600,
+        "c6": 0,
+        "desc": "Base Sink Cabinet with Bottom with  Autolid Waste bin  1 Left Side Shutter 600 x 560 x700",
+        "h": 700,
+        "hw": 1555.5
+      },
+      {
+        "cp": 3171,
+        "sku": "BSCWAB1SHRAWB605679",
+        "c18": 11.84,
+        "d": 560,
+        "sh18": 4.49,
+        "w": 600,
+        "c6": 0,
+        "desc": "Base Sink Cabinet with Bottom with  Autolid Waste bin 1 Right Side Shutter 600 x 560 x700",
+        "h": 700,
+        "hw": 1555.5
+      },
+      {
+        "cp": 3686,
+        "sku": "BSCWAB2SHAWB805679",
+        "c18": 13.04,
+        "d": 560,
+        "sh18": 5.98,
+        "w": 800,
+        "c6": 0,
+        "desc": "Base Sink Cabinet with Bottom with  Autolid Waste bin 800 x 560 x 700",
+        "h": 700,
+        "hw": 1784
+      },
+      {
+        "cp": 3871,
+        "sku": "BSCWAB2SHAWB905679",
+        "c18": 13.65,
+        "d": 560,
+        "sh18": 6.73,
+        "w": 900,
+        "c6": 0,
+        "desc": "Base Sink Cabinet with Bottom with Autolid Waste bin 900 x 560 x 700",
+        "h": 700,
+        "hw": 1825
+      }
+    ],
+    "drawer2": [
+      {
+        "cp": 4460,
+        "sku": "BC2WD605670",
+        "c18": 22.6,
+        "d": 560,
+        "sh18": 4.48,
+        "w": 600,
+        "c6": 9.48,
+        "desc": "Base Cabinet With 2 Wooden Drawer 600 x 560 x 700",
+        "h": 700,
+        "hw": 1284.56
+      },
+      {
+        "cp": 4851,
+        "sku": "BC2WD705670",
+        "c18": 24.28,
+        "d": 560,
+        "sh18": 5.23,
+        "w": 700,
+        "c6": 11.25,
+        "desc": "Base Cabinet With 2 Wooden Drawer 700 x 560 x 700",
+        "h": 700,
+        "hw": 1326
+      },
+      {
+        "cp": 5242,
+        "sku": "BC2WD805670",
+        "c18": 25.96,
+        "d": 560,
+        "sh18": 5.98,
+        "w": 800,
+        "c6": 13.01,
+        "desc": "Base Cabinet With 2 Wooden Drawer 800 x 560 x 700",
+        "h": 700,
+        "hw": 1366.56
+      },
+      {
+        "cp": 5633,
+        "sku": "BC2WD905670",
+        "c18": 27.64,
+        "d": 560,
+        "sh18": 6.73,
+        "w": 900,
+        "c6": 14.77,
+        "desc": "Base Cabinet With 2 Wooden Drawer 900 x 560 x 700",
+        "h": 700,
+        "hw": 1407.56
+      },
+      {
+        "cp": 5511,
+        "sku": "BC2IND605670",
+        "c18": 18.41,
+        "d": 560,
+        "sh18": 4.48,
+        "w": 600,
+        "c6": 4.26,
+        "desc": "Base Cabinet With 2 Tandem Drawer 600 x 560 x 700",
+        "h": 700,
+        "hw": 3038
+      },
+      {
+        "cp": 5864,
+        "sku": "BC2IND705670",
+        "c18": 20.35,
+        "d": 560,
+        "sh18": 5.23,
+        "w": 700,
+        "c6": 5,
+        "desc": "Base Cabinet With 2 Tandem Drawer 700 x 560 x 700",
+        "h": 700,
+        "hw": 3079
+      },
+      {
+        "cp": 6217,
+        "sku": "BC2IND805670",
+        "c18": 22.29,
+        "d": 560,
+        "sh18": 5.98,
+        "w": 800,
+        "c6": 5.74,
+        "desc": "Base Cabinet With 2 Tandem Drawer 800 x 560 x 700",
+        "h": 700,
+        "hw": 3120
+      },
+      {
+        "cp": 6569,
+        "sku": "BC2IND905670",
+        "c18": 24.23,
+        "d": 560,
+        "sh18": 6.73,
+        "w": 900,
+        "c6": 6.48,
+        "desc": "Base Cabinet With 2 Tandem Drawer 900 x 560 x 700",
+        "h": 700,
+        "hw": 3161
+      }
+    ],
+    "wallDouble": [
+      {
+        "cp": 2211,
+        "sku": "WC2SH1S703060",
+        "c18": 10.09,
+        "d": 300,
+        "sh18": 4.48,
+        "w": 700,
+        "c6": 4.18,
+        "desc": "Wall Cabinet With 2 Shutter And 1Adj shelf 700 x 300 x 600 ",
+        "h": 600,
+        "hw": 502
+      },
+      {
+        "cp": 2411,
+        "sku": "WC2SH1S803060",
+        "c18": 11.03,
+        "d": 300,
+        "sh18": 5.12,
+        "w": 800,
+        "c6": 4.8,
+        "desc": "Wall Cabinet With 2 Shutter And 1Adj shelf 800 x 300 x 600 ",
+        "h": 600,
+        "hw": 502.48
+      },
+      {
+        "cp": 2611,
+        "sku": "WC2SH1S903060",
+        "c18": 11.96,
+        "d": 300,
+        "sh18": 5.77,
+        "w": 900,
+        "c6": 5.42,
+        "desc": "Wall Cabinet With 2 Shutter And 1Adj shelf 900 x 300 x 600",
+        "h": 600,
+        "hw": 502.48
+      },
+      {
+        "cp": 2811,
+        "sku": "WC2SH1S1003060",
+        "c18": 12.9,
+        "d": 300,
+        "sh18": 6.41,
+        "w": 1000,
+        "c6": 6.03,
+        "desc": "Wall Cabinet With 2 Shutter And 1Adj shelf 1000 x 300 x 600 ",
+        "h": 600,
+        "hw": 502
+      },
+      {
+        "cp": 5737,
+        "sku": "WC2AGSH1S703060",
+        "c18": 10.09,
+        "d": 300,
+        "sh18": 0,
+        "w": 700,
+        "c6": 4.18,
+        "desc": "Wall Cabinet With 2 Black Alu Frosted Glass Shutter And 1Adj shelf 700 x 300 x 600",
+        "h": 600,
+        "hw": 2544
+      },
+      {
+        "cp": 6292,
+        "sku": "WC2AGSH1S803060",
+        "c18": 11.03,
+        "d": 300,
+        "sh18": 0,
+        "w": 800,
+        "c6": 4.8,
+        "desc": "Wall Cabinet With 2 Black Alu Frosted Glass Shutter And 1Adj shelf 800 x 300 x 600",
+        "h": 600,
+        "hw": 2686.32
+      },
+      {
+        "cp": 6847,
+        "sku": "WC2AGSH1S903060",
+        "c18": 11.96,
+        "d": 300,
+        "sh18": 0,
+        "w": 900,
+        "c6": 5.42,
+        "desc": "Wall Cabinet With 2 Black Alu Frosted Glass Shutter And 1Adj shelf 900 x 300 x 600",
+        "h": 600,
+        "hw": 2828.3
+      },
+      {
+        "cp": 3009,
+        "sku": "WLCC2SH1S603060",
+        "c18": 18.06,
+        "d": 600,
+        "sh18": 3.6,
+        "w": 600,
+        "c6": 3.56,
+        "desc": "Wall 'L' Corner Cabinet With 2 way opening shutter And 1 Adj shelf 600 x 600 x 600",
+        "h": 600,
+        "hw": 713.22
+      },
+      {
+        "cp": 2456,
+        "sku": "WDRC1SHL603060",
+        "c18": 5.7,
+        "d": 300,
+        "sh18": 3.85,
+        "w": 600,
+        "c6": 3.64,
+        "desc": "Wall Dish Rack Cabinet 1 Left Side 600 x 300 x 600",
+        "h": 600,
+        "hw": 1256.58
+      },
+      {
+        "cp": 2456,
+        "sku": "WDRC1SHR603060",
+        "c18": 5.7,
+        "d": 300,
+        "sh18": 3.85,
+        "w": 600,
+        "c6": 3.64,
+        "desc": "Wall Dish Rack Cabinet 1 Right 600 x 300 x 600",
+        "h": 600,
+        "hw": 1256.58
+      },
+      {
+        "cp": 3410,
+        "sku": "WDRC2SH903060",
+        "c18": 6.67,
+        "d": 300,
+        "sh18": 5.77,
+        "w": 900,
+        "c6": 5.54,
+        "desc": "Wall Dish Rack Cabinet 900 x 300 x 600",
+        "h": 600,
+        "hw": 1778.08
+      }
+    ],
+    "pullout": [
+      {
+        "cp": 5123,
+        "sku": "BPC205670",
+        "c18": 9.73,
+        "d": 560,
+        "sh18": 1.49,
+        "w": 200,
+        "c6": 1.27,
+        "desc": "Base Cabinet With 2 Tier Pullout 200 x 560 x 700",
+        "h": 700,
+        "hw": 3980.02
+      },
+      {
+        "cp": 5805,
+        "sku": "BPC305670",
+        "c18": 10.51,
+        "d": 560,
+        "sh18": 2.24,
+        "w": 300,
+        "c6": 2,
+        "desc": "Base Cabinet With 2 Tier Pullout 300 x 560 x 700",
+        "h": 700,
+        "hw": 4456.44
+      }
+    ],
+    "gasCylinder": [
+      {
+        "cp": 2266,
+        "sku": "BGC1SHL455679",
+        "c18": 9.9,
+        "d": 560,
+        "sh18": 3.37,
+        "w": 450,
+        "c6": 3.55,
+        "desc": "Base Gas Cabinet 1 Left Side Shutter 450 x 560 x 790",
+        "h": 790,
+        "hw": 744.6
+      },
+      {
+        "cp": 2266,
+        "sku": "BGC1SHR455679",
+        "c18": 9.9,
+        "d": 560,
+        "sh18": 3.37,
+        "w": 450,
+        "c6": 3.55,
+        "desc": "Base Gas Cabinet 1 Right Side Shutter 450 x 560 x790",
+        "h": 790,
+        "hw": 744.6
+      }
+    ]
+  },
+  "rates": {
+    "shutter18": 119,
+    "carcase18": 91.34,
+    "carcase6": 61.06
+  },
+  "formulas": {
+    "base_open": {
+      "category": "base",
+      "variants": [
+        "baseOpen"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        }
+      ]
+    },
+    "base_1shutter": {
+      "category": "base",
+      "variants": [
+        "singleDoor",
+        "oven"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Back Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Front Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "base_2shutter": {
+      "category": "base",
+      "variants": [
+        "doubleDoor"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Back Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Front Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 2,
+          "w": "W/2-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 4,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 2,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "base_hob": {
+      "category": "base",
+      "variants": [
+        "hob"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Aluminium top rail",
+          "qty": 1,
+          "w": "W-36",
+          "h": 60,
+          "t": 2,
+          "op": "-",
+          "material": "Aluminium",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 2,
+          "w": "W/2-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 4,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 2,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "base_3drawer": {
+      "category": "base",
+      "variants": [
+        "drawer3"
+      ],
+      "drawerCount": 3,
+      "drawerRatios": [
+        1,
+        1,
+        2
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-12",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        }
+      ],
+      "drawerPanels": [
+        {
+          "part": "Drawer Side L",
+          "qty": 1,
+          "w": "D-60",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Side R",
+          "qty": 1,
+          "w": "D-60",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Front",
+          "qty": 1,
+          "w": "W-100",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Back",
+          "qty": 1,
+          "w": "W-100",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Back Panel",
+          "qty": 1,
+          "w": "W-89",
+          "h": "D-85",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm board",
+          "layer": "Cabinet"
+        }
+      ],
+      "shutterPanels": [
+        {
+          "part": "Drawer Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "shH",
+          "t": 18,
+          "op": "DF",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Drawer runner set",
+          "qty": "n",
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": "n",
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "base_2drawer": {
+      "category": "base",
+      "variants": [
+        "drawer2"
+      ],
+      "drawerCount": 2,
+      "drawerRatios": [
+        1,
+        1
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-12",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        }
+      ],
+      "drawerPanels": [
+        {
+          "part": "Drawer Side L",
+          "qty": 1,
+          "w": "D-60",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Side R",
+          "qty": 1,
+          "w": "D-60",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Front",
+          "qty": 1,
+          "w": "W-100",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Back",
+          "qty": 1,
+          "w": "W-100",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Back Panel",
+          "qty": 1,
+          "w": "W-89",
+          "h": "D-85",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm board",
+          "layer": "Cabinet"
+        }
+      ],
+      "shutterPanels": [
+        {
+          "part": "Drawer Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "shH",
+          "t": 18,
+          "op": "DF",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Drawer runner set",
+          "qty": "n",
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": "n",
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "base_4drawer": {
+      "category": "base",
+      "variants": [
+        "drawer4"
+      ],
+      "drawerCount": 4,
+      "drawerRatios": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-12",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        }
+      ],
+      "drawerPanels": [
+        {
+          "part": "Drawer Side L",
+          "qty": 1,
+          "w": "D-60",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Side R",
+          "qty": 1,
+          "w": "D-60",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Front",
+          "qty": 1,
+          "w": "W-100",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Back",
+          "qty": 1,
+          "w": "W-100",
+          "h": "dH",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Drawer Back Panel",
+          "qty": 1,
+          "w": "W-89",
+          "h": "D-85",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm board",
+          "layer": "Cabinet"
+        }
+      ],
+      "shutterPanels": [
+        {
+          "part": "Drawer Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "shH",
+          "t": 18,
+          "op": "DF",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Drawer runner set",
+          "qty": "n",
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": "n",
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "wall_1shutter": {
+      "category": "wall",
+      "variants": [
+        "wallSingle"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "wall_2shutter": {
+      "category": "wall",
+      "variants": [
+        "wallDouble"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 2,
+          "w": "W/2-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 4,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 2,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "wall_open": {
+      "category": "wall",
+      "variants": [
+        "wallOpen"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        }
+      ]
+    },
+    "wall_loft": {
+      "category": "wall",
+      "variants": [
+        "wallLoft"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "tall_1shutter": {
+      "category": "tall",
+      "variants": [
+        "tallSingle"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Fixed Shelf",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D-25",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 3,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "tall_2shutter": {
+      "category": "tall",
+      "variants": [
+        "tallDouble"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Fixed Shelf",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D-25",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 3,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 2,
+          "w": "W/2-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 4,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 2,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "tall_oven": {
+      "category": "tall",
+      "variants": [
+        "tallOven"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Fixed Shelf",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D-25",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 3,
+          "w": "W-37",
+          "h": "D-30",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "corner_blind": {
+      "category": "base",
+      "variants": [
+        "cornerBlind"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Back Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Front Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Adjustable Shelf",
+          "qty": 1,
+          "w": "W-37",
+          "h": "D-100",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Fix.Front",
+          "qty": 1,
+          "w": 630,
+          "h": "H-36",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Fix.Patti",
+          "qty": 1,
+          "w": 70,
+          "h": "H-36",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W+5",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "EP",
+          "qty": 2,
+          "w": 90,
+          "h": "H",
+          "t": 18,
+          "op": "EP",
+          "material": "18 mm filler board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W/2-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "sink_without_bottom": {
+      "category": "base",
+      "variants": [
+        "sink"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": 698,
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "gas_cylinder": {
+      "category": "base",
+      "variants": [
+        "gasCylinder"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-14",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": 698,
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "pullout": {
+      "category": "base",
+      "variants": [
+        "pullout"
+      ],
+      "panels": [
+        {
+          "part": "Side panel",
+          "qty": 2,
+          "w": "D",
+          "h": "H",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Bottom panel",
+          "qty": 1,
+          "w": "W-36",
+          "h": "D",
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Back Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "Groove",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Top Front Ripper",
+          "qty": 1,
+          "w": "W-36",
+          "h": 85,
+          "t": 18,
+          "op": "-",
+          "material": "18 mm BWP board",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Back panel",
+          "qty": 1,
+          "w": "W-25",
+          "h": "H-25",
+          "t": 6,
+          "op": "-",
+          "material": "6 mm back",
+          "layer": "Cabinet"
+        },
+        {
+          "part": "Shutter",
+          "qty": 1,
+          "w": "W-2",
+          "h": "H-2",
+          "t": 18,
+          "op": "SS",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ],
+      "hardware": [
+        {
+          "part": "Pull-out basket set",
+          "qty": 1,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Hinge set",
+          "qty": 2,
+          "layer": "Hardware"
+        },
+        {
+          "part": "Handle",
+          "qty": 1,
+          "layer": "Hardware"
+        }
+      ]
+    },
+    "filler": {
+      "category": "filler",
+      "variants": ["filler"],
+      "panels": [
+        {
+          "part": "Filler panel",
+          "qty": 1,
+          "w": "W",
+          "h": "H",
+          "t": 18,
+          "op": "-",
+          "material": "18 mm front board",
+          "layer": "Shutter"
+        }
+      ]
+    }
+  }
+}
