@@ -1,0 +1,1571 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AIMS Kitchen Designer</title><style>
+:root{--bg:#edf1f4;--panel:#fff;--ink:#131a22;--muted:#687383;--line:#cbd3dc;--accent:#233a56;--danger:#9d2c2c;--wallA-bg:#dbeafe;--wallA-text:#1e40af;--wallB-bg:#fef3c7;--wallB-text:#92400e;--wallC-bg:#d1fae5;--wallC-text:#065f46;--island-bg:#e9d5ff;--island-text:#6b21a8;--tag-h:26px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif}header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#1f3248;color:#fff}header h1{margin:0;font-size:22px}header p{margin:4px 0 0;color:#dbe4ee;font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}button,.actions label{border:1px solid #b9c3ce;background:#fff;color:#16202b;border-radius:7px;padding:8px 11px;cursor:pointer;font-size:13px}.actions input{display:none}.primary{background:var(--accent);border-color:var(--accent);color:#fff}.danger{color:var(--danger)}nav{display:flex;gap:5px;padding:10px 12px 0}nav button{border-radius:8px 8px 0 0;background:#dfe5eb}nav button.active{background:#fff;font-weight:700}.tab{display:none;padding:0 12px 12px}.tab.active{display:block}.layout{display:grid;grid-template-columns:330px 1fr;gap:12px}aside{display:flex;flex-direction:column;gap:12px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}.panel h2{font-size:14px;margin:0;padding:12px 14px;border-bottom:1px solid var(--line)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}.grid label{font-size:11px;font-weight:700;color:var(--muted)}input,select{display:block;width:100%;margin-top:5px;border:1px solid #c7d0da;border-radius:7px;padding:8px;background:#fff}.full{width:calc(100% - 24px);margin:0 12px 9px}.toolbar{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px 10px 0 0;padding:10px}.sheetWrap{background:#d7dde4;border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto;position:relative}.sheetWrap svg{width:100%;display:block;background:#fff;border:1px solid var(--line)}.planLabel{font-size:12px;font-weight:700;color:#555;margin:4px 0 0;padding-left:2px}#widthPopup{display:none;position:absolute;background:#fff;border:2px solid var(--accent);border-radius:8px;padding:10px 14px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.25);font-size:13px}#widthPopup label{font-size:11px;font-weight:700;color:var(--muted)}#widthPopup input{width:100px;display:inline;margin:4px 0}#widthPopup button{padding:4px 10px;font-size:11px}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:14px;padding:10px 14px;background:#fff;border:1px solid var(--line);border-radius:8px;line-height:1.6}.legend b{font-size:11px;color:var(--muted);text-transform:uppercase}.err{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:8px}.dragMode .sheetWrap{outline:3px solid var(--accent);outline-offset:-3px}.dragOverlay{position:absolute;pointer-events:none;z-index:10;border:2px dashed var(--accent);background:rgba(35,58,86,.12);border-radius:3px;font-size:11px;color:var(--accent);display:flex;align-items:center;justify-content:center;transition:opacity .1s}.dragInfo{display:flex;gap:8px;align-items:center;font-size:12px;padding:6px 10px;background:#e8f0fe;border:1px solid var(--accent);border-radius:6px;margin-bottom:8px}#cabinetList{padding:0;max-height:50vh;overflow-y:auto}.cab{display:grid;grid-template-columns:28px 40px 1fr auto auto;align-items:center;gap:6px;padding:8px 10px;font-size:13px;border-bottom:1px solid var(--line);border-left:3px solid transparent;transition:background .15s}.cab:hover{background:#f0f4f8}.cab .idx{font-weight:700;color:var(--muted);font-size:12px;text-align:center}.cab .wallTag{font-size:10px;padding:2px 6px}.cab .name{font-weight:600;font-size:13px}.cab .dims{color:var(--muted);font-size:11px;text-align:right}.cab .actions{display:flex;gap:2px}.cab .actions button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:all .15s}.cab .actions button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}.cab .actions button.del:hover{background:var(--danger);border-color:var(--danger)}.cab:last-child{border-bottom:0}.cab b{color:var(--muted);font-weight:400}.cab button{padding:2px 6px;font-size:11px;border-radius:4px}.wallTag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;line-height:18px}.wallTag.a,.wallTag.A{background:var(--wallA-bg);color:var(--wallA-text)}.wallTag.b,.wallTag.B{background:var(--wallB-bg);color:var(--wallB-text)}.wallTag.c,.wallTag.C{background:var(--wallC-bg);color:var(--wallC-text)}.wallTag.island{background:var(--island-bg);color:var(--island-text)}.reportHead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}.reportHead h2{margin:0;border-bottom:0;padding:0}.reportHead>div{display:flex;gap:10px;align-items:center}table{border-collapse:collapse;width:100%;font-size:13px}thead{background:#edf1f4;font-weight:700}td,th{padding:6px 8px;text-align:left;border:1px solid var(--line)}.totals{width:auto;margin-left:auto;margin-top:8px}.totals td,.totals th{padding:4px 16px}
+@media print{nav,.actions,.toolbar,.panel,.reportHead>div{display:none!important}.tab{display:block!important}.sheetWrap{padding:0;border:0}.layout{grid-template-columns:1fr}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head><body>
+<header><div><h1>AIMS Kitchen Designer <span style="font-size:12px;font-weight:400;opacity:0.7">v2.1.1</span></h1><p>Rule-driven kitchen engineering, quotation & BOM</p></div><div class="actions"><button id="printBtn">Print</button><button id="exportSvgBtn">Export SVG</button><button id="exportPdfBtn">Export PDF</button><button id="exportJsonBtn">Export Project</button><label>Import<input id="importJson" type="file" accept=".json"></label></div></header>
+<nav><button class="active" data-tab="designer">Designer</button><button data-tab="rules">Rules</button><button data-tab="quotation">Quotation</button><button data-tab="bom">BOM</button></nav>
+<main>
+<section id="designer" class="tab active"><div class="layout"><aside>
+<div class="panel"><h2>Project</h2><div class="grid"><label>Customer<input id="customer" value="Sample Customer"></label><label>Project<input id="projectName" value="Kitchen Project"></label><label>Layout Type<select id="layoutType"><option value="straight">Straight</option><option value="L">L-Shape</option><option value="U">U-Shape</option><option value="island">Island</option></select></label><label>Wall A (mm)<input id="wallA" type="number" value="2900"></label><label id="wallBLbl">Wall B (mm)<input id="wallB" type="number" value="1800"></label><label id="wallCLbl">Wall C (mm)<input id="wallC" type="number" value="2400"></label><label id="islWLabel">Island Width (mm)<input id="islandWidth" type="number" value="1200"></label><label id="islDLabel">Island Depth (mm)<input id="islandDepth" type="number" value="600"></label><label>Counter height<input id="counterHeight" type="number" value="800"></label><label>Countertop thickness<input id="counterThickness" type="number" value="20"></label><label>Dado height<input id="dadoHeight" type="number" value="600"></label><label>Counter depth<input id="counterDepth" type="number" value="610"></label><label>Carcass depth<input id="carcassDepth" type="number" value="560"></label><label>Plinth height<input id="plinthHeight" type="number" value="100"></label><label>Wall thickness<input id="wallThickness" type="number" value="100"></label><label>Chimney width (blank)<input id="chimneyWidth" type="number" value="750"></label><label>Chimney position from left<input id="chimneyPos" type="number" value="900"></label><label>Filler width (each side)<input id="fillerWidth" type="number" value="50"></label><label>Handle system<select id="handleSystem"><option value="integrated">Integrated</option><option value="bar">Bar</option><option value="gola">Gola</option></select></label><label>Currency<select id="currency"><option>INR</option><option>USD</option><option>AED</option></select></label></div></div>
+<div class="panel"><h2>Add Cabinet</h2><div class="grid"><label>Type<select id="cabinetType"><optgroup label="Base Cabinets"><option value="drawer3">3 Drawer Unit</option><option value="drawer4">4 Drawer Unit</option><option value="drawer2">2 Drawer Unit</option><option value="hob">Hob Cabinet</option><option value="sink">Sink Cabinet</option><option value="doubleDoor">Double Door Base</option><option value="singleDoor">Single Door Base</option><option value="pullout">Pull-Out Unit</option><option value="oven">Oven Cabinet</option><option value="cornerBlind">Corner Blind 1100</option><option value="gasCylinder">Gas Cylinder Cabinet</option></optgroup><optgroup label="Wall Cabinets"><option value="wallSingle">Wall Single Door</option><option value="wallDouble">Wall Double Door</option><option value="wallOpen">Wall Open Shelf</option><option value="wallLoft">Wall Loft 300mm</option></optgroup><optgroup label="Tall Units"><option value="tallSingle">Tall Single Door</option><option value="tallDouble">Tall Double Door</option><option value="tallOven">Tall Oven Housing</option></optgroup><optgroup label="Special"><option value="filler">Filler Strip</option><option value="chimney">Chimney (Blank)</option></optgroup></select></label><label>Width (mm)<select id="cabinetWidth"><option value="50">50</option><option value="100">100</option><option value="200">200</option><option value="300">300</option><option value="400">400</option><option value="450">450</option><option value="500">500</option><option value="600" selected>600</option><option value="700">700</option><option value="750">750</option><option value="800">800</option><option value="900">900</option><option value="1000">1000</option><option value="1100">1100</option><option value="1200">1200</option></select></label><label>Height (mm)<select id="cabinetHeight"><option value="300">300</option><option value="600">600</option><option value="700" selected>700</option><option value="800">800</option><option value="1920">1920</option></select></label><label>Depth (mm)<select id="cabinetDepth"><option value="300">300</option><option value="450">450</option><option value="560" selected>560</option><option value="610">610</option></select></label><label>Wall<select id="cabinetWall"><option value="A">Wall A</option><option value="B">Wall B</option><option value="C">Wall C</option><option value="island">Island</option></select></label></div><button id="addCabinetBtn" class="primary full">Add Cabinet</button><button id="placeBtn" class="primary full">Place Cabinets</button><button id="loadSampleBtn" class="full">Load Sample</button><button id="clearCabinetsBtn" class="danger full">Clear</button></div>
+<div class="panel"><h2>Cabinet Schedule</h2><div id="cabinetList"></div></div>
+</aside><section class="workspace"><div class="toolbar"><button id="generateBtn" class="primary">Generate</button><button id="dragBtn" title="Enter drag mode: click walls to place, drag to move, right-click to delete">Drag &amp; Place</button><span id="statusText">Ready</span></div><div class="sheetWrap"><div id="errorBar"></div><div class="legend" id="topLegend"></div><svg id="elevSvg"></svg><p class="planLabel">BASE / TALL / FILLER PLAN</p><svg id="basePlanSvg"></svg><p class="planLabel">WALL / LOFT PLAN</p><svg id="wallPlanSvg"></svg><div class="legend" id="bottomLegend"></div><div id="cabSchedule"></div><div id="widthPopup"><label>Edit Width (mm):</label><input id="wpInput" type="number" min="50" step="50"><button id="wpApply" class="primary">OK</button><button id="wpCancel">Cancel</button></div></div></section></div></section>
+<section id="rules" class="tab"><div class="panel report"><h2>Executable Rules</h2><div id="rulesTable"></div></div></section>
+<section id="quotation" class="tab"><div class="panel report"><div class="reportHead"><h2>Customer Quotation</h2><div><label>Tax %<input id="taxRate" type="number" value="18"></label><label>Discount %<input id="discountRate" type="number" value="0"></label><button id="quotationExcelBtn" class="primary">Export Excel</button></div></div><div id="quotationReport"></div></div></section>
+<section id="bom" class="tab"><div class="panel report"><div class="reportHead"><h2>Bill of Materials</h2><button id="bomCsvBtn">Export Excel</button></div><div id="bomReport"></div></div></section>
+</main><script>
+window.addEventListener("error",function(e){let b=document.createElement("pre");b.style.cssText="position:fixed;left:10px;right:10px;bottom:10px;z-index:99999;background:#fff0f0;color:#8b0000;border:1px solid #c00;padding:12px;white-space:pre-wrap;font:12px monospace";b.textContent="AIMS error: "+(e.message||"Unknown error")+"\n"+(e.filename||"")+":"+(e.lineno||"");document.body.appendChild(b)});
+try{
+const $=id=>document.getElementById(id);
+
+const STANDARD=[200,300,400,450,500,600,700,800,900,1000];
+const LABELS={drawer3:'3 Drawer Unit',drawer4:'4 Drawer Unit',drawer2:'2 Drawer Unit',hob:'Hob Cabinet',sink:'Sink Cabinet',doubleDoor:'Double Door Base',singleDoor:'Single Door Base',pullout:'Pull-Out Unit',oven:'Oven Cabinet',cornerBlind:'Corner Blind',gasCylinder:'Gas Cylinder Cabinet',wallSingle:'Wall Single Door',wallDouble:'Wall Double Door',wallOpen:'Wall Open Shelf',wallLoft:'Wall Loft 300mm',tallSingle:'Tall Single Door',tallDouble:'Tall Double Door',tallOven:'Tall Oven Housing',filler:'Filler Strip',chimney:'Chimney Space'};
+const CATEGORY={drawer3:'base',drawer4:'base',drawer2:'base',hob:'base',sink:'base',doubleDoor:'base',singleDoor:'base',pullout:'base',oven:'base',cornerBlind:'base',gasCylinder:'base',wallSingle:'wall',wallDouble:'wall',wallOpen:'wall',wallLoft:'wall',tallSingle:'tall',tallDouble:'tall',tallOven:'tall',filler:'filler',chimney:'wall'};
+
+function evalFormula(expr,vars){
+  if(typeof expr==='number')return expr;
+  if(!expr||typeof expr!=='string')return 0;
+  try{let fn=new Function(...Object.keys(vars),'return '+expr);return Math.round(fn(...Object.values(vars)));}catch(e){return 0;}
+}
+const TYPE_TO_FORMULA={
+  singleDoor:'base_1shutter',oven:'base_1shutter',doubleDoor:'base_2shutter',
+  hob:'base_hob',drawer3:'base_3drawer',drawer2:'base_2drawer',drawer4:'base_4drawer',
+  wallSingle:'wall_1shutter',wallDouble:'wall_2shutter',wallOpen:'wall_open',wallLoft:'wall_loft',
+  tallSingle:'tall_1shutter',tallDouble:'tall_2shutter',tallOven:'tall_oven',
+  cornerBlind:'corner_blind',sink:'sink_without_bottom',gasCylinder:'gas_cylinder',pullout:'pullout',filler:'filler'
+};
+const COLORS={A:{bg:'#dbeafe',text:'#1e40af'},B:{bg:'#fef3c7',text:'#92400e'},C:{bg:'#d1fae5',text:'#065f46'},island:{bg:'#e9d5ff',text:'#6b21a8'}};
+const CAT_COLORS={wall:'#fce7f3',base:'#d1fae5',tall:'#dbeafe',filler:'#e8e8e8',chimney:'#fef3c7',midTall:'#fce7f3'};
+let CATALOG={};let CAB_DATA=null;
+const PRICES={drawer3:5471,drawer4:6500,drawer2:4460,hob:2500,sink:3062,doubleDoor:3349,singleDoor:1812,pullout:5805,oven:4500,cornerBlind:4173,gasCylinder:2266,wallSingle:1867,wallDouble:2611,wallOpen:1263,wallLoft:893,tallSingle:5533,tallDouble:6597,tallOven:7500,filler:0,chimney:0};
+const RULES=[['LAYOUT-001','Layout type determines wall count and corner requirements'],['FRONT-001','Width up to 600 mm uses one shutter; above uses two'],['DRAWER-001','Drawer cabinets create configured front breaks'],['SINK-001','Sink cabinet has no bottom panel, 790mm height, waste bin included'],['HOB-001','Hob cabinet uses aluminium top rail and chimney hood above'],['CORNER-001','D Corner 1100mm blind; L Corner 900mm with carousel option'],['WALL-001','Wall cabinets 300mm deep x 600mm high, mounted above dado'],['WALL-002','Wall loft open shelf 300mm deep x 300mm high (above wall cabs)'],['TALL-001','Tall units 560mm deep x 1920mm high, 3 shelves + door'],['MIDTALL-001','Mid-tall units 560mm deep x 1320mm high, 2 shelves + door'],['GAS-001','Gas cylinder cabinet 450x560x790mm, ventilation slots'],['DADO-001','Dado height configurable between countertop and wall cabinets'],['PLINTH-001','Base cabinets use PVC legs 100mm with continuous skirting'],['COUNTER-001','Countertop 610mm deep runs continuously over all base cabinets']];
+
+let cabinets=[];
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+const L=(x1,y1,x2,y2,w,d)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#111" stroke-width="${w||1}"${d?` stroke-dasharray="${d}"`:''}/>`;
+const R=(x,y,w,h,s,f,rx)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx||0}" fill="${f||'#fff'}" stroke="#111" stroke-width="${s||1}"/>`;
+const T=(x,y,t,sz,an,wt,rot)=>`<text x="${x}" y="${y}" font-size="${sz||16}" text-anchor="${an||'start'}" font-family="Arial" font-weight="${wt||'400'}" fill="#111"${rot!=null?` transform="rotate(${rot} ${x} ${y})"`:''}>${esc(t)}</text>`;
+const C=(x,y,r)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="#111"/>`;
+
+function dimH(x1,x2,y,l){return L(x1,y,x2,y)+L(x1,y-5,x1,y+5)+L(x2,y-5,x2,y+5)+`<path d="M${x1+5},${y-3}L${x1},${y}L${x1+5},${y+3} M${x2-5},${y-3}L${x2},${y}L${x2-5},${y+3}" fill="none" stroke="#111"/>`+T((x1+x2)/2,y-8,l,30,'middle','700')}
+function dimV(x,y1,y2,l){return L(x,y1,x,y2)+L(x-5,y1,x+5,y1)+L(x-5,y2,x+5,y2)+T(x-8,(y1+y2)/2,l,30,'middle','700',-90)}
+
+function handle(x,y,w){let s=$('handleSystem').value;if(s==='bar')return L(x+w*.36,y+15,x+w*.64,y+15,4);if(s==='gola')return L(x,y+6,x+w,y+6,4);return L(x+w*.28,y+7,x+w*.72,y+7,3)}
+
+function p(){return{customer:$('customer').value,projectName:$('projectName').value,layoutType:$('layoutType').value,wallA:+$('wallA').value,wallB:+$('wallB').value,wallC:+$('wallC').value,islandWidth:+$('islandWidth').value,islandDepth:+$('islandDepth').value,counterHeight:+$('counterHeight').value,counterThickness:+$('counterThickness').value,counterDepth:+$('counterDepth').value,carcassDepth:+$('carcassDepth').value,plinthHeight:+$('plinthHeight').value,dadoHeight:+$('dadoHeight').value,wallThickness:+($('wallThickness')?.value||100),chimneyWidth:+($('chimneyWidth')?.value||750),chimneyPos:+($('chimneyPos')?.value||900),fillerWidth:+($('fillerWidth')?.value||50),handleSystem:$('handleSystem').value,currency:$('currency').value,cabinets}}
+
+function getWallKeys(lt){if(lt==='straight')return['A'];if(lt==='L')return['A','B'];if(lt==='U')return['A','B','C'];if(lt==='island')return['A','island'];return['A']}
+function getWallLength(k){let o=p();if(k==='A')return o.wallA;if(k==='B')return o.wallB;if(k==='C')return o.wallC;if(k==='island')return o.islandWidth;return 0}
+
+function bestFit(target){let r=[],rem=target,sorted=[...STANDARD].sort((a,b)=>b-a);while(rem>=300){let found=false;for(let w of sorted){if(w<=rem){r.push(w);rem-=w;found=true;break}}if(!found)break}if(rem>0&&r.length)r[r.length-1]+=rem;return r}
+
+function positionNewCabinet(idx){
+  let c=cabinets[idx],o=p(),cat=CATEGORY[c.type];
+  let wall=c.wall,wLen=getWallLength(wall);
+  let sameWallBase=cabinets.filter((cc,i)=>i!==idx&&cc.wall===wall&&CATEGORY[cc.type]!=='wall');
+  if(cat==='wall'){
+    let sameWallWC=cabinets.filter((cc,i)=>i!==idx&&cc.wall===wall&&CATEGORY[cc.type]==='wall');
+    if(wall==='A'){
+      sameWallWC.sort((a,b)=>(a._x||0)-(b._x||0));
+      let pos=0;
+      for(let cc of sameWallWC){
+        let cx=cc._x!=null?cc._x:pos;
+        if(pos+c.width<=cx){c._x=pos;return}
+        pos=cx+cc.width;
+      }
+      if(pos+c.width<=wLen)c._x=pos;else c._x=0;
+    }else{
+      sameWallWC.sort((a,b)=>(a._y||0)-(b._y||0));
+      let pos=0;
+      for(let cc of sameWallWC){
+        let cy=cc._y!=null?cc._y:pos;
+        if(pos+c.width<=cy){c._y=pos;return}
+        pos=cy+cc.width;
+      }
+      if(pos+c.width<=wLen)c._y=pos;else c._y=0;
+    }
+    return;
+  }
+  if(wall==='A'){
+    sameWallBase.sort((a,b)=>(a._x||0)-(b._x||0));
+    let pos=0;
+    for(let cc of sameWallBase){
+      let cx=cc._x!=null?cc._x:pos;
+      if(pos+c.width<=cx){c._x=pos;return}
+      pos=cx+cc.width;
+    }
+    if(pos+c.width<=wLen)c._x=pos;
+  }else{
+    sameWallBase.sort((a,b)=>(a._y||0)-(b._y||0));
+    let pos=0;
+    for(let cc of sameWallBase){
+      let cy=cc._y!=null?cc._y:pos;
+      if(pos+c.width<=cy){c._y=pos;return}
+      pos=cy+cc.width;
+    }
+    if(pos+c.width<=wLen)c._y=pos;
+  }
+}
+
+function autoLayoutAll(){
+  let o=p(),walls=getWallKeys(o.layoutType);
+  cabinets=[];
+  let fw=o.fillerWidth||50;
+
+  walls.forEach(w=>{
+    let len=getWallLength(w);
+    if(w==='island'){
+      if(len>=300)cabinets.push({type:'doubleDoor',width:Math.min(len,1200),wall:'island'});
+      return;
+    }
+    let usable=len;
+    if(o.layoutType==='L'&&(w==='A'||w==='B'))usable-=1100;
+    if(o.layoutType==='U'&&(w==='A'||w==='B'))usable-=1100;
+    usable=Math.max(0,usable);
+
+    if(w==='A'&&o.chimneyWidth>0){
+      let nonCab=4*fw+o.chimneyWidth;
+      let cabSpace=Math.max(0,usable-nonCab);
+      let chimneyLeft=o.chimneyPos-o.chimneyWidth/2;
+      let chimneyRight=o.chimneyPos+o.chimneyWidth/2;
+      let leftCabs=Math.max(0,chimneyLeft-fw);
+      let rightCabs=Math.max(0,usable-chimneyRight-fw);
+      let leftTotal=leftCabs+rightCabs;
+      if(leftTotal>0){
+        leftCabs=Math.round(cabSpace*leftCabs/leftTotal);
+        rightCabs=cabSpace-leftCabs;
+      }
+      let leftWidths=bestFit(leftCabs);
+      let rightWidths=bestFit(rightCabs);
+
+      cabinets.push({type:'filler',width:fw,wall:'A'});
+      leftWidths.forEach((wd,i)=>{
+        let type=wd<=450?'singleDoor':i===0?'drawer3':wd>=750?'doubleDoor':'doubleDoor';
+        cabinets.push({type,width:wd,wall:'A'});
+      });
+      cabinets.push({type:'filler',width:fw,wall:'A'});
+      cabinets.push({type:'chimney',width:o.chimneyWidth,wall:'A'});
+      cabinets.push({type:'filler',width:fw,wall:'A'});
+      rightWidths.forEach((wd,i)=>{
+        let type=wd<=450?'singleDoor':i===rightWidths.length-1?'drawer3':wd>=750?'doubleDoor':'doubleDoor';
+        cabinets.push({type,width:wd,wall:'A'});
+      });
+      cabinets.push({type:'filler',width:fw,wall:'A'});
+    }else{
+      let cabSpace=Math.max(0,usable-2*fw);
+      let widths=bestFit(cabSpace);
+      cabinets.push({type:'filler',width:fw,wall:w});
+      widths.forEach((wd,i)=>{
+        let type=wd<=450?'singleDoor':i===0?'drawer3':i===widths.length-1?'drawer3':wd>=750?'doubleDoor':'doubleDoor';
+        cabinets.push({type,width:wd,wall:w});
+      });
+      cabinets.push({type:'filler',width:fw,wall:w});
+    }
+
+    // Wall cabinets on each wall
+    if(w!=='island'){
+      let wcUsable=usable;
+      if(wcUsable<600)return;
+      let wcWidths=bestFit(wcUsable);
+      wcWidths.forEach((wd,i)=>{
+        let type=i%3===1?'wallOpen':wd<=500?'wallSingle':'wallDouble';
+        cabinets.push({type,width:wd,wall:w,_x:0,_y:0});
+      });
+    }
+  });
+
+  // Assign positions for plan view
+  walls.forEach(w=>{
+    if(w==='island')return;
+    if(w==='A'){
+      let baseLevel=cabinets.filter(c=>c.wall===w&&CATEGORY[c.type]!=='wall');
+      let x=0;
+      baseLevel.forEach(c=>{c._x=x;x+=c.width;});
+      let wallLevel=cabinets.filter(c=>c.wall===w&&CATEGORY[c.type]==='wall');
+      let wx=0;
+      wallLevel.forEach(c=>{
+        c._x=wx;
+        wx+=c.width;
+      });
+    }else{
+      let baseLevel=cabinets.filter(c=>c.wall===w&&CATEGORY[c.type]!=='wall');
+      let y=0;
+      baseLevel.forEach(c=>{c._y=y;y+=c.width;});
+      let wallLevel=cabinets.filter(c=>c.wall===w&&CATEGORY[c.type]==='wall');
+      let wy=0;
+      wallLevel.forEach(c=>{
+        c._y=wy;
+        wy+=c.width;
+      });
+    }
+  });
+
+  render();
+}
+
+function drawCab(c,x,y,w,h,pw){
+  let cat=CATEGORY[c.type];
+  let bg=CAT_COLORS[cat]||CAT_COLORS.base;
+  let sw=2;
+  let s='';
+
+  if(cat==='wall'){
+    s+=R(x,y,w,h,sw,bg,3);
+    s+=R(x+2,y+2,w-4,h-4,0.5,'#fff',2);
+    if(c.type==='wallDouble'){
+      s+=L(x+w/2,y,x+w/2,y+h,1);
+    }
+    if(c.type==='wallOpen'){
+      s+=L(x+4,y+h*.33,x+w-4,y+h*.33,1,'3 3');
+      s+=L(x+4,y+h*.66,x+w-4,y+h*.66,1,'3 3');
+    }else if(c.type==='wallLoft'){
+      s+=L(x+4,y+h-8,x+w-4,y+h-8,1,'3 3');
+    }else{
+      let hy=y+h-20;
+      if(c.type==='wallDouble'){
+        s+=handle(x,hy,w/2);
+        s+=handle(x+w/2,hy,w/2);
+      }else{
+        s+=handle(x,hy,w);
+      }
+    }
+    return s;
+  }
+
+  if(cat==='tall'||cat==='midTall'){
+    s+=R(x,y,w,h,sw,bg,3);
+    s+=R(x+2,y+2,w-4,h-4,0.5,'#fff',2);
+    if(c.type==='tallDouble'||c.type==='midTallDouble'){
+      s+=L(x+w/2,y,x+w/2,y+h,1);
+      s+=handle(x,y,w/2);
+      s+=handle(x+w/2,y,w/2);
+    }else if(c.type==='tallOven'){
+      let ox=x+w*.16,oy=y+h*.12,ow=w*.68,oh=h*.45;
+      s+=R(ox,oy,ow,oh,2,'#fafafa');
+      s+=R(ox+ow*.12,oy+oh*.2,ow*.76,oh*.4);
+      s+=L(x+w*.25,y+h*.62,x+w*.75,y+h*.62,3);
+    }else{
+      s+=handle(x,y,w);
+    }
+    let shelves=cat==='tall'?3:2;
+    for(let i=1;i<=shelves;i++){
+      let sy=y+h*(i/(shelves+1));
+      s+=L(x+4,sy,x+w-4,sy,1,'3 3');
+    }
+    return s;
+  }
+
+  if(c.type==='cornerBlind'){
+    s+=R(x,y,w,h,sw,bg,3);
+    s+=R(x+2,y+2,w-4,h-4,0.5,'#fff',2);
+    s+=L(x+8,y+8,x+w*.42,y+h*.42,1,'5 4');
+    s+=L(x+w-8,y+h-8,x+w*.58,y+h*.58,1,'5 4');
+    s+=T(x+w/2,y+h/2,'CORNER',30,'middle','700');
+    s+=handle(x,y+h*.1,w*.4);
+    return s;
+  }
+
+  s+=R(x,y,w,h,sw,bg,3);
+  s+=R(x+2,y+2,w-4,h-4,0.5,'#fff',2);
+
+  if(/^drawer/.test(c.type)){
+    let n=c.type==='drawer2'?2:c.type==='drawer4'?4:3;
+    if(n===2){
+      s+=L(x,y+h/2,x+w,y+h/2,0.8);
+    }else if(n===3){
+      s+=L(x,y+h*.25,x+w,y+h*.25,0.8);
+      s+=L(x,y+h*.5,x+w,y+h*.5,0.8);
+    }else{
+      for(let i=1;i<n;i++) s+=L(x,y+h*i/n,x+w,y+h*i/n,0.8);
+    }
+    for(let i=0;i<n;i++){
+      let dy=n===2?h*i/2:n===3?(i<2?h*i/4:h/2):h*i/n;
+      s+=handle(x,y+dy,w);
+    }
+  }else if(c.type==='sink'){
+    s+=L(x+w/2,y,x+w/2,y+h,1.2);
+    s+=handle(x,y,w/2);
+    s+=handle(x+w/2,y,w/2);
+    let g=10;
+    for(let i=0;i<5;i++) for(let j=0;j<4;j++){
+      s+=L(x+g+i*(w-20)/5,y+h*.2+j*h*.2,x+g+(i+1)*(w-20)/5,y+h*.2+j*h*.2,0.5,'#aaa');
+      s+=L(x+g+i*(w-20)/5,y+h*.2+j*h*.2,x+g+i*(w-20)/5,y+h*.2+(j+1)*h*.2,0.5,'#aaa');
+    }
+  }else if(c.type==='gasCylinder'){
+    s+=handle(x,y,w);
+    s+=R(x+4,y+h-60,w-8,56,1,'#f5f5f5');
+    s+=L(x+4,y+h-58,x+w-4,y+h-58,1);
+    s+=L(x+4,y+h-30,x+w-4,y+h-30,1);
+  }else if(c.type==='hob'){
+    s+=L(x+w/2,y,x+w/2,y+h,1.2);
+    s+=handle(x,y,w/2);
+    s+=handle(x+w/2,y,w/2);
+  }else if(c.type==='oven'){
+    s+=R(x+w*.16,y+h*.12,w*.68,h*.55,2,'#fafafa');
+    s+=R(x+w*.24,y+h*.22,w*.52,h*.3);
+    s+=L(x+w*.25,y+h*.63,x+w*.75,y+h*.63,3);
+  }else if(c.type==='pullout'){
+    s+=handle(x,y,w);
+    s+=L(x+w*.18,y+h*.3,x+w*.82,y+h*.3,1,'5 4');
+    s+=L(x+w*.18,y+h*.6,x+w*.82,y+h*.6,1,'5 4');
+  }else if(c.type==='singleDoor'){
+    s+=handle(x,y,w);
+  }else{
+    s+=L(x+w/2,y,x+w/2,y+h,1.2);
+    s+=handle(x,y,w/2);
+    if(w>600) s+=handle(x+w/2,y,w/2);
+  }
+  return s;
+}
+
+function hob(cx,y,w){let s=R(cx-w/2,y,w,16,1.3);[-.28,-.09,.1,.29].forEach((q,i)=>s+=C(cx+w*q,y+8,i%2?7:9));return s}
+function chimney(cx,bot,cw,top){let h=top-bot-10,hw=Math.min(cw*.4,60);return R(cx-hw/2,bot-12,hw,12,1.5,'#ccc')+L(cx-hw/2,bot-12,cx-hw/2,bot+h)+L(cx+hw/2,bot-12,cx+hw/2,bot+h)}
+function sink(cx,y,w){return `<path d="M${cx-w/2},${y}L${cx+w/2},${y}L${cx+w*.38},${y+12}L${cx-w*.38},${y+12}Z" fill="#fff" stroke="#111"/>`+`<path d="M${cx},${y-6}L${cx},${y-50}Q${cx},${y-82} ${cx+24},${y-82}Q${cx+48},${y-82} ${cx+48},${y-52}L${cx+48},${y-12}" fill="none" stroke="#111" stroke-width="2"/>`}
+
+function planViewBox(o){
+  let lt=o.layoutType,cd=o.counterDepth,pad=100,wt=o.wallThickness||100;
+  if(lt==='straight')return{vx:-pad,vy:-wt-pad,vw:o.wallA+2*pad,vh:cd+wt+2*pad};
+  if(lt==='L')return{vx:-wt-pad,vy:-wt-pad,vw:o.wallA+cd+wt+2*pad,vh:o.wallB+cd+wt+2*pad};
+  if(lt==='U')return{vx:-wt-pad,vy:-wt-pad,vw:o.wallA+cd*2+wt+2*pad,vh:o.wallB+cd+wt+2*pad};
+  return{vx:-pad,vy:-wt-pad,vw:o.wallA+2*pad,vh:cd+200+o.islandDepth+wt+2*pad};
+}
+function planWalls(o){
+  let lt=o.layoutType,wt=o.wallThickness||100;
+  let s='<defs><pattern id="wallHatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#9ca3af" stroke-width="1"/></pattern></defs>';
+  s+=R(0,-wt,o.wallA,wt,0,'#d1d5db');s+=R(0,-wt,o.wallA,wt,0,'url(#wallHatch)');
+  s+=L(0,-wt,o.wallA,-wt,4);s+=L(0,0,o.wallA,0,2);
+  if(lt==='L'||lt==='U'){s+=R(-wt,-wt,wt,o.wallB,0,'#d1d5db');s+=R(-wt,-wt,wt,o.wallB,0,'url(#wallHatch)');s+=L(-wt,-wt,-wt,o.wallB-wt,4);s+=L(0,-wt,0,o.wallB-wt,2);}
+  if(lt==='U'){s+=R(o.wallA,-wt,wt,o.wallC,0,'#d1d5db');s+=R(o.wallA,-wt,wt,o.wallC,0,'url(#wallHatch)');s+=L(o.wallA,-wt,o.wallA,o.wallC-wt,4);s+=L(o.wallA+wt,-wt,o.wallA+wt,o.wallC-wt,2);}
+  if(lt==='L'){s+=R(-wt,-wt,wt,wt,0,'#d1d5db');s+=R(-wt,-wt,wt,wt,0,'url(#wallHatch)');}
+  if(lt==='U'){s+=R(-wt,-wt,wt,wt,0,'#d1d5db');s+=R(-wt,-wt,wt,wt,0,'url(#wallHatch)');s+=R(o.wallA,-wt,wt,wt,0,'#d1d5db');s+=R(o.wallA,-wt,wt,wt,0,'url(#wallHatch)');}
+  return s;
+}
+function drawBasePlan(){
+  let o=p(),lt=o.layoutType,cd=o.counterDepth,wt=o.wallThickness||100;
+  let vb=planViewBox(o);
+  let s=planWalls(o);
+  s+=T(o.wallA/2,wt/2+5,'WALL A PLAN',30,'middle','700');
+  if(lt==='L'||lt==='U')s+=T(wt/2+5,o.wallB/2,'WALL B PLAN',30,'middle','700',-90);
+  if(lt==='U')s+=T(o.wallA+wt/2+5,o.wallC/2,'WALL C PLAN',30,'middle','700',90);
+  let wallACabs=cabinets.filter(c=>c.wall==='A');
+  let aCntrs={bc:0,tc:0,fil:0,chim:0};
+  wallACabs.forEach(c=>{
+    let w=c.width,cx=c._x!=null?c._x:0,cat=CATEGORY[c.type],label;
+    if(cat==='filler'){aCntrs.fil++;label='FIL';}
+    else if(c.type==='chimney'){aCntrs.chim++;label='CHIM';}
+    else if(cat==='tall'){aCntrs.tc++;label='TC'+aCntrs.tc;}
+    else if(cat==='wall')return;
+    else{aCntrs.bc++;label='BC'+aCntrs.bc;}
+    s+=`<g data-ci="${cabinets.indexOf(c)}" style="cursor:pointer">`;
+    s+=drawPlanCab(c,cx,wt,w,cd,label);
+    s+='</g>';
+  });
+  if(lt==='L'||lt==='U'){
+    let wallBCabs=cabinets.filter(c=>c.wall==='B');
+    let bCntrs={bc:0,tc:0,fil:0,chim:0};
+    wallBCabs.forEach(c=>{
+      let w=c.width,cy=c._y!=null?c._y:0,cat=CATEGORY[c.type],label;
+      if(cat==='filler'){bCntrs.fil++;label='FIL';}
+      else if(c.type==='chimney'){bCntrs.chim++;label='CHIM';}
+      else if(cat==='tall'){bCntrs.tc++;label='TC'+bCntrs.tc;}
+      else if(cat==='wall')return;
+      else{bCntrs.bc++;label='BC'+bCntrs.bc;}
+      s+=`<g data-ci="${cabinets.indexOf(c)}" style="cursor:pointer">`;
+      s+=drawPlanCabVert(c,0,cy,w,cd,label);
+      s+='</g>';
+    });
+  }
+  if(lt==='U'){
+    let wallCCabs=cabinets.filter(c=>c.wall==='C');
+    let cCntrs={bc:0,tc:0,fil:0,chim:0};
+    wallCCabs.forEach(c=>{
+      let w=c.width,cy=c._y!=null?c._y:0,cat=CATEGORY[c.type],label;
+      if(cat==='filler'){cCntrs.fil++;label='FIL';}
+      else if(c.type==='chimney'){cCntrs.chim++;label='CHIM';}
+      else if(cat==='tall'){cCntrs.tc++;label='TC'+cCntrs.tc;}
+      else if(cat==='wall')return;
+      else{cCntrs.bc++;label='BC'+cCntrs.bc;}
+      s+=`<g data-ci="${cabinets.indexOf(c)}" style="cursor:pointer">`;
+      s+=drawPlanCabVert(c,o.wallA-cd,cy,w,cd,label);
+      s+='</g>';
+    });
+  }
+  if(lt==='island'){
+    let iw=o.islandWidth,id=o.islandDepth,ix=o.wallA/2-iw/2,iy=cd+200;
+    s+=R(ix,iy,iw,id,2,'#e9d5ff',6)+T(ix+iw/2,iy+id/2+4,'ISLAND',30,'middle','700');
+  }
+  let cornerPresent=cabinets.some(c=>c.type==='cornerBlind'&&c.wall==='A');
+  if(cornerPresent&&(lt==='L'||lt==='U')){s+=R(0,0,1100,1100,0,'none')+L(0,0,1100,1100,1,'6 4');}
+  let sinkCab=cabinets.find(c=>c.type==='sink'&&c.wall==='A');
+  if(sinkCab){
+    let sx=sinkCab._x!=null?sinkCab._x:0;
+    s+=R(sx+sinkCab.width+10,cd+10,200,50,1,'#e0f0ff');
+    s+=`<rect x="${sx+sinkCab.width+10}" y="${cd+10}" width="200" height="50" rx="2" fill="none" stroke="#1e40af" stroke-width="1.5" stroke-dasharray="6 3"/>`;
+    s+=T(sx+sinkCab.width+110,cd+38,'RO SPACE',30,'middle');
+  }
+  if(lt==='straight'){dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');dimV(-o.counterThickness-20,0,cd,o.counterDepth+'mm');dimV(-o.counterThickness-50,-wt,0,wt+'mm WALL');}
+  else if(lt==='L'){dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');dimV(cd+o.counterThickness+30,0,o.wallB,o.wallB+'mm');dimV(-o.counterThickness-20,0,cd,o.counterDepth+'mm');dimV(-o.counterThickness-50,-wt,0,wt+'mm WALL');dimH(-cd-40,0,cd+10,o.wallB+'mm');}
+  else if(lt==='U'){dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');dimV(cd+o.counterThickness+30,0,o.wallB,o.wallB+'mm');dimV(-o.counterThickness-20,0,cd,o.counterDepth+'mm');dimV(-o.counterThickness-50,-wt,0,wt+'mm WALL');dimH(-cd-40,0,cd+10,o.wallB+'mm');dimH(o.wallA,o.wallA+cd+40,o.wallB+20,o.wallC+'mm');}
+  else{dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');dimV(-o.counterThickness-20,0,cd,o.counterDepth+'mm');let iw=o.islandWidth,id=o.islandDepth,ix=o.wallA/2-iw/2,iy=cd+200;dimH(ix,ix+iw,iy-20,iw+'mm');dimV(ix+iw+20,iy,iy+id,id+'mm');}
+  $('basePlanSvg').setAttribute('viewBox',`${vb.vx} ${vb.vy} ${vb.vw} ${vb.vh}`);
+  $('basePlanSvg').innerHTML=s;
+}
+function drawWallPlan(){
+  let o=p(),lt=o.layoutType,cd=o.counterDepth,wt=o.wallThickness||100;
+  let vb=planViewBox(o);
+  let s=planWalls(o);
+  s+=T(o.wallA/2,-wt/2+5,'WALL A PLAN',30,'middle','700');
+  if(lt==='L'||lt==='U')s+=T(-wt/2+5,o.wallB/2,'WALL B PLAN',30,'middle','700',-90);
+  if(lt==='U')s+=T(o.wallA+wt/2+5,o.wallC/2,'WALL C PLAN',30,'middle','700',90);
+  let wallACabs=cabinets.filter(c=>c.wall==='A'&&CATEGORY[c.type]==='wall'&&c.type!=='chimney');
+  let wallAChim=cabinets.filter(c=>c.wall==='A'&&c.type==='chimney');
+  let wcIdx=0;
+  wallACabs.forEach(c=>{
+    let w=c.width,cx=c._x!=null?c._x:0;
+    wcIdx++;
+    s+=`<g data-ci="${cabinets.indexOf(c)}" style="cursor:grab">`;
+    s+=drawPlanWallCab(c,cx,0,w,'WC'+wcIdx);
+    s+='</g>';
+  });
+  wallAChim.forEach(c=>{
+    let w=c.width,cx=c._x!=null?c._x:0;
+    s+=drawPlanCab(c,cx,0,w,cd||300,'CHIM');
+  });
+  if(lt==='L'||lt==='U'){
+    let wallBCabs=cabinets.filter(c=>c.wall==='B'&&CATEGORY[c.type]==='wall'&&c.type!=='chimney');
+    let wallBChim=cabinets.filter(c=>c.wall==='B'&&c.type==='chimney');
+    wcIdx=0;
+    wallBCabs.forEach(c=>{
+      let w=c.width,cy=c._y!=null?c._y:0;
+      wcIdx++;
+      s+=`<g data-ci="${cabinets.indexOf(c)}" style="cursor:grab">`;
+      s+=drawPlanWallCabVert(c,0,cy,w,'WC'+wcIdx);
+      s+='</g>';
+    });
+    wallBChim.forEach(c=>{
+      let w=c.width,cy=c._y!=null?c._y:0;
+      s+=drawPlanCabVert(c,0,cy,w,cd||300,'CHIM');
+    });
+  }
+  if(lt==='U'){
+    let wallCCabs=cabinets.filter(c=>c.wall==='C'&&CATEGORY[c.type]==='wall'&&c.type!=='chimney');
+    let wallCChim=cabinets.filter(c=>c.wall==='C'&&c.type==='chimney');
+    wcIdx=0;
+    wallCCabs.forEach(c=>{
+      let w=c.width,cy=c._y!=null?c._y:0;
+      wcIdx++;
+      s+=`<g data-ci="${cabinets.indexOf(c)}" style="cursor:grab">`;
+      s+=drawPlanWallCabVert(c,o.wallA-cd,cy,w,'WC'+wcIdx);
+      s+='</g>';
+    });
+    wallCChim.forEach(c=>{
+      let w=c.width,cy=c._y!=null?c._y:0;
+      s+=drawPlanCabVert(c,o.wallA-cd,cy,w,cd||300,'CHIM');
+    });
+  }
+  if(lt==='straight'){dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');}
+  else if(lt==='L'){dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');}
+  else if(lt==='U'){dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');}
+  else{dimH(0,o.wallA,cd+o.counterThickness+40,o.wallA+'mm');}
+  $('wallPlanSvg').setAttribute('viewBox',`${vb.vx} ${vb.vy} ${vb.vw} ${vb.vh}`);
+  $('wallPlanSvg').innerHTML=s;
+}
+
+function drawPlanCab(c,x,y,w,depth,label){
+  let cat=CATEGORY[c.type];
+  let bgColor=CAT_COLORS[cat]||CAT_COLORS.base;
+  let s='';
+  if(cat==='wall'&&c.type!=='chimney') return s;
+
+  if(c.type==='chimney'){
+    s+=R(x,y,w,depth,2,'url(#wallHatch)');
+    s+=L(x,y,x+w,y+depth,1,'#c00');
+    s+=L(x+w,y,x,y+depth,1,'#c00');
+    s+=T(x+w/2,y+depth/2+4,label||'CHIM',30,'middle','700');
+    s+=T(x+w/2,y+depth/2+30,w+'mm',30,'middle');
+    return s;
+  }
+
+  if(cat==='filler'){
+    s+=R(x,y,w,depth,2,'#e8e8e8');
+    s+=T(x+w/2,y+depth/2+4,label||'FIL',30,'middle');
+    s+=T(x+w/2,y+depth/2+30,w+'mm',30,'middle');
+    return s;
+  }
+
+  s+=R(x,y,w,depth,2,bgColor,3);
+  s+=R(x+2,y+2,w-4,depth-4,0.5,'#fff',2);
+  s+=T(x+w/2,y+depth/2+5,label||c.type,30,'middle','700');
+  s+=T(x+w/2,y+depth/2+30,w+'mm',30,'middle');
+
+  if(c.type==='cornerBlind'){
+    s+=L(x+4,y+4,x+w-4,y+depth-4,1,'4 4');
+    s+=L(x+4,y+depth-4,x+w-4,y+4,1,'4 4');
+    s+=T(x+w/2,y+depth/2-8,'CORNER',30,'middle','700');
+  }
+  if(c.type==='hob'){
+    s+=T(x+w/2,y+6,'HOB',30,'middle','700');
+  }
+  if(c.type==='sink'){
+    s+=T(x+w/2,y+6,'SINK',30,'middle','700');
+  }
+  return s;
+}
+
+function drawPlanWallCab(c,x,y,w,label){
+  return R(x,y,w,300,2,'#fff',2)+`<rect x="${x}" y="${y}" width="${w}" height="300" rx="2" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="6 3"/>`+T(x+w/2,y+150,label||'WC',30,'middle','700');
+}
+
+function drawPlanCabVert(c,x,y,w,depth,label){
+  let cat=CATEGORY[c.type];
+  let bgColor=CAT_COLORS[cat]||CAT_COLORS.base;
+  let s='';
+  if(cat==='wall'&&c.type!=='chimney') return s;
+
+  if(c.type==='chimney'){
+    s+=R(x,y,depth,w,2,'url(#wallHatch)');
+    s+=L(x,y,x+depth,y+w,1,'#c00');
+    s+=L(x+depth,y,x,y+w,1,'#c00');
+    s+=T(x+depth/2,y+w/2,label||'CHIM',30,'middle','700',90);
+    s+=T(x+depth/2,y+w/2+30,w+'mm',30,'middle',null,90);
+    return s;
+  }
+
+  if(cat==='filler'){
+    s+=R(x,y,depth,w,2,'#e8e8e8');
+    s+=T(x+depth/2,y+w/2,label||'FIL',30,'middle','700',90);
+    s+=T(x+depth/2,y+w/2+30,w+'mm',30,'middle',null,90);
+    return s;
+  }
+
+  s+=R(x,y,depth,w,2,bgColor,3);
+  s+=R(x+2,y+2,depth-4,w-4,0.5,'#fff',2);
+  s+=T(x+depth/2,y+w/2,label||c.type,30,'middle','700',90);
+  s+=T(x+depth/2,y+w/2+30,w+'mm',30,'middle',null,90);
+  return s;
+}
+
+function drawPlanWallCabVert(c,x,y,w,label){
+  return R(x,y,300,w,2,'#fff',2)+`<rect x="${x}" y="${y}" width="300" height="${w}" rx="2" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="6 3"/>`+T(x+150,y+w/2,label||'WC',30,'middle','700',90);
+}
+
+function drawElevation(){
+  let o=p(),lt=o.layoutType;
+  let wallKeys=getWallKeys(lt);
+  let pad=100, gap=200;
+  let ph=o.plinthHeight;
+  let bh=o.counterHeight-o.plinthHeight;
+  let cth=o.counterThickness;
+  let dg=o.dadoHeight;
+  let wh=600;
+  let totalH=wh+dg+cth+bh+ph;
+
+  let sections=[];
+  let maxW=0;
+  wallKeys.forEach(wk=>{
+    let ec=cabinets.filter(c=>c.wall===wk);
+    let baseLevel=ec.filter(c=>CATEGORY[c.type]!=='wall');
+    let tw=baseLevel.reduce((a,c)=>a+c.width,0)||getWallLength(wk);
+    sections.push({wk,ec,tw});
+    maxW=Math.max(maxW,tw);
+  });
+
+  let totalHeight=sections.length*totalH+(sections.length-1)*gap;
+  let vx=-pad,vy=-pad,vw=maxW+2*pad,vh=totalHeight+2*pad;
+
+  $('elevSvg').setAttribute('viewBox',`${vx} ${vy} ${vw} ${vh}`);
+
+  let s='<defs><pattern id="wallHatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#9ca3af" stroke-width="1"/></pattern></defs>';
+  let cy=0;
+  sections.forEach(sec=>{
+    let wk=sec.wk,ec=sec.ec,tw=sec.tw;
+    let col=COLORS[wk]||COLORS.A;
+
+    // Wall background with hatching
+    s+=R(0,cy,tw,wh,0,'#d1d5db');
+    s+=R(0,cy,tw,wh,0,'url(#wallHatch)');
+    s+=L(0,cy,tw,cy,4);
+    s+=L(0,cy+wh,tw,cy+wh,2);
+    s+=L(0,cy,0,cy+wh,3);
+    s+=L(tw,cy,tw,cy+wh,3);
+    s+=T(tw/2,cy-12,'WALL '+wk+(wk==='island'?' ISLAND':'')+' ELEVATION',50,'middle','700');
+
+    let wallTop=cy;
+    let dadoTop=cy+wh;
+    let counterTop=dadoTop+dg;
+    let baseTop=counterTop+cth;
+    let plinthTop=baseTop+bh;
+
+    // Separate base/tall/midTall from wall cabinets, exclude filler/chimney for wall pass
+    let baseCabs=ec.filter(c=>CATEGORY[c.type]!=='wall'&&c.type!=='filler'&&c.type!=='chimney');
+    let wallCabs=ec.filter(c=>CATEGORY[c.type]==='wall'&&c.type!=='chimney');
+    let fillerChimney=ec.filter(c=>c.type==='filler'||c.type==='chimney');
+
+    // Draw filler/chimney in elevation
+    fillerChimney.forEach(c=>{
+      let cx=c._x!=null?c._x:0;
+      let w=c.width;
+      if(c.type==='chimney'){
+        s+=R(cx,wallTop,w,wh,0,'url(#wallHatch)');
+        s+=L(cx,wallTop,cx+w,wallTop+wh,1,'#c00');
+        s+=L(cx+w,wallTop,cx,wallTop+wh,1,'#c00');
+        s+=T(cx+w/2,wallTop+wh/2-6,'CHIMNEY',30,'middle','#c00','700');
+        s+=T(cx+w/2,wallTop+wh/2+30,w+'mm',30,'middle','#c00');
+        s+=R(cx,counterTop,w,cth,2,'#d4c5a0');
+        s+=R(cx,plinthTop,w,ph,2,'#333');
+      }else{
+        s+=R(cx,wallTop,w,wh,0,'#e8e8e8');
+        s+=R(cx,baseTop,w,bh,2,'#ddd');
+        s+=R(cx,counterTop,w,cth,2,'#d4c5a0');
+        s+=R(cx,plinthTop,w,ph,2,'#333');
+        s+=T(cx+w/2,baseTop+bh/2,'FIL',30,'middle');
+      }
+    });
+
+    // Draw wall cabinets first (behind base)
+    let wcIdx=0;
+    wallCabs.forEach(c=>{
+      let cx=c._x!=null?c._x:0;
+      wcIdx++;
+      s+=drawCab(c,cx,wallTop,c.width,wh);
+      s+=T(cx+c.width/2,wallTop+wh/2+4,'WC'+wcIdx,30,'middle','700');
+      s+=T(cx+c.width/2,wallTop+wh/2+30,c.width+'mm',30,'middle');
+    });
+
+    // Draw base/tall/midTall cabinets in front
+    cx=0;
+    let bcIdx=0, tcIdx=0;
+    baseCabs.forEach((c,ci)=>{
+      let w=c.width;
+      if(c._x!=null) cx=c._x;
+      else if(ci>0) cx=baseCabs.slice(0,ci).reduce((a,cc)=>a+cc.width,0);
+      let cat=CATEGORY[c.type];
+
+      if(cat==='tall'){
+        tcIdx++;
+        let tallH=totalH;
+        s+=drawCab(c,cx,cy,w,tallH);
+        s+=R(cx,cy+tallH-ph,w,ph,1,'#333');
+      }else if(cat==='midTall'){
+        tcIdx++;
+        let mtH=wh+dg+cth+200;
+        s+=drawCab(c,cx,cy,w,mtH);
+        s+=R(cx,cy+mtH-ph,w,ph,1,'#333');
+      }else{
+        bcIdx++;
+        s+=R(cx,baseTop,w,bh,2,CAT_COLORS.base);
+        s+=R(cx+2,baseTop+2,w-4,bh-4,0.5,'#fff');
+        s+=R(cx,counterTop,w,cth,2,'#d4c5a0');
+        s+=R(cx,plinthTop,w,ph,2,'#333');
+
+        let label=cat==='tall'?'TC'+tcIdx:'BC'+bcIdx;
+        s+=T(cx+w/2,baseTop+bh/2+4,label,30,'middle','700');
+        s+=T(cx+w/2,baseTop+bh/2+30,w+'mm',30,'middle');
+
+        if(/^drawer/.test(c.type)){
+          let n=c.type==='drawer2'?2:c.type==='drawer4'?4:3;
+          if(n===2){
+            s+=L(cx,baseTop+bh/2,cx+w,baseTop+bh/2,0.8);
+          }else if(n===3){
+            s+=L(cx,baseTop+bh*.25,cx+w,baseTop+bh*.25,0.8);
+            s+=L(cx,baseTop+bh*.5,cx+w,baseTop+bh*.5,0.8);
+          }else{
+            for(let i=1;i<n;i++) s+=L(cx,baseTop+bh*i/n,cx+w,baseTop+bh*i/n,0.8);
+          }
+          for(let i=0;i<n;i++){
+            let dy=n===2?bh*i/2:n===3?(i<2?bh*i/4:bh/2):bh*i/n;
+            s+=handle(cx,baseTop+dy,w);
+          }
+        }else if(c.type==='sink'){
+          s+=sink(cx+w/2,baseTop+bh-5,Math.min(w*.38,70));
+          s+=L(cx+w/2,baseTop,cx+w/2,baseTop+bh,1.2);
+          s+=handle(cx,baseTop,w/2);
+          s+=handle(cx+w/2,baseTop,w/2);
+        }else if(c.type==='gasCylinder'){
+          s+=handle(cx,baseTop,w);
+        }else if(c.type==='singleDoor'||c.type==='pullout'){
+          s+=handle(cx,baseTop,w);
+        }else if(c.type==='oven'){
+          s+=R(cx+w*.16,baseTop+bh*.12,w*.68,bh*.55,1.5,'#fafafa');
+          s+=R(cx+w*.24,baseTop+bh*.22,w*.52,bh*.3);
+          s+=L(cx+w*.25,baseTop+bh*.63,cx+w*.75,baseTop+bh*.63,3);
+        }else if(c.type==='hob'){
+          s+=hob(cx+w/2,baseTop+bh-12,Math.min(w*.45,70));
+          s+=chimney(cx+w/2,baseTop+bh-12,w,wallTop+wh);
+          s+=L(cx+w/2,baseTop,cx+w/2,baseTop+bh,1.2);
+          s+=handle(cx,baseTop,w/2);
+        }else{
+          s+=L(cx+w/2,baseTop,cx+w/2,baseTop+bh,1.2);
+          s+=handle(cx,baseTop,w/2);
+          if(w>600) s+=handle(cx+w/2,baseTop,w/2);
+        }
+      }
+      dimH(cx,cx+w,plinthTop+ph+30,w+'');
+    });
+
+    if(ec.some(c=>CATEGORY[c.type]==='wall')){
+      let wy=dadoTop;
+      let wg=tw+pad/2;
+      s+=L(wg,wy,wg,wy+dg,1.5)+L(wg-6,wy-6,wg+6,wy+6)+L(wg-6,wy+dg+6,wg+6,wy+dg-6);
+      s+=T(wg+14,(wy+wy+dg)/2,'DADO '+o.dadoHeight+'mm',13,'start','700');
+    }
+
+    s+=T(-pad/2-15,wallTop+wh/2,'WC',14,'end','700');
+    s+=T(-pad/2-15,baseTop+bh/2,'BC',14,'end','700');
+
+    // Full wall height dimension on right
+    dimV(tw+pad/2+20,cy,cy+totalH,o.counterHeight+'+'+o.plinthHeight+'='+(o.counterHeight+o.plinthHeight));
+
+    // PVC black skirting
+    s+=R(0,plinthTop+ph-5,tw,5,0,'#111');
+    s+=T(tw/2,plinthTop+ph+16,'PVC BLACK SKIRTING',30,'middle','700');
+
+    // Ventilation grooves for sink and gas cabinets
+    let vcx=0;
+    ec.forEach(c=>{
+      let w=c.width;
+      let vx2=c._x!=null?c._x:vcx;
+      if(c.type==='sink'||c.type==='gasCylinder'){
+        for(let i=0;i<3;i++){
+          let gy=baseTop+bh-14+i*10;
+          s+=R(vx2+w*.12,gy,w*.76,2.5,0,'#888');
+        }
+        s+=T(vx2+w/2,baseTop+bh+16,'VENT GROOVE',30,'middle','700');
+      }
+      vcx+=w;
+    });
+
+    // Chimney pelmet above hob cabinets
+    let hasHob=ec.some(c=>c.type==='hob');
+    if(hasHob){
+      let hobC=ec.find(c=>c.type==='hob');
+      let hx=hobC._x!=null?hobC._x:0;
+      s+=R(hx-20,cy-35,hobC.width+40,28,2,'#d4c5a0');
+      s+=T(hx+hobC.width/2,cy-20,'CHIMNEY PELMET L1',30,'middle','700');
+      s+=R(hx,cy-5,hobC.width,5,0,'#bbb');
+      s+=T(hx+hobC.width/2,cy-8,'CHIMNEY MOUNTING PANEL',30,'middle');
+    }
+
+    cy+=totalH+gap;
+  });
+
+  let sy=cy+30;
+  s+=T(vw/2,sy,'SECTION — TYPICAL BASE CABINET',30,'middle','700');
+  let x=vw/2-120,yy=sy+35,w=240,hh=160,pl2=30;
+  s+=R(x,yy,w,10,2,'#d4c5a0');
+  s+=R(x+12,yy+10,w-24,hh,2,'#dbeafe');
+  s+=L(x+24,yy+10+hh,x+24,yy+10+hh+pl2,2)+L(x+w-24,yy+10+hh,x+w-24,yy+10+hh+pl2,2);
+  dimH(x,x+w,yy-16,String(o.counterDepth));
+  dimH(x+18,x+w-18,yy+60,String(o.carcassDepth));
+  dimV(x-35,yy,yy+10+hh+pl2,String(o.counterHeight+o.counterThickness));
+  s+=L(x+w,yy+5,x+w+200,yy+5)+T(x+w+205,yy+10,o.counterThickness+'mm Countertop',30);
+  s+=L(x+w-12,yy+55,x+w+200,yy+55)+T(x+w+205,yy+60,'Cabinet Carcass ('+o.carcassDepth+'mm)',30);
+  s+=L(x+w-24,yy+10+hh+16,x+w+200,yy+10+hh+16)+T(x+w+205,yy+10+hh+21,'Recessed Kick / Plinth ('+o.plinthHeight+'mm)',30);
+
+  $('elevSvg').innerHTML=s;
+}
+
+function updateLegend(){
+  let o=p();
+  let walls=o.layoutType==='straight'?'A':o.layoutType==='L'?'A, B':'A, B, C';
+  $('topLegend').innerHTML=
+    '<b>Layout:</b> '+o.layoutType.toUpperCase()+'&nbsp;&nbsp;&nbsp;'+
+    '<b>Walls:</b> '+walls+'&nbsp;&nbsp;&nbsp;'+
+    '<b>Wall A:</b> '+o.wallA+'mm'+
+    (o.layoutType!=='straight'?'&nbsp;&nbsp;&nbsp;<b>Wall B:</b> '+o.wallB+'mm':'')+
+    (o.layoutType==='U'?'&nbsp;&nbsp;&nbsp;<b>Wall C:</b> '+o.wallC+'mm':'')+
+    '&nbsp;&nbsp;&nbsp;<b>Counter:</b> '+o.counterDepth+'mm deep'+
+    '&nbsp;&nbsp;&nbsp;<b>Base H:</b> '+(o.counterHeight-o.plinthHeight)+'mm'+
+    '&nbsp;&nbsp;&nbsp;<b>Dado:</b> '+o.dadoHeight+'mm'+
+    '&nbsp;&nbsp;&nbsp;<b>Wall cab:</b> 600mm';
+
+  let counters={A:{bc:0,wc:0,tc:0,mc:0,fil:0,chim:0},B:{bc:0,wc:0,tc:0,mc:0,fil:0,chim:0},C:{bc:0,wc:0,tc:0,mc:0,fil:0,chim:0},island:{bc:0,wc:0,tc:0,mc:0,fil:0,chim:0}};
+  let wallColors={A:'#3b82f6',B:'#22c55e',C:'#f97316',island:'#a855f7'};
+
+  let html='';
+  Object.keys(wallColors).forEach(wk=>{
+    let wallCabs=cabinets.filter(c=>c.wall===wk);
+    if(!wallCabs.length)return;
+    let color=wallColors[wk];
+
+    html+='<div style="margin-bottom:6px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">';
+    html+='<span class="wallTag '+wk+'" style="margin-right:4px">'+wk+'</span> ';
+
+    wallCabs.forEach(c=>{
+      let cat=CATEGORY[c.type];
+      let label;
+      let w=c.width;
+      let h,d;
+      if(cat==='filler'){counters[wk].fil++;label='FIL';h=o.counterHeight-o.plinthHeight;d=o.carcassDepth;}
+      else if(c.type==='chimney'){counters[wk].chim++;label='CHIM';h=o.counterHeight-o.plinthHeight;d=o.carcassDepth;}
+      else if(cat==='tall'){counters[wk].tc++;label='TC'+counters[wk].tc;h=1920;d=o.carcassDepth;}
+      else if(cat==='midTall'){counters[wk].mc++;label='MC'+counters[wk].mc;h=o.counterHeight+200;d=o.carcassDepth;}
+      else if(cat==='wall'){counters[wk].wc++;label='WC'+counters[wk].wc;h=600;d=300;}
+      else{counters[wk].bc++;label='BC'+counters[wk].bc;h=o.counterHeight-o.plinthHeight;d=o.carcassDepth;}
+
+      html+='<span style="display:inline-flex;align-items:center;gap:3px;margin-right:12px;font-size:13px">';
+      html+='<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+color+';flex-shrink:0"></span>';
+      html+='<b>'+label+'</b> '+w+'×'+h+'×'+d+'</span>';
+    });
+    html+='</div>';
+  });
+  $('bottomLegend').innerHTML=html||'<span style="color:var(--muted)">No cabinets placed</span>';
+}
+
+function draw(){
+  let o=p(),lt=o.layoutType;
+  let errors=[];
+  getWallKeys(lt).forEach(wk=>{
+    if(wk==='island') return;
+    let wallLen=getWallLength(wk);
+    let baseCabs=cabinets.filter(c=>c.wall===wk&&CATEGORY[c.type]!=='wall');
+    let total=baseCabs.reduce((a,c)=>a+c.width,0);
+    if(total>wallLen) errors.push('Wall '+wk+': cabinets ('+total+'mm) exceed wall length ('+wallLen+'mm)');
+  });
+  $('errorBar').innerHTML=errors.length?'<div class="err">'+errors.join('</div><div class="err">')+'</div>':'';
+
+  drawBasePlan();
+  drawWallPlan();
+  drawElevation();
+  updateLegend();
+}
+
+function list(){
+  let html='';
+  if(!cabinets.length){
+    html='<p style="padding:16px;font-size:13px;color:var(--muted);text-align:center">No cabinets added.<br>Use <b>Auto-Layout</b> or <b>Add Cabinet</b>.</p>';
+  }else{
+    let o=p();
+    html=cabinets.map((c,i)=>{
+      let cat=CATEGORY[c.type]||'base';
+      let layerColor=cat==='filler'?'#e8e8e8':c.type==='chimney'?'#fef3c7':cat==='wall'?'#fce7f3':cat==='tall'||cat==='midTall'?'#dbeafe':'#d1fae5';
+      let layerLabel=cat==='filler'?'FIL':c.type==='chimney'?'CHIM':cat==='wall'?'WC':cat==='tall'?'TC':cat==='midTall'?'MC':'BC';
+      let h=c.h||(cat==='wall'?600:cat==='tall'?1920:o.counterHeight-o.plinthHeight);
+      let d=c.d||(cat==='wall'?300:o.carcassDepth);
+      return `<div class="cab" style="border-left-color:${layerColor}">
+        <span class="idx">${i+1}</span>
+        <span class="wallTag ${c.wall}">${c.wall}</span>
+        <div>
+          <div class="name">${layerLabel} — ${LABELS[c.type]}</div>
+          <div class="dims">${c.width} × ${d} × ${h} mm</div>
+        </div>
+        <span class="dims">${c.width} mm</span>
+        <span class="actions">
+          <button data-a="u" data-i="${i}" title="Move up">\u2191</button>
+          <button data-a="d" data-i="${i}" title="Move down">\u2193</button>
+          <button data-a="x" data-i="${i}" title="Delete" class="del">\u00d7</button>
+        </span>
+      </div>`;
+    }).join('');
+  }
+  $('cabinetList').innerHTML=html;
+}
+
+function price(c){
+  if(CATALOG[c.type]){
+    let variants=CATALOG[c.type];
+    let exact=variants.find(v=>v.w===c.width);
+    if(exact)return Math.round(exact.cp);
+    let closest=variants.reduce((best,v)=>Math.abs(v.w-c.width)<Math.abs(best.w-c.width)?v:best);
+    return Math.round(closest.cp*(c.width/closest.w));
+  }
+  let base=PRICES[c.type]||1812;
+  if(CATEGORY[c.type]==='wall')base*=0.7;
+  if(CATEGORY[c.type]==='tall')base*=1.3;
+  return Math.round(base*(c.width/600))
+}
+function money(n){return new Intl.NumberFormat('en-IN',{style:'currency',currency:p().currency,maximumFractionDigits:0}).format(n)}
+function qrows(){return cabinets.map((c,i)=>({no:i+1,description:`Wall ${c.wall} \u2013 ${LABELS[c.type]} (${c.width} mm)`,qty:1,rate:price(c),amount:price(c)}))}
+function quotation(){let rows=qrows(),sub=rows.reduce((a,r)=>a+r.amount,0),disc=sub*(+$('discountRate').value/100),taxable=sub-disc,tax=taxable*(+$('taxRate').value/100),tot=taxable+tax,o=p();$('quotationReport').innerHTML=`<h3>${esc(o.projectName)}</h3><p>Customer: ${esc(o.customer)} &middot; Layout: ${o.layoutType.toUpperCase()}</p><table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.no}</td><td>${esc(r.description)}</td><td>1</td><td>${money(r.rate)}</td><td>${money(r.amount)}</td></tr>`).join('')}</tbody></table><table class="totals"><tr><th>Subtotal</th><td>${money(sub)}</td></tr><tr><th>Discount (${$('discountRate').value}%)</th><td>${money(disc)}</td></tr><tr><th>Tax (${$('taxRate').value}%)</th><td>${money(tax)}</td></tr><tr><th>Total</th><td><b>${money(tot)}</b></td></tr></table>`}
+
+function exportQuotationExcel(){
+  let rows=qrows(),o=p();
+  let sub=rows.reduce((a,r)=>a+r.amount,0);
+  let discPct=+$('discountRate').value;
+  let taxPct=+$('taxRate').value;
+  let disc=sub*(discPct/100);
+  let taxable=sub-disc;
+  let tax=taxable*(taxPct/100);
+  let tot=taxable+tax;
+  let cur=o.currency||'INR';
+  let fmt=n=>cur+' '+n.toLocaleString('en-IN');
+
+  let wallSummary={};
+  cabinets.forEach(c=>{
+    let cat=CATEGORY[c.type]||'base';
+    let key=c.wall;
+    if(!wallSummary[key])wallSummary[key]={base:0,wall:0,tall:0,filler:0,total:0};
+    wallSummary[key][cat]=(wallSummary[key][cat]||0)+price(c);
+    wallSummary[key].total+=price(c);
+  });
+
+  let wallRows='';
+  Object.keys(wallSummary).forEach(w=>{
+    let ws=wallSummary[w];
+    wallRows+=`<tr><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;background:#f8fafc">Wall ${w}</td><td style="padding:6px 10px;border:1px solid #ccc;text-align:right">${ws.base?fmt(ws.base):'-'}</td><td style="padding:6px 10px;border:1px solid #ccc;text-align:right">${ws.wall?fmt(ws.wall):'-'}</td><td style="padding:6px 10px;border:1px solid #ccc;text-align:right">${ws.tall?fmt(ws.tall):'-'}</td><td style="padding:6px 10px;border:1px solid #ccc;text-align:right;font-weight:700">${fmt(ws.total)}</td></tr>`;
+  });
+
+  let itemRows=rows.map(r=>`<tr><td style="padding:5px 10px;border:1px solid #ddd;text-align:center">${r.no}</td><td style="padding:5px 10px;border:1px solid #ddd">${r.description}</td><td style="padding:5px 10px;border:1px solid #ddd;text-align:center">${r.qty}</td><td style="padding:5px 10px;border:1px solid #ddd;text-align:right">${fmt(r.rate)}</td><td style="padding:5px 10px;border:1px solid #ddd;text-align:right;font-weight:600">${fmt(r.amount)}</td></tr>`).join('');
+
+  let html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+  <head><meta charset="utf-8">
+  <style>
+    body{font-family:Calibri,Arial,sans-serif;color:#1a1a2e;margin:20px}
+    .header{background:linear-gradient(135deg,#1f3248,#2d4a6f);color:#fff;padding:24px 30px;border-radius:8px;margin-bottom:20px}
+    .header h1{margin:0 0 4px;font-size:22px;letter-spacing:1px}
+    .header p{margin:0;color:#b8d4ee;font-size:12px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 30px;margin:16px 0;padding:14px 18px;background:#f0f4f8;border-radius:6px;border:1px solid #d0dbe6}
+    .info-grid .item{font-size:12px}
+    .info-grid .label{color:#6b7b8d;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:0.5px}
+    .info-grid .val{color:#1a1a2e;font-size:13px;margin-top:2px}
+    .section-title{font-size:14px;font-weight:700;color:#1f3248;margin:20px 0 8px;padding-bottom:4px;border-bottom:2px solid #1f3248}
+    table{width:100%;border-collapse:collapse;margin-bottom:6px}
+    .items th{background:#1f3248;color:#fff;padding:8px 10px;font-size:11px;text-align:left;border:1px solid #142536}
+    .items td{font-size:11px}
+    .wall-summary th{background:#2d4a6f;color:#fff;padding:7px 10px;font-size:11px;text-align:left;border:1px solid #1f3248}
+    .totals-box{float:right;width:300px;margin-top:10px}
+    .totals-box table th{background:#f0f4f8;padding:7px 12px;text-align:left;font-size:12px;border:1px solid #d0dbe6}
+    .totals-box table td{padding:7px 12px;text-align:right;font-size:12px;border:1px solid #d0dbe6}
+    .totals-box .grand{background:#1f3248;color:#fff;font-size:14px;font-weight:700}
+    .totals-box .grand td{color:#fff;border-color:#142536}
+    .footer{clear:both;margin-top:30px;padding-top:12px;border-top:1px solid #d0dbe6;font-size:10px;color:#6b7b8d;text-align:center}
+  </style></head>
+  <body>
+  <div class="header">
+    <h1>AIMS Kitchen Designer</h1>
+    <p>Quotation &mdash; ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</p>
+  </div>
+
+  <div class="info-grid">
+    <div class="item"><div class="label">Customer</div><div class="val">${esc(o.customer)}</div></div>
+    <div class="item"><div class="label">Project</div><div class="val">${esc(o.projectName)}</div></div>
+    <div class="item"><div class="label">Layout</div><div class="val">${o.layoutType.toUpperCase()}</div></div>
+    <div class="item"><div class="label">Currency</div><div class="val">${cur}</div></div>
+    <div class="item"><div class="label">Counter Height</div><div class="val">${o.counterHeight} mm</div></div>
+    <div class="item"><div class="label">Carcass Depth</div><div class="val">${o.carcassDepth} mm</div></div>
+  </div>
+
+  <div class="section-title">Wall-wise Summary</div>
+  <table class="wall-summary">
+    <tr><th style="text-align:left">Wall</th><th style="text-align:right">Base</th><th style="text-align:right">Wall</th><th style="text-align:right">Tall</th><th style="text-align:right">Total</th></tr>
+    ${wallRows}
+  </table>
+
+  <div class="section-title">Itemized Quotation</div>
+  <table class="items">
+    <tr><th>#</th><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr>
+    ${itemRows}
+  </table>
+
+  <div class="totals-box">
+    <table>
+      <tr><th>Subtotal</th><td>${fmt(Math.round(sub))}</td></tr>
+      <tr><th>Discount (${discPct}%)</th><td>- ${fmt(Math.round(disc))}</td></tr>
+      <tr><th>Tax (${taxPct}%)</th><td>${fmt(Math.round(tax))}</td></tr>
+      <tr class="grand"><th>Grand Total</th><td>${fmt(Math.round(tot))}</td></tr>
+    </table>
+  </div>
+
+  <div class="footer">Generated by AIMS Kitchen Designer &middot; ${new Date().toLocaleString()}</div>
+  </body></html>`;
+
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel'}));
+  a.download='Quotation_'+(o.projectName||'Kitchen').replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xls';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function brows(){
+  let a=[],o=p();
+  let counters={bc:0,wc:0,tc:0,mc:0};
+  let cabLabels=[];
+  let sorted=cabinets.map((c,i)=>({c,i}));
+  sorted.forEach(({c,i})=>{
+    let cat=CATEGORY[c.type]||'base';
+    let label;
+    if(cat==='filler'){label='FIL';}
+    else if(c.type==='chimney'){label='CHIM';}
+    else if(cat==='tall'){counters.tc++;label='TC'+counters.tc;}
+    else if(cat==='midTall'){counters.mc++;label='MC'+counters.mc;}
+    else if(cat==='wall'){counters.wc++;label='WC'+counters.wc;}
+    else{counters.bc++;label='BC'+counters.bc;}
+    cabLabels[i]=label;
+  });
+
+  sorted.sort((a,b)=>{
+    let la=cabLabels[a.i],lb=cabLabels[b.i];
+    let pa=la.replace(/\d+/,''),pb=lb.replace(/\d+/,'');
+    if(pa!==pb)return pa<pb?-1:1;
+    let na=parseInt(la.match(/\d+/)?.[0]||0),nb=parseInt(lb.match(/\d+/)?.[0]||0);
+    return na-nb;
+  });
+
+  sorted.forEach(({c,i})=>{
+    let cab=cabLabels[i];
+    let cat=CATEGORY[c.type]||'base';
+    let w=c.width;
+    let cd=c.d||o.carcassDepth;
+    let wall=c.wall;
+    let sideH=(c.type==='sink'||c.type==='gasCylinder')?790:(c.h||o.counterHeight-o.plinthHeight);
+    let cabW=w,cabD=cd,cabH=sideH;
+    let cabName=LABELS[c.type]||c.type;
+
+    function add(list,part,qty,length,width,thickness,material,layer,op){
+      let sft=0;
+      if(length&&width)sft=Math.round(qty*length*width/92903.04*100)/100;
+      list.push({cab,cabName,part,qty,length,width,thickness,material,wall,layer,cabW,cabD,cabH,sft,op:op||''});
+    }
+
+    if(c.type==='chimney') return;
+
+    let formulaKey=TYPE_TO_FORMULA[c.type];
+    let formula=formulaKey&&CAB_DATA&&CAB_DATA.formulas?CAB_DATA.formulas[formulaKey]:null;
+    if(!formula) return;
+
+    let vars={W:w,D:cd,H:sideH,n:1};
+
+    if(formula.drawerCount){
+      let n=formula.drawerCount;
+      let ratios=formula.drawerRatios||[1];
+      let totalRatio=ratios.reduce((a,b)=>a+b,0);
+      let totalShutterH=sideH-2*n;
+      let drawerDepth=cd-60;
+
+      (formula.panels||[]).forEach(p=>{
+        let length=typeof p.h==='string'?evalFormula(p.h,vars):p.h;
+        let width=typeof p.w==='string'?evalFormula(p.w,vars):p.w;
+        add(a,p.part,p.qty,length,width,p.t,p.material,p.layer,p.op);
+      });
+
+      let unitH=Math.floor(totalShutterH/totalRatio);
+      let shutterHs=ratios.map((r,idx)=>{
+        if(idx===ratios.length-1) return totalShutterH-unitH*(ratios.length-1);
+        return unitH;
+      });
+      let drawerUnitH=Math.floor(drawerDepth/totalRatio);
+      let drawerHs=ratios.map((r,idx)=>{
+        if(idx===ratios.length-1) return drawerDepth-drawerUnitH*(ratios.length-1);
+        return drawerUnitH;
+      });
+
+      (formula.drawerPanels||[]).forEach(p=>{
+        for(let d=0;d<n;d++){
+          let dv={W:w,D:cd,H:sideH,n:n,dH:drawerHs[d]};
+          let length=typeof p.h==='string'?evalFormula(p.h,dv):p.h;
+          let width=typeof p.w==='string'?evalFormula(p.w,dv):p.w;
+          add(a,p.part,p.qty,length,width,p.t,p.material,p.layer,p.op);
+        }
+      });
+
+      (formula.shutterPanels||[]).forEach(p=>{
+        for(let d=0;d<n;d++){
+          let sv={W:w,D:cd,H:sideH,n:n,shH:shutterHs[d]};
+          let length=typeof p.h==='string'?evalFormula(p.h,sv):p.h;
+          let width=typeof p.w==='string'?evalFormula(p.w,sv):p.w;
+          add(a,p.part,p.qty,length,width,p.t,p.material,p.layer,p.op);
+        }
+      });
+
+      (formula.hardware||[]).forEach(h=>{
+        let qty=typeof h.qty==='string'?evalFormula(h.qty,{n:n}):h.qty;
+        add(a,h.part,qty,'','','','','Hardware','Hardware');
+      });
+      return;
+    }
+
+    (formula.panels||[]).forEach(p=>{
+      let length=typeof p.h==='string'?evalFormula(p.h,vars):p.h;
+      let width=typeof p.w==='string'?evalFormula(p.w,vars):p.w;
+      add(a,p.part,p.qty,length,width,p.t,p.material,p.layer,p.op);
+    });
+
+    (formula.hardware||[]).forEach(h=>{
+      let qty=typeof h.qty==='string'?evalFormula(h.qty,vars):h.qty;
+      add(a,h.part,qty,'','','','','Hardware','Hardware');
+    });
+  });
+
+  return a;
+}
+
+function bom(){
+  let rows=brows();
+  let html='<table style="border-collapse:collapse;width:100%;border:2px solid #1f3248"><thead><tr><th style="border:1px solid #333;padding:8px">Cab</th><th style="border:1px solid #333;padding:8px">Layer</th><th style="border:1px solid #333;padding:8px">Part</th><th style="border:1px solid #333;padding:8px">Qty</th><th style="border:1px solid #333;padding:8px">Width</th><th style="border:1px solid #333;padding:8px">Length</th><th style="border:1px solid #333;padding:8px">Thickness</th><th style="border:1px solid #333;padding:8px">Op</th><th style="border:1px solid #333;padding:8px">Material</th><th style="border:1px solid #333;padding:8px">SFT</th><th style="border:1px solid #333;padding:8px">Wall</th></tr></thead><tbody>';
+  let prevCab='', prevLayer='';
+  rows.forEach((r,ri)=>{
+    if(r.cab!==prevCab){
+      if(prevCab!=='') html+='<tr><td colspan="11" style="border:none;height:10px"></td></tr>';
+      html+=`<tr style="background:#1f3248;color:#fff"><td colspan="11" style="border:1px solid #333;font-weight:700;font-size:14px;padding:6px 10px">${r.cab} — ${r.cabName} (${r.cabW} x ${r.cabD} x ${r.cabH} mm) &nbsp; | &nbsp; Wall ${r.wall}</td></tr>`;
+      prevLayer='';
+    }
+    let layerHeading='';
+    if(r.layer!==prevLayer){
+      layerHeading=r.layer.toUpperCase();
+    }
+    let layerColor=r.layer==='Shutter'?'#e0f2fe':r.layer==='Hardware'?'#fef3c7':'#f0fdf4';
+    let sftText=r.sft?r.sft.toFixed(2):'-';
+    html+=`<tr style="background:${layerColor}"><td style="border:1px solid #ccc;padding:6px"></td><td style="border:1px solid #ccc;padding:6px;font-weight:700">${layerHeading||''}</td><td style="border:1px solid #ccc;padding:6px">${r.part}</td><td style="border:1px solid #ccc;padding:6px">${r.qty}</td><td style="border:1px solid #ccc;padding:6px">${r.width||'-'}</td><td style="border:1px solid #ccc;padding:6px">${r.length||'-'}</td><td style="border:1px solid #ccc;padding:6px">${r.thickness||'-'}</td><td style="border:1px solid #ccc;padding:6px">${r.op||'-'}</td><td style="border:1px solid #ccc;padding:6px">${r.material}</td><td style="border:1px solid #ccc;padding:6px">${sftText}</td><td style="border:1px solid #ccc;padding:6px">${r.wall}</td></tr>`;
+    prevCab=r.cab;
+    prevLayer=r.layer;
+  });
+  html+='</tbody></table>';
+  $('bomReport').innerHTML=html;
+}
+
+function exportBomExcel(){
+  let rows=brows();
+  let html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+  <head><meta charset="utf-8">
+  <style>table{border-collapse:collapse;font-family:Arial,sans-serif}th{background:#1f3248;color:#fff;padding:8px 12px;border:1px solid #333;font-size:11pt;text-align:center}td{padding:6px 10px;border:1px solid #ccc;font-size:10pt}.layer-cab{background:#f0fdf4}.layer-shut{background:#e0f2fe}.layer-hw{background:#fef3c7}.cab-header{background:#1f3248;color:#fff;font-weight:700;font-size:12pt;padding:8px 12px}.sep{height:10px;border:none}.title{font-size:16pt;font-weight:700;color:#1f3248;margin-bottom:4px}.subtitle{font-size:10pt;color:#666;margin-bottom:12px}</style></head>
+  <body>
+  <div class="title">AIMS Kitchen Designer — Bill of Materials</div>
+  <div class="subtitle">Generated ${new Date().toLocaleDateString()}</div>
+  <table>
+  <tr><th>Cab</th><th>Layer</th><th>Part</th><th>Qty</th><th>Width</th><th>Length</th><th>Thickness</th><th>Op</th><th>Material</th><th>SFT</th><th>Wall</th></tr>`;
+  let prevCab='', prevLayer='';
+  rows.forEach(r=>{
+    if(r.cab!==prevCab){
+      if(prevCab!=='') html+='<tr class="sep"></tr>';
+      html+=`<tr><td colspan="11" class="cab-header">${r.cab} — ${r.cabW} x ${r.cabD} x ${r.cabH} (W x D x H) | Wall ${r.wall}</td></tr>`;
+      prevLayer='';
+    }
+    let cls=r.layer==='Shutter'?'layer-shut':r.layer==='Hardware'?'layer-hw':'layer-cab';
+    let layerLabel=r.layer!==prevLayer?r.layer.toUpperCase():'';
+    let sftText=r.sft?r.sft.toFixed(2):'-';
+    html+=`<tr class="${cls}"><td></td><td style="font-weight:700">${layerLabel}</td><td>${r.part}</td><td>${r.qty}</td><td>${r.width||'-'}</td><td>${r.length||'-'}</td><td>${r.thickness||'-'}</td><td>${r.op||'-'}</td><td>${r.material}</td><td>${sftText}</td><td>${r.wall}</td></tr>`;
+    prevCab=r.cab;
+    prevLayer=r.layer;
+  });
+  html+='</table></body></html>';
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel'}));
+  a.download='BOM_'+new Date().toISOString().slice(0,10)+'.xls';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function render(){list();draw();quotation();bom();cabSchedule()}
+
+function cabSvg(c,sz){
+  let cat=CATEGORY[c.type]||'base';
+  let w=sz,h=sz*.7;
+  let bg=CAT_COLORS[cat]||CAT_COLORS.base,stroke='#333';
+  if(c.type==='chimney') stroke='#c00';
+
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+  s+=`<rect x="1" y="1" width="${w-2}" height="${h-2}" rx="3" fill="${bg}" stroke="${stroke}" stroke-width="2"/>`;
+
+  if(c.type==='chimney'){
+    s+=`<line x1="4" y1="4" x2="${w-4}" y2="${h-4}" stroke="${stroke}" stroke-width="1.5"/>`;
+    s+=`<line x1="${w-4}" y1="4" x2="4" y2="${h-4}" stroke="${stroke}" stroke-width="1.5"/>`;
+  }else if(c.type==='drawer3'){
+    s+=`<line x1="4" y1="${h*.25}" x2="${w-4}" y2="${h*.25}" stroke="${stroke}" stroke-width="1"/>`;
+    s+=`<line x1="4" y1="${h*.5}" x2="${w-4}" y2="${h*.5}" stroke="${stroke}" stroke-width="1"/>`;
+  }else if(c.type==='drawer4'){
+    for(let i=1;i<4;i++) s+=`<line x1="4" y1="${h*i/4}" x2="${w-4}" y2="${h*i/4}" stroke="${stroke}" stroke-width="1"/>`;
+  }else if(c.type==='drawer2'){
+    s+=`<line x1="4" y1="${h/2}" x2="${w-4}" y2="${h/2}" stroke="${stroke}" stroke-width="1"/>`;
+  }else if(c.type==='doubleDoor'||c.type==='tallDouble'||c.type==='wallDouble'){
+    s+=`<line x1="${w/2}" y1="4" x2="${w/2}" y2="${h-4}" stroke="${stroke}" stroke-width="1"/>`;
+  }else if(c.type==='singleDoor'||c.type==='pullout'||c.type==='gasCylinder'){
+    s+=`<line x1="${w-12}" y1="4" x2="${w-12}" y2="${h-4}" stroke="${stroke}" stroke-width="1" stroke-dasharray="2 2"/>`;
+  }else if(c.type==='wallOpen'){
+    s+=`<line x1="4" y1="${h*.33}" x2="${w-4}" y2="${h*.33}" stroke="${stroke}" stroke-width="1" stroke-dasharray="3 2"/>`;
+    s+=`<line x1="4" y1="${h*.66}" x2="${w-4}" y2="${h*.66}" stroke="${stroke}" stroke-width="1" stroke-dasharray="3 2"/>`;
+  }else if(c.type==='cornerBlind'){
+    s+=`<line x1="4" y1="4" x2="${w*.42}" y2="${h*.42}" stroke="${stroke}" stroke-width="1" stroke-dasharray="4 3"/>`;
+    s+=`<line x1="${w-4}" y1="${h-4}" x2="${w*.58}" y2="${h*.58}" stroke="${stroke}" stroke-width="1" stroke-dasharray="4 3"/>`;
+  }else if(c.type==='sink'){
+    s+=`<line x1="${w/2}" y1="4" x2="${w/2}" y2="${h-4}" stroke="${stroke}" stroke-width="1"/>`;
+    s+=`<rect x="${w*.3}" y="${h*.15}" width="${w*.4}" height="${h*.5}" rx="3" fill="none" stroke="#999" stroke-width="1"/>`;
+  }else if(c.type==='hob'){
+    s+=`<line x1="${w/2}" y1="4" x2="${w/2}" y2="${h-4}" stroke="${stroke}" stroke-width="1"/>`;
+    s+=`<circle cx="${w*.33}" cy="${h*.3}" r="${w*.08}" fill="none" stroke="#999" stroke-width="1"/>`;
+    s+=`<circle cx="${w*.67}" cy="${h*.3}" r="${w*.08}" fill="none" stroke="#999" stroke-width="1"/>`;
+    s+=`<circle cx="${w*.33}" cy="${h*.65}" r="${w*.08}" fill="none" stroke="#999" stroke-width="1"/>`;
+    s+=`<circle cx="${w*.67}" cy="${h*.65}" r="${w*.08}" fill="none" stroke="#999" stroke-width="1"/>`;
+  }else if(c.type==='oven'){
+    s+=`<rect x="${w*.15}" y="${h*.12}" width="${w*.7}" height="${h*.55}" rx="3" fill="none" stroke="#999" stroke-width="1"/>`;
+    s+=`<rect x="${w*.25}" y="${h*.22}" width="${w*.5}" height="${h*.3}" rx="1" fill="none" stroke="#999" stroke-width="1"/>`;
+  }else if(cat==='base'||cat==='tall'){
+    s+=`<line x1="${w/2}" y1="4" x2="${w/2}" y2="${h-4}" stroke="${stroke}" stroke-width="1"/>`;
+  }
+
+  let isTall=cat==='tall';
+  if(c.type==='singleDoor'||c.type==='tallSingle'||c.type==='tallOven'||c.type==='wallSingle'||c.type==='pullout'||c.type==='gasCylinder'){
+    let hx=isTall?w-8:w-10;
+    let hy1=isTall?h*.35:h*.3;
+    let hy2=isTall?h*.65:h*.7;
+    s+=`<line x1="${hx}" y1="${hy1}" x2="${hx}" y2="${hy2}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+  }else if(c.type==='doubleDoor'||c.type==='tallDouble'||c.type==='wallDouble'){
+    let hx1=w/2-4,hx2=w/2+4;
+    let hy1=isTall?h*.35:h*.3;
+    let hy2=isTall?h*.65:h*.7;
+    s+=`<line x1="${hx1}" y1="${hy1}" x2="${hx1}" y2="${hy2}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+    s+=`<line x1="${hx2}" y1="${hy1}" x2="${hx2}" y2="${hy2}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+  }else if(c.type==='drawer3'||c.type==='drawer4'||c.type==='drawer2'){
+    let hx=w-10;
+    s+=`<line x1="${hx}" y1="${h*.15}" x2="${hx}" y2="${h*.35}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+    if(c.type==='drawer3'){
+      s+=`<line x1="${hx}" y1="${h*.4}" x2="${hx}" y2="${h*.6}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+    }
+  }else if(c.type==='hob'){
+    let hx=w/2;
+    s+=`<line x1="${hx-4}" y1="${h*.82}" x2="${hx-4}" y2="${h*.95}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+    s+=`<line x1="${hx+4}" y1="${h*.82}" x2="${hx+4}" y2="${h*.95}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+  }else if(c.type==='sink'){
+    let hx=w-10;
+    s+=`<line x1="${hx}" y1="${h*.35}" x2="${hx}" y2="${h*.65}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+  }else if(c.type==='cornerBlind'){
+    let hx=w-10;
+    s+=`<line x1="${hx}" y1="${h*.35}" x2="${hx}" y2="${h*.65}" stroke="#555" stroke-width="2" stroke-linecap="round"/>`;
+  }
+
+  s+=`</svg>`;
+  return s;
+}
+
+function cabSchedule(){
+  let html='';
+  if(!cabinets.length){$('cabSchedule').innerHTML='';return;}
+  let o=p();
+  let counters={bc:0,wc:0,tc:0,mc:0,fil:0,chim:0};
+  let rows=cabinets.map((c,i)=>{
+    let cat=CATEGORY[c.type]||'base';
+    let label;
+    if(cat==='filler'){counters.fil++;label='FIL';}
+    else if(c.type==='chimney'){counters.chim++;label='CHIM';}
+    else if(cat==='tall'){counters.tc++;label='TC'+counters.tc;}
+    else if(cat==='midTall'){counters.mc++;label='MC'+counters.mc;}
+    else if(cat==='wall'){counters.wc++;label='WC'+counters.wc;}
+    else{counters.bc++;label='BC'+counters.bc;}
+    let h=c.h||(cat==='wall'?600:cat==='tall'?1920:o.counterHeight-o.plinthHeight);
+    let d=c.d||(cat==='wall'?300:o.carcassDepth);
+    let wallLabel=c.wall==='island'?'Island':'Wall '+c.wall;
+    return {i,label,type:LABELS[c.type],w:c.width,d,h,wall:wallLabel,c};
+  });
+
+  html+='<table style="border-collapse:collapse;width:100%;border:2px solid #1f3248;margin-top:12px;font-family:Arial,sans-serif">';
+  html+='<thead><tr>';
+  ['#','SVG','Annotation','Width','Depth','Height','Wall'].forEach(h2=>{
+    html+=`<th style="background:#1f3248;color:#fff;padding:8px 10px;border:1px solid #333;font-size:12px;text-align:center">${h2}</th>`;
+  });
+  html+='</tr></thead><tbody>';
+
+  rows.forEach(r=>{
+    let layerColor=r.c.type==='filler'?'#f5f5f5':r.c.type==='chimney'?'#fef3c7':CATEGORY[r.c.type]==='wall'?'#fce7f3':CATEGORY[r.c.type]==='tall'?'#dbeafe':'#d1fae5';
+    html+=`<tr style="background:${layerColor}">`;
+    html+=`<td style="border:1px solid #ccc;padding:6px;text-align:center;font-weight:700;font-size:13px">${r.i+1}</td>`;
+    html+=`<td style="border:1px solid #ccc;padding:4px;text-align:center">${cabSvg(r.c,60)}</td>`;
+    html+=`<td style="border:1px solid #ccc;padding:6px;font-weight:700;font-size:13px">${r.label} — ${r.type}</td>`;
+    html+=`<td style="border:1px solid #ccc;padding:6px;text-align:center">${r.w} mm</td>`;
+    html+=`<td style="border:1px solid #ccc;padding:6px;text-align:center">${r.d} mm</td>`;
+    html+=`<td style="border:1px solid #ccc;padding:6px;text-align:center">${r.h} mm</td>`;
+    html+=`<td style="border:1px solid #ccc;padding:6px;text-align:center">${r.wall}</td>`;
+    html+=`</tr>`;
+  });
+
+  html+='</tbody></table>';
+  $('cabSchedule').innerHTML=html;
+}
+function sample(){
+  // L-shape matching reference plan (~2900mm x ~1800mm)
+  cabinets=[
+    // Wall A base cabinets
+    {type:'cornerBlind',width:1100,wall:'A'},
+    {type:'drawer3',width:600,wall:'A'},
+    {type:'hob',width:750,wall:'A'},
+    {type:'sink',width:600,wall:'A'},
+    {type:'gasCylinder',width:450,wall:'A'},
+    // Wall A wall cabinets
+    {type:'wallDouble',width:900,wall:'A'},
+    {type:'wallOpen',width:600,wall:'A'},
+    {type:'wallDouble',width:900,wall:'A'},
+    {type:'wallSingle',width:600,wall:'A'},
+    // Wall B base cabinets
+    {type:'doubleDoor',width:600,wall:'B'},
+    {type:'pullout',width:400,wall:'B'},
+    {type:'doubleDoor',width:800,wall:'B'},
+    // Wall B tall cabinets
+    {type:'tallDouble',width:600,wall:'B'},
+    {type:'tallSingle',width:400,wall:'B'}
+  ];render()
+}
+function dl(name,text,type){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+function csv(rows,cols){return[cols.join(',')].concat(rows.map(r=>cols.map(c=>'"'+String(r[c]??'').replaceAll('"','""')+'"').join(','))).join('\n')}
+
+function updateLayoutFields(){let lt=$('layoutType').value;$('wallBLbl').style.display=(lt==='L'||lt==='U')?'':'none';$('wallCLbl').style.display=(lt==='U')?'':'none';$('islWLabel').style.display=(lt==='island')?'':'none';$('islDLabel').style.display=(lt==='island')?'':'none';let ws=$('cabinetWall');ws.innerHTML='';let keys=getWallKeys(lt);keys.forEach(k=>{let opt=document.createElement('option');opt.value=k;opt.textContent='Wall '+k+(k==='island'?' (Island)':'');ws.appendChild(opt)});autoLayoutAll()}
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===b.dataset.tab))});
+$('addCabinetBtn').onclick=()=>{let w=+$('cabinetWidth').value;let h=+$('cabinetHeight').value;let d=+$('cabinetDepth').value;let wall=$('cabinetWall').value;if(w>0&&w<=2000){cabinets.push({type:$('cabinetType').value,width:w,h:h,d:d,wall:wall});positionNewCabinet(cabinets.length-1);render()}};
+$('placeBtn').onclick=autoLayoutAll;
+$('loadSampleBtn').onclick=sample;
+$('clearCabinetsBtn').onclick=()=>{cabinets=[];render()};
+$('generateBtn').onclick=()=>{cabinets.forEach((c,i)=>positionNewCabinet(i));render()};
+$('cabinetList').onclick=e=>{let b=e.target.closest('button');if(!b)return;let i=+b.dataset.i;if(b.dataset.a==='x')cabinets.splice(i,1);if(b.dataset.a==='u'&&i>0)[cabinets[i-1],cabinets[i]]=[cabinets[i],cabinets[i-1]];if(b.dataset.a==='d'&&i<cabinets.length-1)[cabinets[i+1],cabinets[i]]=[cabinets[i],cabinets[i+1]];render()};
+$('printBtn').onclick=()=>print();
+$('exportSvgBtn').onclick=()=>{let bp=$('basePlanSvg'),wp=$('wallPlanSvg'),el=$('elevSvg');let bpVB=(bp.getAttribute('viewBox')||'0 0 100 100').split(' ').map(Number);let wpVB=(wp.getAttribute('viewBox')||'0 0 100 100').split(' ').map(Number);let elVB=(el.getAttribute('viewBox')||'0 0 100 100').split(' ').map(Number);let gap=30;let yEl=0,yBp=elVB[3]+gap,yWp=yBp+bpVB[3]+gap;let totalH=yWp+wpVB[3];let maxW=Math.max(elVB[2],bpVB[2],wpVB[2]);let combined=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${maxW} ${totalH}"><g transform="translate(${-elVB[0]},${-elVB[1]})">${el.innerHTML}</g><g transform="translate(${-bpVB[0]},${yBp-bpVB[1]})">${bp.innerHTML}</g><g transform="translate(${-wpVB[0]},${yWp-wpVB[1]})">${wp.innerHTML}</g></svg>`;dl('aims-kitchen-sheet.svg',combined,'image/svg+xml')};
+$('exportJsonBtn').onclick=()=>dl('aims-project.json',JSON.stringify(p(),null,2),'application/json');
+$('importJson').onchange=e=>{let f=e.target.files[0],r=new FileReader();r.onload=()=>{let o=JSON.parse(r.result);Object.keys(o).forEach(k=>{if($(k)&&k!=='cabinets')$(k).value=o[k]});cabinets=o.cabinets||[];render()};r.readAsText(f)};
+$('quotationExcelBtn').onclick=exportQuotationExcel;
+$('bomCsvBtn').onclick=exportBomExcel;
+['customer','projectName','overallWidth','counterHeight','counterThickness','counterDepth','carcassDepth','plinthHeight','dadoHeight','handleSystem','currency','taxRate','discountRate'].forEach(id=>{let el=$(id);if(el)el.oninput=render});
+['wallA','wallB','wallC','islandWidth','islandDepth'].forEach(id=>{let el=$(id);if(el)el.oninput=autoLayoutAll});
+$('layoutType').onchange=updateLayoutFields;
+
+// ─── Drag & Place Engine ───────────────────────────────────────
+let dragMode=false,dragCabIdx=-1,dragWall=null,dragOffset=0;
+let ghostEl=null,activeDragSvg=null;
+
+function svgPt(e,svg){
+  svg=svg||activeDragSvg||$('basePlanSvg');
+  let pt=svg.createSVGPoint();
+  pt.x=e.clientX;pt.y=e.clientY;
+  let ctm=svg.getScreenCTM();
+  if(!ctm)return{x:0,y:0};
+  return pt.matrixTransform(ctm.inverse());
+}
+
+function wallHit(pt){
+  let o=p(),lt=o.layoutType,cd=o.counterDepth,th=40,wt=o.wallThickness||100;
+  let hits=[];
+  if(lt==='straight'||lt==='L'||lt==='U'){
+    if(pt.x>=0&&pt.x<=o.wallA&&pt.y>=-th&&pt.y<=cd+th)
+      hits.push({wall:'A',pos:Math.max(0,Math.min(pt.x,o.wallA))});
+  }
+  if((lt==='L'||lt==='U')&&pt.y>=0&&pt.y<=o.wallB&&pt.x>=-th&&pt.x<=cd+th)
+    hits.push({wall:'B',pos:Math.max(0,Math.min(pt.y,o.wallB))});
+  if(lt==='U'&&pt.y>=0&&pt.y<=o.wallC&&pt.x>=o.wallA-cd-th&&pt.x<=o.wallA+th)
+    hits.push({wall:'C',pos:Math.max(0,Math.min(pt.y,o.wallC))});
+  return hits[0]||null;
+}
+
+function cabHit(pt){
+  let cd=p().counterDepth;
+  for(let i=cabinets.length-1;i>=0;i--){
+    let c=cabinets[i],cat=CATEGORY[c.type];
+    if(cat!=='base'&&cat!=='tall'&&cat!=='midTall')continue;
+    let ci=cabRect(c);
+    if(pt.x>=ci.x&&pt.x<=ci.x+ci.w&&pt.y>=ci.y&&pt.y<=ci.y+ci.h)
+      return i;
+  }
+  return -1;
+}
+
+function cabRect(c){
+  let o=p(),cd=o.counterDepth;
+  if(c.wall==='A') return{x:c._x!=null?c._x:0,y:0,w:c.width,h:cd};
+  if(c.wall==='B') return{x:0,y:c._y!=null?c._y:0,w:cd,h:c.width};
+  if(c.wall==='C') return{x:o.wallA-cd,y:c._y!=null?c._y:0,w:cd,h:c.width};
+  return{x:0,y:0,w:0,h:0};
+}
+
+function showGhost(x,y,w,h,label){
+  let svg=activeDragSvg||$('basePlanSvg');
+  if(!ghostEl){
+    ghostEl=document.createElement('div');
+    ghostEl.className='dragOverlay';
+    svg.parentNode.style.position='relative';
+    svg.parentNode.appendChild(ghostEl);
+  }
+  let rect=svg.getBoundingClientRect();
+  let vb=svg.getAttribute('viewBox').split(' ').map(Number);
+  let sx=rect.width/vb[2],sy=rect.height/vb[3];
+  ghostEl.style.left=(x-vb[0])*sx+'px';
+  ghostEl.style.top=(y-vb[1])*sy+'px';
+  ghostEl.style.width=w*sx+'px';
+  ghostEl.style.height=h*sy+'px';
+  ghostEl.textContent=label;
+  ghostEl.style.opacity='1';
+}
+
+function hideGhost(){if(ghostEl)ghostEl.style.opacity='0'}
+
+function enterDragMode(){
+  dragMode=true;
+  document.body.classList.add('dragMode');
+  $('statusText').textContent='Drag mode: click wall to place | drag cabinet to move | right-click to delete';
+  $('statusText').style.color='var(--accent)';
+}
+
+function exitDragMode(){
+  dragMode=false;dragCabIdx=-1;dragWall=null;
+  document.body.classList.remove('dragMode');
+  $('statusText').textContent='Ready';$('statusText').style.color='';
+  hideGhost();
+}
+
+$('dragBtn').onclick=()=>{dragMode?exitDragMode():enterDragMode()};
+
+function planMousedown(e){
+  if(!dragMode)return;
+  e.preventDefault();
+  activeDragSvg=e.currentTarget;
+  let pt=svgPt(e,activeDragSvg);
+
+  if(e.button===2){
+    let idx=cabHit(pt);
+    if(idx>=0){cabinets.splice(idx,1);render()}
+    return;
+  }
+
+  let hit=cabHit(pt);
+  if(hit>=0){
+    dragCabIdx=hit;
+    let c=cabinets[hit],ci=cabRect(c);
+    dragOffset=c.wall==='A'?pt.x-ci.x:pt.y-ci.y;
+    return;
+  }
+
+  let wh=wallHit(pt);
+  if(!wh)return;
+  let o=p(),cd=o.counterDepth;
+  let w=+$('cabinetWidth').value||600;
+  let type=$('cabinetType').value;
+  let usable=wh.wall==='A'?o.wallA:(wh.wall==='B'?o.wallB:o.wallC);
+
+  if(wh.wall==='A'){
+    let wallCabs=cabinets.filter(c=>c.wall==='A').sort((a,b)=>(a._x||0)-(b._x||0));
+    let bestX=0,bestW=Math.min(w,usable);
+    for(let c of wallCabs){
+      let cx2=c._x||0;
+      if(wh.pos>=cx2&&wh.pos<=cx2+c.width)return;
+      let gapStart=cx2+c.width;
+      let nxt=wallCabs[wallCabs.indexOf(c)+1];
+      let gapEnd=nxt?(nxt._x||0):usable;
+      if(wh.pos>=gapStart-10&&wh.pos<=gapEnd+10){
+        let fit=Math.min(w,gapEnd-gapStart);
+        if(fit>=200){bestX=gapStart;bestW=fit;break}
+      }
+    }
+    cabinets.push({type,width:bestW,wall:'A',_x:bestX});
+  } else {
+    let wallCabs=cabinets.filter(c=>c.wall===wh.wall).sort((a,b)=>(a._y||0)-(b._y||0));
+    for(let c of wallCabs){
+      let cy2=c._y||0;
+      if(wh.pos>=cy2&&wh.pos<=cy2+c.width)return;
+    }
+    let fit=Math.min(w,usable);
+    if(fit>=200) cabinets.push({type,width:fit,wall:wh.wall,_y:Math.max(0,Math.min(usable-fit,wh.pos-fit/2))});
+  }
+  render();
+}
+
+function planMousemove(e){
+  if(!dragMode)return;
+  activeDragSvg=e.currentTarget;
+  let pt=svgPt(e,activeDragSvg);
+  if(dragCabIdx>=0){
+    let c=cabinets[dragCabIdx];
+    if(c.wall==='A'){
+      let o=p(),maxX=o.wallA-c.width;
+      c._x=Math.max(0,Math.min(maxX,pt.x-dragOffset));
+    } else {
+      let o=p(),maxY=(c.wall==='B'?o.wallB:o.wallC)-c.width;
+      c._y=Math.max(0,Math.min(maxY,pt.y-dragOffset));
+    }
+    render();
+    let ci=cabRect(c);
+    showGhost(ci.x,ci.y,ci.w,ci.h,LABELS[c.type]+' '+c.width);
+    return;
+  }
+
+  let hit=cabHit(pt);
+  if(hit>=0){
+    let c=cabinets[hit],ci=cabRect(c);
+    showGhost(ci.x,ci.y,ci.w,ci.h,'Drag: '+LABELS[c.type]);
+    activeDragSvg.style.cursor='grab';
+    return;
+  }
+
+  let wh=wallHit(pt);
+  if(wh){
+    let w=+$('cabinetWidth').value||600;
+    let cd=p().counterDepth,wt=p().wallThickness||100;
+    if(wh.wall==='A') showGhost(wh.pos-w/2,wt,w,cd,'Place '+$('cabinetType').value);
+    else if(wh.wall==='B') showGhost(wt,wh.pos-w/2,cd,w,'Place '+$('cabinetType').value);
+    else showGhost(p().wallA-cd,wh.pos-w/2,cd,w,'Place '+$('cabinetType').value);
+    activeDragSvg.style.cursor='crosshair';
+  } else {
+    hideGhost();
+    activeDragSvg.style.cursor='';
+  }
+}
+
+function planMouseup(){if(dragCabIdx>=0){dragCabIdx=-1;hideGhost();render()}}
+function planContextmenu(e){if(dragMode)e.preventDefault()}
+
+$('basePlanSvg').addEventListener('mousedown',planMousedown);
+$('basePlanSvg').addEventListener('mousemove',planMousemove);
+$('basePlanSvg').addEventListener('mouseup',planMouseup);
+$('basePlanSvg').addEventListener('contextmenu',planContextmenu);
+$('wallPlanSvg').addEventListener('mousedown',planMousedown);
+$('wallPlanSvg').addEventListener('mousemove',planMousemove);
+$('wallPlanSvg').addEventListener('mouseup',planMouseup);
+$('wallPlanSvg').addEventListener('contextmenu',planContextmenu);
+
+// ─── Click-to-Edit Width (base plan) ──────────────────────────
+$('basePlanSvg').addEventListener('click',e=>{
+  if(dragMode)return;
+  let g=e.target.closest('[data-ci]');
+  if(!g)return;
+  let idx=+g.dataset.ci;
+  if(idx<0||idx>=cabinets.length)return;
+  let c=cabinets[idx];
+  if(CATEGORY[c.type]==='wall'||c.type==='filler'||c.type==='chimney')return;
+  let popup=$('widthPopup');
+  let wrap=popup.parentNode;
+  let wrapRect=wrap.getBoundingClientRect();
+  popup.style.display='block';
+  popup.style.left=(e.clientX-wrapRect.left+10)+'px';
+  popup.style.top=(e.clientY-wrapRect.top-20)+'px';
+  $('wpInput').value=c.width;
+  $('wpInput').focus();$('wpInput').select();
+  popup.dataset.ci=idx;
+});
+
+// ─── Click-to-Edit Width (wall plan) ──────────────────────────
+$('wallPlanSvg').addEventListener('click',e=>{
+  if(dragMode)return;
+  let g=e.target.closest('[data-ci]');
+  if(!g)return;
+  let idx=+g.dataset.ci;
+  if(idx<0||idx>=cabinets.length)return;
+  let c=cabinets[idx];
+  if(CATEGORY[c.type]!=='wall')return;
+  let popup=$('widthPopup');
+  let wrap=popup.parentNode;
+  let wrapRect=wrap.getBoundingClientRect();
+  popup.style.display='block';
+  popup.style.left=(e.clientX-wrapRect.left+10)+'px';
+  popup.style.top=(e.clientY-wrapRect.top-20)+'px';
+  $('wpInput').value=c.width;
+  $('wpInput').focus();$('wpInput').select();
+  popup.dataset.ci=idx;
+});
+
+$('wpApply').onclick=()=>{
+  let idx=+$('widthPopup').dataset.ci;
+  let newW=+$('wpInput').value;
+  if(idx>=0&&idx<cabinets.length&&newW>=50){
+    cabinets[idx].width=newW;
+    autoLayoutAll();
+  }
+  $('widthPopup').style.display='none';
+};
+$('wpCancel').onclick=()=>$('widthPopup').style.display='none';
+$('wpInput').onkeydown=e=>{if(e.key==='Enter')$('wpApply').click();if(e.key==='Escape')$('wpCancel').click()};
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&dragMode)exitDragMode()});
+
+$('rulesTable').innerHTML=`<table><thead><tr><th>ID</th><th>Rule</th><th>Status</th></tr></thead><tbody>${RULES.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td><span style="color:#1a6b1a">\u2713 Active</span></td></tr>`).join('')}</tbody></table>`;
+
+updateLayoutFields();
+fetch('cabinet-data.json').then(r=>r.json()).then(d=>{CAB_DATA=d;if(d.catalog)CATALOG=d.catalog;if(d.standards){STANDARD.length=0;d.standards.forEach(s=>STANDARD.push(s))}render()}).catch(()=>{});
+}catch(e){let b=document.createElement("pre");b.style.cssText="margin:20px;background:#fff0f0;color:#8b0000;border:1px solid #c00;padding:12px;white-space:pre-wrap;font:12px monospace";b.textContent="AIMS failed to start: "+e.message+"\n"+(e.stack||"");document.body.prepend(b)}
+</script></body></html>
