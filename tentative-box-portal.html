@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElenzaIndia - Tentative Packing Box Portal</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;color:#1e293b}
+.topbar{background:#046bd2;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:16px;font-weight:600}
+.topbar .info{font-size:13px;opacity:.9}
+.topbar .btn{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+.topbar .btn:hover{background:rgba(255,255,255,.3)}
+.wrap{max-width:1240px;margin:0 auto;padding:16px}
+.note{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:16px}
+.note b{color:#1d4ed8}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.sc{background:#fff;border-radius:10px;padding:16px;text-align:center}
+.sc .n{font-size:28px;font-weight:700;color:#046bd2}
+.sc .l{font-size:12px;color:#64748b;margin-top:4px}
+.panel{background:#fff;border-radius:10px;padding:16px;margin-bottom:16px}
+.panel h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#1e293b}
+.bform{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bform select,.bform input{padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px}
+.bform button{padding:6px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.bform .primary{background:#046bd2;color:#fff}
+.bform .primary:hover{background:#0358b0}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.filters select,.filters input{padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px}
+.filters input{flex:1;min-width:220px}
+.tscroll{max-height:620px;overflow-y:auto;border-radius:8px;border:1px solid #e2e8f0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;background:#f8fafc;color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:1}
+td{padding:6px 10px;border-bottom:1px solid #f1f5f9}
+tr:hover{background:#f0f9ff}
+.qin{width:74px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;text-align:right}
+.sbtn{background:#046bd2;color:#fff;border:none;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer}
+.sbtn:disabled{background:#cbd5e1;cursor:not-allowed}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700}
+.b-entered{background:#e9f8ef;color:#15803d}
+.b-pending{background:#fef3c7;color:#b45309}
+.b-blocked{background:#f1f5f9;color:#64748b}
+.muted{color:#94a3b8}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:13px;z-index:999;display:none}
+.toast.err{background:#dc2626}.toast.ok{background:#16a34a}
+#loginOv{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f1f5f9}
+.lcard{background:#fff;padding:32px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:360px;text-align:center}
+.lcard h2{font-size:18px;margin-bottom:4px}
+.lcard p{font-size:13px;color:#64748b;margin-bottom:20px}
+.lcard input{width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;margin-bottom:10px}
+.lcard button{width:100%;padding:10px;background:#046bd2;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.lcard .err{color:#dc2626;font-size:12px;margin-top:10px;display:none}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+.auth-quick-link-icon{font-size:18px;line-height:1}
+.auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+.auth-quick-link-desc{display:none}
+@media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.bform{flex-direction:column;align-items:stretch}table{font-size:12px}th,td{padding:5px 6px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Tentative Packing Box Portal</h1>
+  <div class="info" id="uInfo"></div>
+  <div><button class="btn" onclick="exportCSV()">Export CSV</button> <button class="btn" onclick="load()">Refresh</button> <button class="btn" onclick="logout()">Logout</button></div>
+</div>
+<div class="wrap" id="main" style="display:none">
+  <div class="note"><b>Tentative (planned) box qty</b> is an early packing estimate recorded before packing starts. It is stored separately and is <b>not</b> the actual box qty captured in production/packing. Marketing sees this value read-only in the Marketing Portal.</div>
+  <div class="stats" id="stats"></div>
+  <div class="panel">
+    <h3>Record Tentative Box Qty</h3>
+    <div class="bform">
+      <input type="text" id="qOrder" list="orderList" placeholder="Order no / customer / dealer..." style="min-width:300px">
+      <datalist id="orderList"></datalist>
+      <input type="number" id="qQty" min="0" step="1" placeholder="Box qty" style="width:110px">
+      <button class="primary" onclick="quickSave()">Save</button>
+      <span id="qInfo" style="font-size:12px;color:#64748b"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>All Orders</h3>
+    <div class="filters">
+      <input type="text" id="search" placeholder="Search by order, customer, dealer, city, marketing owner..." oninput="render()">
+      <select id="fOwner" onchange="render()"><option value="">All Marketing Owners</option></select>
+      <select id="fStatus" onchange="render()">
+        <option value="">All Status</option>
+        <option value="pending">Pending Entry</option>
+        <option value="entered">Entered</option>
+        <option value="blocked">Not Eligible</option>
+      </select>
+    </div>
+    <div class="tscroll">
+      <table><thead><tr>
+        <th>Order #</th><th>Customer</th><th>Dealer</th><th>City</th><th>Marketing Owner</th><th>Type</th><th>Stage</th>
+        <th>Tentative Box Qty</th><th>Actual Box</th><th>Status</th><th>Updated</th>
+      </tr></thead><tbody id="dTb"></tbody></table>
+    </div>
+  </div>
+</div>
+<div id="loginOv">
+  <div class="lcard">
+    <h2>ElenzaIndia</h2>
+    <p>Tentative Packing Box Portal</p>
+    <form onsubmit="doLogin(event)">
+      <input type="text" id="lUser" placeholder="Login ID" required>
+      <input type="password" id="lPass" placeholder="Password" required>
+      <button type="submit">Sign In</button>
+    </form>
+    <p class="err" id="lErr"></p>
+    <div class="auth-quick-links">
+    <div class="auth-quick-links-grid">
+    <a href="index.html" class="auth-quick-link"><span class="auth-quick-link-icon">&#127968;</span><span class="auth-quick-link-label">Admin</span><span class="auth-quick-link-desc">Main portal</span></a>
+    <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">&#128197;</span><span class="auth-quick-link-label">Planner</span><span class="auth-quick-link-desc">Production planning</span></a>
+    <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">&#128230;</span><span class="auth-quick-link-label">Packing</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+    <a href="stations.html" class="auth-quick-link"><span class="auth-quick-link-icon">&#127981;</span><span class="auth-quick-link-label">Stations</span><span class="auth-quick-link-desc">Station workflow</span></a>
+    <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">&#128226;</span><span class="auth-quick-link-label">Marketing</span><span class="auth-quick-link-desc">Dealers &amp; orders</span></a>
+    <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">&#128203;</span><span class="auth-quick-link-label">Assignment</span><span class="auth-quick-link-desc">Assign dealers</span></a>
+    </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var S={ses:null,orders:[]};
+function api(a){return fetch('api.ashx?action='+a,{credentials:'same-origin'}).then(function(r){return r.json()})}
+function apiPost(a,body){return fetch('api.ashx?action='+a,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){return r.json()})}
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
+function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function logout(){S.ses=null;S.orders=[];document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
+
+function allowedRole(u){
+  var r=String(u.role_name||'');
+  if(r==='Admin'||r==='Production Planner User')return true;
+  if(r==='Machine User'){var st=String(u.station_name||'');return st==='Packing'||st==='Packed'}
+  return false;
+}
+
+function doLogin(e){
+  e.preventDefault();
+  var u=document.getElementById('lUser').value.trim(),p=document.getElementById('lPass').value,er=document.getElementById('lErr');
+  er.style.display='none';
+  api('login&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(function(r){
+    if(!r.ok){er.textContent=r.message||'Failed';er.style.display='block';return}
+    if(!allowedRole(r.user)){er.textContent='This portal is for Admin, Planner and Packing users.';er.style.display='block';return}
+    S.ses=r.user;
+    document.getElementById('loginOv').style.display='none';
+    document.getElementById('main').style.display='block';
+    document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
+    load();
+  }).catch(function(){er.textContent='Connection error';er.style.display='block'});
+}
+
+function load(){
+  api('tentative-box-state').then(function(d){
+    if(!d.ok){toast(d.message||'Error','err');return}
+    S.orders=d.orders||[];
+    fillOwners();
+    rStats();
+    render();
+    rOrderList();
+  }).catch(function(err){toast(err.message||'Load failed','err')});
+}
+
+function statusOf(o){
+  if(Number(o.planned_box_qty||0)>0)return 'entered';
+  if(o.can_edit)return 'pending';
+  return 'blocked';
+}
+function statusLabel(s){return s==='entered'?'Entered':s==='pending'?'Pending':'Not Eligible'}
+
+function rStats(){
+  var t=S.orders.length,entered=0,pending=0,blocked=0;
+  S.orders.forEach(function(o){var s=statusOf(o);if(s==='entered')entered++;else if(s==='pending')pending++;else blocked++});
+  document.getElementById('stats').innerHTML=
+    '<div class="sc"><div class="n">'+t+'</div><div class="l">Total Orders</div></div>'+
+    '<div class="sc"><div class="n">'+entered+'</div><div class="l">Tentative Entered</div></div>'+
+    '<div class="sc"><div class="n">'+pending+'</div><div class="l">Pending Entry</div></div>'+
+    '<div class="sc"><div class="n">'+blocked+'</div><div class="l">Not Eligible</div></div>';
+}
+
+function fillOwners(){
+  var owners={};
+  S.orders.forEach(function(o){var v=String(o.marketing_owner||'').trim();if(v)owners[v]=1});
+  var sel=document.getElementById('fOwner'),cur=sel.value;
+  sel.innerHTML='<option value="">All Marketing Owners</option>'+Object.keys(owners).sort().map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+'</option>'}).join('');
+  sel.value=cur;
+}
+
+function rOrderList(){
+  document.getElementById('orderList').innerHTML=S.orders.map(function(o){
+    return '<option value="'+esc(o.order_number)+'">'+esc(o.customer_name||'')+' - '+esc(o.dealer_name||'')+'</option>';
+  }).join('');
+}
+
+function render(){
+  var q=(document.getElementById('search').value||'').toLowerCase();
+  var fo=document.getElementById('fOwner').value;
+  var fs=document.getElementById('fStatus').value;
+  var h='';
+  S.orders.forEach(function(o){
+    var st=statusOf(o);
+    var n=String(o.order_number||''),cn=String(o.customer_name||''),dn=String(o.dealer_name||''),ci=String(o.city||''),mo=String(o.marketing_owner||''),ty=String(o.order_type||''),wf=String(o.workflow_stage||'');
+    if(fs&&st!==fs)return;
+    if(fo&&mo!==fo)return;
+    if(q&&n.toLowerCase().indexOf(q)<0&&cn.toLowerCase().indexOf(q)<0&&dn.toLowerCase().indexOf(q)<0&&ci.toLowerCase().indexOf(q)<0&&mo.toLowerCase().indexOf(q)<0)return;
+    var entered=Number(o.planned_box_qty||0)>0;
+    var qtyCell='<span class="muted">-</span>';
+    if(o.can_edit){
+      qtyCell='<input type="number" class="qin" min="0" step="1" id="q'+o.order_id+'" value="'+(entered?esc(String(o.planned_box_qty)):'')+'"> <button class="sbtn" onclick="saveOne('+o.order_id+')">Save</button>';
+    } else if(entered){
+      qtyCell='<b>'+esc(String(o.planned_box_qty))+'</b>';
+    }
+    h+='<tr><td><b>'+esc(n)+'</b></td><td>'+esc(cn)+'</td><td>'+esc(dn)+'</td><td>'+esc(ci)+'</td><td>'+esc(mo)+'</td><td>'+esc(ty)+'</td><td>'+esc(wf)+'</td>'+
+       '<td>'+qtyCell+'</td><td>'+esc(String(o.actual_box_count||0))+'</td>'+
+       '<td><span class="badge '+(st==='entered'?'b-entered':st==='pending'?'b-pending':'b-blocked')+'">'+statusLabel(st)+'</span></td>'+
+       '<td class="muted">'+esc(o.updated_at||'')+(o.updated_by?' by '+esc(o.updated_by):'')+'</td></tr>';
+  });
+  document.getElementById('dTb').innerHTML=h||'<tr><td colspan="11" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
+}
+
+function findOrder(text){
+  var v=String(text||'').trim().toLowerCase();
+  if(!v)return null;
+  var hit=S.orders.filter(function(o){return String(o.order_number||'').toLowerCase()===v});
+  if(!hit.length)hit=S.orders.filter(function(o){return String(o.order_number||'').toLowerCase().indexOf(v)>=0});
+  return hit.length?hit[0]:null;
+}
+
+function quickSave(){
+  var text=document.getElementById('qOrder').value;
+  var qty=document.getElementById('qQty').value;
+  var info=document.getElementById('qInfo');
+  var o=findOrder(text);
+  if(!o){info.textContent='Order not found.';return}
+  if(!o.can_edit){info.textContent=o.order_number+' is not eligible for tentative box qty.';return}
+  if(qty===''||isNaN(qty)||Number(qty)<0){info.textContent='Enter a box qty of 0 or more.';return}
+  apiPost('tentative-box-set','order_id='+o.order_id+'&box_qty='+encodeURIComponent(qty)).then(function(d){
+    if(!d.ok){info.textContent=d.message||'Failed';return}
+    info.textContent=o.order_number+' saved: '+d.planned_box_qty;
+    document.getElementById('qOrder').value='';
+    document.getElementById('qQty').value='';
+    toast('Saved '+o.order_number,'ok');
+    load();
+  }).catch(function(){info.textContent='Network error.'});
+}
+
+function saveOne(orderId){
+  var el=document.getElementById('q'+orderId);
+  if(!el)return;
+  var qty=el.value;
+  if(qty===''||isNaN(qty)||Number(qty)<0){toast('Enter a box qty of 0 or more','err');return}
+  apiPost('tentative-box-set','order_id='+orderId+'&box_qty='+encodeURIComponent(qty)).then(function(d){
+    if(!d.ok){toast(d.message||'Failed','err');return}
+    toast('Updated','ok');
+    load();
+  }).catch(function(){toast('Network error','err')});
+}
+
+function exportCSV(){
+  var rows=[['Order #','Customer','Dealer','City','Marketing Owner','Type','Stage','Tentative Box Qty','Actual Box','Status','Confirmation','Updated']];
+  S.orders.forEach(function(o){
+    rows.push([o.order_number||'',o.customer_name||'',o.dealer_name||'',o.city||'',o.marketing_owner||'',o.order_type||'',o.workflow_stage||'',o.planned_box_qty||'',o.actual_box_count||'',statusLabel(statusOf(o)),o.confirmation_date||'',o.updated_at||'']);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='tentative-box-qty-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+document.getElementById('qOrder').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();quickSave()}});
+document.getElementById('qQty').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();quickSave()}});
+
+(function(){
+  api('session').then(function(r){
+    if(r.authenticated&&r.user&&allowedRole(r.user)){
+      S.ses=r.user;
+      document.getElementById('loginOv').style.display='none';
+      document.getElementById('main').style.display='block';
+      document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
+      load();
+    }
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>

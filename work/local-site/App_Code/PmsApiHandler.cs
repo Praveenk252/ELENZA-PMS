@@ -237,6 +237,12 @@ case "packing-boxes-set":
                 case "packing-box-plan-set":
                     HandlePackingBoxPlanSet(context);
                     break;
+                case "tentative-box-state":
+                    HandleTentativeBoxState(context);
+                    break;
+                case "tentative-box-set":
+                    HandleTentativeBoxSet(context);
+                    break;
                 case "dispatch-boxes-state":
                     HandleDispatchBoxState(context);
                     break;
@@ -1693,22 +1699,99 @@ case "packing-boxes-set":
             if (!boxQty.HasValue || boxQty.Value < 0) throw new ApiFailure(400, "Planned box qty must be 0 or more.");
             var order = FindOrderById(conn, orderId);
             if (order == null) throw new ApiFailure(404, "Order not found.");
-            if (!string.Equals(OrderClassForOrder(order), "Main Order", StringComparison.OrdinalIgnoreCase))
-                throw new ApiFailure(400, "Planned box qty can only be assigned to a Main Order.");
-            if (!IsPackingPlanEligible(order))
-                throw new ApiFailure(400, "Planned box qty can only be recorded before packing starts.");
-            var previousQty = D(order, "planned_box_qty");
-            Execute(conn, "UPDATE tbl_orders SET planned_box_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
-                boxQty.Value, I(user, "user_id"), "Packing Box Plan Saved", orderId);
-            Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Packing Box Plan Saved",
-                previousQty > 0 ? previousQty.ToString("0.##", CultureInfo.InvariantCulture) : "",
-                boxQty.Value.ToString("0.##", CultureInfo.InvariantCulture), "", null);
-            try
+            SavePlannedBoxQty(conn, user, order, boxQty.Value);
+            WriteJson(context, Obj("ok", true, "planned_box_qty", boxQty.Value));
+        }
+    }
+
+    private void SavePlannedBoxQty(OleDbConnection conn, Dictionary<string, object> user, Dictionary<string, object> order, double boxQty)
+    {
+        if (!string.Equals(OrderClassForOrder(order), "Main Order", StringComparison.OrdinalIgnoreCase))
+            throw new ApiFailure(400, "Planned box qty can only be assigned to a Main Order.");
+        if (!IsPackingPlanEligible(order))
+            throw new ApiFailure(400, "Planned box qty can only be recorded before packing starts.");
+        var orderId = Convert.ToInt32(I(order, "order_id"));
+        var previousQty = D(order, "planned_box_qty");
+        Execute(conn, "UPDATE tbl_orders SET planned_box_qty = ?, updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
+            boxQty, I(user, "user_id"), "Packing Box Plan Saved", orderId);
+        Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Packing Box Plan Saved",
+            previousQty > 0 ? previousQty.ToString("0.##", CultureInfo.InvariantCulture) : "",
+            boxQty.ToString("0.##", CultureInfo.InvariantCulture), "", null);
+        try
+        {
+            AddHistory(conn, orderId, null, "BOX_PLAN_UPDATED", previousQty.ToString(CultureInfo.InvariantCulture), boxQty.ToString(CultureInfo.InvariantCulture), null, null,
+                "Planned box qty: " + boxQty.ToString("0.##", CultureInfo.InvariantCulture), I(user, "user_id"));
+        }
+        catch { }
+    }
+
+    private void EnsureTentativeBoxRole(Dictionary<string, object> user)
+    {
+        var roleName = S(user, "role_name");
+        if (roleName == "Admin" || roleName == "Production Planner User") return;
+        if (roleName == "Machine User" && IsPackingStationName(S(user, "station_name"))) return;
+        throw new ApiFailure(403, "Tentative box qty entry is available for Admin, Planner and Packing users only.");
+    }
+
+    private void HandleTentativeBoxState(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureTentativeBoxRole(user);
+            var statusLookup = LoadStatusLookup(conn);
+            var userNames = LoadUsers(conn).ToDictionary(r => I(r, "user_id"), r => S(r, "full_name"));
+            var boxCountLookup = QueryAll(conn, "SELECT order_id, COUNT(*) AS box_count FROM tbl_dispatch_boxes GROUP BY order_id")
+                .ToDictionary(r => I(r, "order_id"), r => I(r, "box_count"));
+            var rows = QueryAll(conn,
+                "SELECT o.*, d.dealer_name, d.dealer_code, d.city, d.marketing_owner, d.contact_person, d.mobile_number, t.order_type_name FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS t ON o.order_type_id = t.order_type_id ORDER BY o.confirmation_date DESC, o.order_id DESC");
+            var orders = new List<Dictionary<string, object>>();
+            foreach (var row in rows)
             {
-                AddHistory(conn, orderId, null, "BOX_PLAN_UPDATED", previousQty.ToString(CultureInfo.InvariantCulture), boxQty.Value.ToString(CultureInfo.InvariantCulture), null, null,
-                    "Planned box qty: " + boxQty.Value.ToString("0.##", CultureInfo.InvariantCulture), I(user, "user_id"));
+                var orderClass = OrderClassForOrder(row);
+                var canEdit = string.Equals(orderClass, "Main Order", StringComparison.OrdinalIgnoreCase) && IsPackingPlanEligible(row);
+                var orderId = I(row, "order_id");
+                orders.Add(Obj(
+                    "order_id", orderId,
+                    "order_number", S(row, "order_number"),
+                    "quotation_number", S(row, "quotation_number"),
+                    "customer_name", S(row, "customer_name"),
+                    "dealer_name", EmptyAs(S(row, "dealer_name"), "-"),
+                    "dealer_code", S(row, "dealer_code"),
+                    "city", S(row, "city"),
+                    "marketing_owner", S(row, "marketing_owner"),
+                    "contact_person", S(row, "contact_person"),
+                    "mobile_number", S(row, "mobile_number"),
+                    "order_type", EmptyAs(S(row, "order_type_name"), "-"),
+                    "confirmation_date", FormatDateTime(DT(row, "confirmation_date")),
+                    "order_class", orderClass,
+                    "workflow_stage", Label(statusLookup, "WORKFLOW", S(row, "workflow_stage_code")),
+                    "dispatch_status", Label(statusLookup, "DISPATCH", S(row, "dispatch_status_code")),
+                    "planned_box_qty", D(row, "planned_box_qty"),
+                    "actual_box_count", boxCountLookup.ContainsKey(orderId) ? boxCountLookup[orderId] : 0,
+                    "can_edit", canEdit,
+                    "updated_at", FormatDateTime(DT(row, "updated_at")),
+                    "updated_by", userNames.ContainsKey(I(row, "updated_by")) ? userNames[I(row, "updated_by")] : ""
+                ));
             }
-            catch { }
+            WriteJson(context, Obj("ok", true, "orders", orders));
+        }
+    }
+
+    private void HandleTentativeBoxSet(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureTentativeBoxRole(user);
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var boxQty = N(Value(context, "box_qty"));
+            if (!boxQty.HasValue || boxQty.Value < 0) throw new ApiFailure(400, "Tentative box qty must be 0 or more.");
+            var order = FindOrderById(conn, orderId);
+            if (order == null) throw new ApiFailure(404, "Order not found.");
+            SavePlannedBoxQty(conn, user, order, boxQty.Value);
             WriteJson(context, Obj("ok", true, "planned_box_qty", boxQty.Value));
         }
     }

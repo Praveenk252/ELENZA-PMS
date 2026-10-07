@@ -121,7 +121,7 @@ tr.row-medium:hover{background:#fde047!important}
       <button class="btn-sm btn-all" onclick="selectAll('production')">Select All</button>
       <div class="wa-wrap"><button class="btn-sm btn-wa" onclick="toggleWaMenu('production')">WhatsApp &#9662;</button><div class="wa-menu" id="waMenu-production"><div onclick="genWhatsApp('production','status')">Status Ask</div><div onclick="genWhatsApp('production','urgent')">Need Urgent</div><div onclick="genWhatsApp('production','custom')">Custom Message</div><div class="wa-sep"></div><label class="wa-copy-opt desktop-only" onclick="event.stopPropagation()"><input type="checkbox" id="waCopy-production" onclick="event.stopPropagation()"> Just copy to clipboard</label></div></div>
     </div>
-    <div class="tscroll"><table><thead><tr><th class="cb"><input type="checkbox" class="cb" id="ipCbAll" onchange="toggleAll('production')"></th><th>Order #</th><th>Confirmation</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th><th>Actions</th></tr></thead><tbody id="ipTb"></tbody></table></div>
+    <div class="tscroll"><table><thead><tr><th class="cb"><input type="checkbox" class="cb" id="ipCbAll" onchange="toggleAll('production')"></th><th>Order #</th><th>Confirmation</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th><th>Tentative Box</th><th>Actions</th></tr></thead><tbody id="ipTb"></tbody></table></div>
   </div>
   <div class="sec" id="s-packed">
     <div class="sbox">
@@ -414,6 +414,11 @@ function sendReminder(){
 function rStats(){var t=S.dealers.length,o=S.orders.length,ip=0,pa=0,di=0,hi=0;S.orders.forEach(function(x){var s=gs(x);if(s==='In Production')ip++;else if(s==='Packed')pa++;else di++;if(S.priorityLookup&&S.priorityLookup[x.order_id]&&S.priorityLookup[x.order_id].priority==='High')hi++});document.getElementById('stats').innerHTML='<div class="sc"><div class="n">'+t+'</div><div class="l">My Dealers</div></div><div class="sc"><div class="n">'+o+'</div><div class="l">Total Orders</div></div><div class="sc"><div class="n">'+ip+'</div><div class="l">In Production</div></div><div class="sc"><div class="n">'+pa+'</div><div class="l">Packed</div></div><div class="sc"><div class="n">'+di+'</div><div class="l">Dispatched</div></div><div class="sc" style="'+(hi>0?'border:2px solid #fca5a5;background:#fef2f2':'')+'"><div class="n" style="'+(hi>0?'color:#991b1b':'')+'">'+hi+'</div><div class="l">High Priority</div></div>'}
 function rDealers(){var q=(document.getElementById('dSearch').value||'').toLowerCase();var h='';S.dealers.forEach(function(d){var n=String(d.dealer_name||''),c=String(d.dealer_code||''),ci=String(d.city||''),co=String(d.contact_person||''),mo=String(d.mobile_number||'');if(q&&n.toLowerCase().indexOf(q)<0&&c.toLowerCase().indexOf(q)<0&&ci.toLowerCase().indexOf(q)<0)return;var cnt=S.orders.filter(function(o){return String(o.dealer_name||'').toLowerCase()===n.toLowerCase()}).length;h+='<tr><td>'+esc(c)+'</td><td>'+esc(n)+'</td><td>'+esc(ci)+'</td><td>'+esc(co)+'</td><td>'+esc(mo)+'</td><td>'+cnt+'</td></tr>'});document.getElementById('dTb').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#94a3b8">No dealers found</td></tr>'}
 function applyFilters(){rOrdersTab('production');rOrdersTab('packed');rOrdersTab('dispatched')}
+function tentativeBox(o){
+  var v=o?o.planned_box_qty:'';
+  if(v===undefined||v===null||v===''||isNaN(Number(v))||Number(v)===0)return '-';
+  return String(v);
+}
 function rOrdersTab(tab){
   var target=TAB_STATUS[tab];
   var q=(document.getElementById(TAB_SEARCH[tab]).value||'').toLowerCase();
@@ -453,7 +458,7 @@ function rOrdersTab(tab){
         if(hasPending)reqBadge=' <span style="color:#ca8a04;font-size:10px" title="Pending reply">⏳</span>';
         else if(hasReplied)reqBadge=' <span style="color:#16a34a;font-size:10px" title="Replied">✓</span>';
       }
-      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+r.oid+'" data-tab="'+tab+'"></td><td>'+esc(r.on)+reqBadge+priBadge+'</td><td>'+esc(r.cd)+'</td><td>'+esc(r.ty)+'</td><td>'+esc(r.dn)+'</td><td>'+esc(r.cn)+'</td><td><span class="b '+bg(r.s)+'">'+esc(r.s)+'</span></td><td>'+esc(r.edd)+'</td><td><button class="btn-sm btn-pri" onclick="openPriModal('+r.oid+',\''+esc(r.on)+'\')">Priority</button></td></tr>';
+      h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+r.oid+'" data-tab="'+tab+'"></td><td>'+esc(r.on)+reqBadge+priBadge+'</td><td>'+esc(r.cd)+'</td><td>'+esc(r.ty)+'</td><td>'+esc(r.dn)+'</td><td>'+esc(r.cn)+'</td><td><span class="b '+bg(r.s)+'">'+esc(r.s)+'</span></td><td>'+esc(r.edd)+'</td><td>'+esc(tentativeBox(r.o))+'</td><td><button class="btn-sm btn-pri" onclick="openPriModal('+r.oid+',\''+esc(r.on)+'\')">Priority</button></td></tr>';
     } else if(tab==='packed'){
       var bq=String(r.o.box_count||'');
       var bb=String(r.o.packing_balance_box_qty||'');
@@ -463,7 +468,7 @@ function rOrdersTab(tab){
       h+='<tr'+rowClass+'><td><input type="checkbox" class="cb" data-oid="'+r.oid+'" data-tab="'+tab+'"></td><td>'+esc(r.on)+priBadge+'</td><td>'+esc(r.cd)+'</td><td>'+esc(r.ty)+'</td><td>'+esc(r.dn)+'</td><td>'+esc(r.cn)+'</td><td><span class="b '+bg(r.s)+'">'+esc(r.s)+'</span></td><td>'+esc(r.edd)+'</td></tr>';
     }
   });
-  document.getElementById(TAB_TB[tab]).innerHTML=h||'<tr><td colspan="'+(tab==='production'?9:tab==='packed'?11:8)+'" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
+  document.getElementById(TAB_TB[tab]).innerHTML=h||'<tr><td colspan="'+(tab==='production'?10:tab==='packed'?11:8)+'" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
 }
 function toggleAll(tab){var c=document.getElementById(TAB_CBALL[tab]);document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=c.checked})}
 function selectAll(tab){document.getElementById(TAB_CBALL[tab]).checked=true;document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=true})}
