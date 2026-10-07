@@ -137,7 +137,7 @@ function authFail(msg){
   var er=document.getElementById('lErr');er.textContent=msg||'Login required.';er.style.display='block';
 }
 function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function logout(){S.ses=null;S.orders=[];document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
+function logout(){api('logout').catch(function(){});S.ses=null;S.orders=[];document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
 
 function allowedRole(u){
   var r=String(u.role_name||'');

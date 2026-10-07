@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -504,6 +505,7 @@ case "packing-boxes-set":
                 throw new ApiFailure(401, NeutralLoginError);
             }
             context.Session["user_id"] = I(user, "user_id");
+            WriteAuthCookie(context, I(user, "user_id"));
             WriteJson(context, new Dictionary<string, object>
             {
                 { "ok", true },
@@ -516,6 +518,10 @@ case "packing-boxes-set":
     {
         context.Session.Clear();
         context.Session.Abandon();
+        var expired = new HttpCookie(AuthCookieName);
+        expired.Expires = DateTime.UtcNow.AddDays(-1);
+        expired.Path = "/";
+        context.Response.Cookies.Set(expired);
         WriteJson(context, new Dictionary<string, object> { { "ok", true } });
     }
 
@@ -4566,8 +4572,51 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
     private Dictionary<string, object> GetSessionUser(HttpContext context, OleDbConnection conn)
     {
         var value = context.Session["user_id"];
-        if (value == null) return null;
-        return QueryOne(conn, "SELECT u.user_id, u.full_name, u.login_id, u.password_hash, u.password_salt, u.password_iterations, u.is_active, u.dealer_id, r.role_name, r.home_section, m.machine_id AS station_id, m.machine_name AS station_name FROM (tbl_users AS u INNER JOIN tbl_roles AS r ON u.role_id = r.role_id) LEFT JOIN tbl_machines AS m ON u.assigned_station_id = m.machine_id WHERE u.user_id = ?", Convert.ToInt32(value));
+        var userId = 0;
+        if (value != null) userId = Convert.ToInt32(value);
+        if (userId == 0) userId = ReadAuthCookie(context);
+        if (userId == 0) return null;
+        var user = QueryOne(conn, "SELECT u.user_id, u.full_name, u.login_id, u.password_hash, u.password_salt, u.password_iterations, u.is_active, u.dealer_id, r.role_name, r.home_section, m.machine_id AS station_id, m.machine_name AS station_name FROM (tbl_users AS u INNER JOIN tbl_roles AS r ON u.role_id = r.role_id) LEFT JOIN tbl_machines AS m ON u.assigned_station_id = m.machine_id WHERE u.user_id = ?", userId);
+        if (user != null && value == null) context.Session["user_id"] = userId;
+        return user;
+    }
+
+    private const string AuthCookieName = "elenza_auth";
+    private const string AuthCookieSecret = "2793223c370350713f7436512fdd892b0440da9ba995b754";
+    private const int AuthCookieHours = 12;
+
+    private static string AuthSign(string payload)
+    {
+        using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(AuthCookieSecret)))
+        {
+            return BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload))).Replace("-", "").ToLowerInvariant();
+        }
+    }
+
+    private void WriteAuthCookie(HttpContext context, int userId)
+    {
+        var expiresUtc = DateTime.UtcNow.AddHours(AuthCookieHours);
+        var payload = userId.ToString(CultureInfo.InvariantCulture) + "|" + expiresUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+        var cookie = new HttpCookie(AuthCookieName, payload + "|" + AuthSign(payload));
+        cookie.Expires = expiresUtc;
+        cookie.HttpOnly = true;
+        cookie.Path = "/";
+        context.Response.Cookies.Set(cookie);
+    }
+
+    private int ReadAuthCookie(HttpContext context)
+    {
+        var raw = context.Request.Cookies[AuthCookieName];
+        if (raw == null || string.IsNullOrEmpty(raw.Value)) return 0;
+        var parts = raw.Value.Split('|');
+        if (parts.Length != 3) return 0;
+        if (!string.Equals(parts[2], AuthSign(parts[0] + "|" + parts[1]), StringComparison.OrdinalIgnoreCase)) return 0;
+        long ticks;
+        if (!long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out ticks)) return 0;
+        if (DateTime.UtcNow >= new DateTime(ticks, DateTimeKind.Utc)) return 0;
+        int userId;
+        if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out userId)) return 0;
+        return userId;
     }
 
     private Dictionary<string, object> RequireLogin(HttpContext context, OleDbConnection conn)

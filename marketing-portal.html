@@ -282,7 +282,7 @@ var waTab=null;
 function api(a){return fetch('api.ashx?action='+a,{credentials:'same-origin'}).then(function(r){return r.json()})}
 function apiPost(a,body){return fetch('api.ashx?action='+a,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){return r.json()})}
 function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
-function logout(){S.ses=null;document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
+function logout(){api('logout').catch(function(){});S.ses=null;document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
 function stab(t){
   var tabs=document.querySelectorAll('.tab');
   var idx=TABS.indexOf(t);
@@ -647,8 +647,23 @@ function openPriorityReport(){
     h+='<tr><td>'+esc(o.order_number||'')+'</td><td>'+esc(o.dealer_name||'')+'</td><td>'+esc(o.customer_name||'')+'</td><td><span style="background:'+priBg+';color:'+priColor+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">'+esc(pri)+'</span></td><td style="font-size:11px">'+esc(remarks)+'</td></tr>';
   });
   document.getElementById('priReportBody').innerHTML=h||'<tr><td colspan="5" style="text-align:center;color:#94a3b8">No priority orders</td></tr>';
-  document.getElementById('priReportModal').className='modal-bg on';
+    document.getElementById('priReportModal').className='modal-bg on';
 }
+(function(){
+  api('session').then(function(r){
+    if(r.authenticated&&r.user&&r.user.role_name==='Marketing User'){
+      S.ses=r.user;
+      document.getElementById('loginOv').style.display='none';
+      document.getElementById('main').style.display='block';
+      document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
+      load();
+    } else if(r.authenticated&&r.user){
+      var er=document.getElementById('lErr');
+      er.textContent='Marketing Users only.';
+      er.style.display='block';
+    }
+  }).catch(function(){});
+})();
 </script>
 </body>
 </html>
