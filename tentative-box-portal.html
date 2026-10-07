@@ -129,6 +129,13 @@ var S={ses:null,orders:[]};
 function api(a){return fetch('api.ashx?action='+a,{credentials:'same-origin'}).then(function(r){return r.json()})}
 function apiPost(a,body){return fetch('api.ashx?action='+a,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){return r.json()})}
 function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
+function isAuthFail(d){return !!(d&&!d.ok&&/Login required|Admin, Planner and Packing/.test(String(d.message||'')))}
+function authFail(msg){
+  S.ses=null;S.orders=[];
+  document.getElementById('main').style.display='none';
+  document.getElementById('loginOv').style.display='flex';
+  var er=document.getElementById('lErr');er.textContent=msg||'Login required.';er.style.display='block';
+}
 function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function logout(){S.ses=null;S.orders=[];document.getElementById('main').style.display='none';document.getElementById('loginOv').style.display='flex'}
 
@@ -156,7 +163,7 @@ function doLogin(e){
 
 function load(){
   api('tentative-box-state').then(function(d){
-    if(!d.ok){toast(d.message||'Error','err');return}
+    if(!d.ok){if(isAuthFail(d))return authFail(d.message);toast(d.message||'Error','err');return}
     S.orders=d.orders||[];
     fillOwners();
     rStats();
@@ -239,7 +246,7 @@ function quickSave(){
   if(!o.can_edit){info.textContent=o.order_number+' is not eligible for tentative box qty.';return}
   if(qty===''||isNaN(qty)||Number(qty)<0){info.textContent='Enter a box qty of 0 or more.';return}
   apiPost('tentative-box-set','order_id='+o.order_id+'&box_qty='+encodeURIComponent(qty)).then(function(d){
-    if(!d.ok){info.textContent=d.message||'Failed';return}
+    if(!d.ok){if(isAuthFail(d))return authFail(d.message);info.textContent=d.message||'Failed';return}
     info.textContent=o.order_number+' saved: '+d.planned_box_qty;
     document.getElementById('qOrder').value='';
     document.getElementById('qQty').value='';
@@ -254,7 +261,7 @@ function saveOne(orderId){
   var qty=el.value;
   if(qty===''||isNaN(qty)||Number(qty)<0){toast('Enter a box qty of 0 or more','err');return}
   apiPost('tentative-box-set','order_id='+orderId+'&box_qty='+encodeURIComponent(qty)).then(function(d){
-    if(!d.ok){toast(d.message||'Failed','err');return}
+    if(!d.ok){if(isAuthFail(d))return authFail(d.message);toast(d.message||'Failed','err');return}
     toast('Updated','ok');
     load();
   }).catch(function(){toast('Network error','err')});
@@ -284,6 +291,10 @@ document.getElementById('qQty').addEventListener('keydown',function(e){if(e.key=
       document.getElementById('main').style.display='block';
       document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
       load();
+    } else if(r.authenticated&&r.user){
+      var er=document.getElementById('lErr');
+      er.textContent='This portal is for Admin, Planner and Packing users.';
+      er.style.display='block';
     }
   }).catch(function(){});
 })();

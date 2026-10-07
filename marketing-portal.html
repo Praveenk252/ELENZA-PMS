@@ -118,6 +118,7 @@ tr.row-medium:hover{background:#fde047!important}
   <div class="sec" id="s-production">
     <div class="sbox">
       <input type="text" id="ipSearch" placeholder="Search orders..." oninput="rOrdersTab('production')">
+      <span id="ipTentTotal" style="display:none;font-size:13px;font-weight:600;color:#046bd2;white-space:nowrap"></span>
       <button class="btn-sm btn-all" onclick="selectAll('production')">Select All</button>
       <div class="wa-wrap"><button class="btn-sm btn-wa" onclick="toggleWaMenu('production')">WhatsApp &#9662;</button><div class="wa-menu" id="waMenu-production"><div onclick="genWhatsApp('production','status')">Status Ask</div><div onclick="genWhatsApp('production','urgent')">Need Urgent</div><div onclick="genWhatsApp('production','custom')">Custom Message</div><div class="wa-sep"></div><label class="wa-copy-opt desktop-only" onclick="event.stopPropagation()"><input type="checkbox" id="waCopy-production" onclick="event.stopPropagation()"> Just copy to clipboard</label></div></div>
     </div>
@@ -469,9 +470,22 @@ function rOrdersTab(tab){
     }
   });
   document.getElementById(TAB_TB[tab]).innerHTML=h||'<tr><td colspan="'+(tab==='production'?10:tab==='packed'?11:8)+'" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
+  updateTentTotal();
 }
-function toggleAll(tab){var c=document.getElementById(TAB_CBALL[tab]);document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=c.checked})}
-function selectAll(tab){document.getElementById(TAB_CBALL[tab]).checked=true;document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=true})}
+function tentativeVal(td){var v=(td&&td.textContent||'').trim();if(!v||v==='-')return 0;var n=Number(v);return isNaN(n)?0:n}
+function updateTentTotal(){
+  var box=document.getElementById('ipTentTotal');if(!box)return;
+  var total=0,count=0;
+  document.querySelectorAll('#ipTb tr').forEach(function(tr){
+    var cb=tr.querySelector('input.cb');
+    if(cb&&cb.checked){count++;total+=tentativeVal(tr.children[8])}
+  });
+  if(count>0){box.style.display='inline-block';box.textContent='Tentative Box Total ('+count+(count===1?' order':' orders')+'): '+total}
+  else{box.style.display='none';box.textContent=''}
+}
+document.getElementById('ipTb').addEventListener('change',function(){updateTentTotal()});
+function toggleAll(tab){var c=document.getElementById(TAB_CBALL[tab]);document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=c.checked});updateTentTotal()}
+function selectAll(tab){document.getElementById(TAB_CBALL[tab]).checked=true;document.querySelectorAll('#'+TAB_TB[tab]+' .cb').forEach(function(x){x.checked=true});updateTentTotal()}
 function getCheckedOrders(tab){var ids=[];document.querySelectorAll('#'+TAB_TB[tab]+' .cb:checked').forEach(function(x){ids.push(parseInt(x.getAttribute('data-oid')))});return ids}
 function getCheckedOrderRows(tab){
   var ids=getCheckedOrders(tab);
