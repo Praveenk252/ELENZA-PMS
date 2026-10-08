@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ElenzaIndia - Tentative Packing Box Portal</title>
+<title>ElenzaIndia - Tentative Box & EDD Portal</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;color:#1e293b}
@@ -37,6 +37,10 @@ tr:hover{background:#f0f9ff}
 .qin{width:74px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;text-align:right}
 .sbtn{background:#046bd2;color:#fff;border:none;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer}
 .sbtn:disabled{background:#cbd5e1;cursor:not-allowed}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{padding:8px 16px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;font-size:13px;font-weight:600;color:#475569;cursor:pointer}
+.tab.on{background:#046bd2;border-color:#046bd2;color:#fff}
+.qdate{width:150px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px}
 .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700}
 .b-entered{background:#e9f8ef;color:#15803d}
 .b-pending{background:#fef3c7;color:#b45309}
@@ -64,12 +68,17 @@ tr:hover{background:#f0f9ff}
 </head>
 <body>
 <div class="topbar">
-  <h1>Tentative Packing Box Portal</h1>
+  <h1>Tentative Box & EDD Portal</h1>
   <div class="info" id="uInfo"></div>
   <div><button class="btn" onclick="exportCSV()">Export CSV</button> <button class="btn" onclick="load()">Refresh</button> <button class="btn" onclick="logout()">Logout</button></div>
 </div>
 <div class="wrap" id="main" style="display:none">
-  <div class="note"><b>Tentative (planned) box qty</b> is an early packing estimate recorded before packing starts. It is stored separately and is <b>not</b> the actual box qty captured in production/packing. Marketing sees this value read-only in the Marketing Portal.</div>
+  <div class="note"><b>Tentative Box Qty</b> is an early packing estimate recorded before packing starts — it is stored separately and is <b>not</b> the actual box qty captured in production/packing (Marketing sees it read-only in the Marketing Portal). <b>Tentative EDD</b> is a planning delivery date kept separate from the confirmed EDD.</div>
+  <div class="tabs">
+    <button class="tab on" id="tabBtnBox" onclick="stab('box')">Tentative Box Qty</button>
+    <button class="tab" id="tabBtnEdd" onclick="stab('edd')">Tentative EDD</button>
+  </div>
+  <div id="tabBox">
   <div class="stats" id="stats"></div>
   <div class="panel">
     <h3>Record Tentative Box Qty</h3>
@@ -100,11 +109,43 @@ tr:hover{background:#f0f9ff}
       </tr></thead><tbody id="dTb"></tbody></table>
     </div>
   </div>
+  </div>
+  <div id="tabEdd" style="display:none">
+  <div class="stats" id="statsE"></div>
+  <div class="panel">
+    <h3>Record Tentative EDD</h3>
+    <div class="bform">
+      <input type="text" id="eOrder" list="orderList" placeholder="Order no / customer / dealer..." style="min-width:300px">
+      <input type="date" id="eDate" style="width:155px">
+      <button class="primary" onclick="quickSaveEdd()">Save</button>
+      <span id="eInfo" style="font-size:12px;color:#64748b"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>All Orders</h3>
+    <div class="filters">
+      <input type="text" id="eSearch" placeholder="Search by order, customer, dealer, city, marketing owner..." oninput="renderEdd()">
+      <select id="eOwner" onchange="renderEdd()"><option value="">All Marketing Owners</option></select>
+      <select id="eStatus" onchange="renderEdd()">
+        <option value="">All Status</option>
+        <option value="pending">Pending Entry</option>
+        <option value="entered">Entered</option>
+        <option value="blocked">Not Eligible</option>
+      </select>
+    </div>
+    <div class="tscroll">
+      <table><thead><tr>
+        <th>Order #</th><th>Customer</th><th>Dealer</th><th>City</th><th>Marketing Owner</th><th>Type</th><th>Stage</th>
+        <th>EDD</th><th>Tentative EDD</th><th>Status</th><th>Updated</th>
+      </tr></thead><tbody id="eTb"></tbody></table>
+    </div>
+  </div>
+  </div>
 </div>
 <div id="loginOv">
   <div class="lcard">
     <h2>ElenzaIndia</h2>
-    <p>Tentative Packing Box Portal</p>
+    <p>Tentative Box & EDD Portal</p>
     <form onsubmit="doLogin(event)">
       <input type="text" id="lUser" placeholder="Login ID" required>
       <input type="password" id="lPass" placeholder="Password" required>
@@ -125,7 +166,7 @@ tr:hover{background:#f0f9ff}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-var S={ses:null,orders:[]};
+var S={ses:null,orders:[],tab:'box'};
 function api(a){return fetch('api.ashx?action='+a,{credentials:'same-origin'}).then(function(r){return r.json()})}
 function apiPost(a,body){return fetch('api.ashx?action='+a,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){return r.json()})}
 function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
@@ -167,7 +208,9 @@ function load(){
     S.orders=d.orders||[];
     fillOwners();
     rStats();
+    rStatsEdd();
     render();
+    renderEdd();
     rOrderList();
   }).catch(function(err){toast(err.message||'Load failed','err')});
 }
@@ -189,12 +232,41 @@ function rStats(){
     '<div class="sc"><div class="n">'+blocked+'</div><div class="l">Not Eligible</div></div>';
 }
 
+function stab(t){
+  S.tab=t;
+  document.getElementById('tabBox').style.display=t==='box'?'block':'none';
+  document.getElementById('tabEdd').style.display=t==='edd'?'block':'none';
+  document.getElementById('tabBtnBox').className='tab'+(t==='box'?' on':'');
+  document.getElementById('tabBtnEdd').className='tab'+(t==='edd'?' on':'');
+  if(t==='edd')renderEdd();else render();
+}
+
+function eddStatusOf(o){
+  if(String(o.tentative_edd||''))return 'entered';
+  if(o.can_edit_edd)return 'pending';
+  return 'blocked';
+}
+
+function rStatsEdd(){
+  var t=S.orders.length,entered=0,pending=0,blocked=0;
+  S.orders.forEach(function(o){var s=eddStatusOf(o);if(s==='entered')entered++;else if(s==='pending')pending++;else blocked++});
+  document.getElementById('statsE').innerHTML=
+    '<div class="sc"><div class="n">'+t+'</div><div class="l">Total Orders</div></div>'+
+    '<div class="sc"><div class="n">'+entered+'</div><div class="l">Tentative EDD Set</div></div>'+
+    '<div class="sc"><div class="n">'+pending+'</div><div class="l">Pending Entry</div></div>'+
+    '<div class="sc"><div class="n">'+blocked+'</div><div class="l">Not Eligible</div></div>';
+}
+
 function fillOwners(){
   var owners={};
   S.orders.forEach(function(o){var v=String(o.marketing_owner||'').trim();if(v)owners[v]=1});
-  var sel=document.getElementById('fOwner'),cur=sel.value;
-  sel.innerHTML='<option value="">All Marketing Owners</option>'+Object.keys(owners).sort().map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+'</option>'}).join('');
-  sel.value=cur;
+  ['fOwner','eOwner'].forEach(function(id){
+    var sel=document.getElementById(id);
+    if(!sel)return;
+    var cur=sel.value;
+    sel.innerHTML='<option value="">All Marketing Owners</option>'+Object.keys(owners).sort().map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+'</option>'}).join('');
+    sel.value=cur;
+  });
 }
 
 function rOrderList(){
@@ -227,6 +299,33 @@ function render(){
        '<td class="muted">'+esc(o.updated_at||'')+(o.updated_by?' by '+esc(o.updated_by):'')+'</td></tr>';
   });
   document.getElementById('dTb').innerHTML=h||'<tr><td colspan="11" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
+}
+
+function renderEdd(){
+  var q=(document.getElementById('eSearch').value||'').toLowerCase();
+  var fo=document.getElementById('eOwner').value;
+  var fs=document.getElementById('eStatus').value;
+  var h='';
+  S.orders.forEach(function(o){
+    var st=eddStatusOf(o);
+    var n=String(o.order_number||''),cn=String(o.customer_name||''),dn=String(o.dealer_name||''),ci=String(o.city||''),mo=String(o.marketing_owner||''),ty=String(o.order_type||''),wf=String(o.workflow_stage||'');
+    if(fs&&st!==fs)return;
+    if(fo&&mo!==fo)return;
+    if(q&&n.toLowerCase().indexOf(q)<0&&cn.toLowerCase().indexOf(q)<0&&dn.toLowerCase().indexOf(q)<0&&ci.toLowerCase().indexOf(q)<0&&mo.toLowerCase().indexOf(q)<0)return;
+    var eddCell=String(o.edd||'')?esc(o.edd):'<span class="muted">-</span>';
+    var tedd=String(o.tentative_edd||'');
+    var tCell='<span class="muted">-</span>';
+    if(o.can_edit_edd){
+      tCell='<input type="date" class="qdate" id="e'+o.order_id+'" value="'+esc(tedd)+'"> <button class="sbtn" onclick="saveEddOne('+o.order_id+')">Save</button>';
+    } else if(tedd){
+      tCell='<b>'+esc(tedd)+'</b>';
+    }
+    h+='<tr><td><b>'+esc(n)+'</b></td><td>'+esc(cn)+'</td><td>'+esc(dn)+'</td><td>'+esc(ci)+'</td><td>'+esc(mo)+'</td><td>'+esc(ty)+'</td><td>'+esc(wf)+'</td>'+
+       '<td>'+eddCell+'</td><td>'+tCell+'</td>'+
+       '<td><span class="badge '+(st==='entered'?'b-entered':st==='pending'?'b-pending':'b-blocked')+'">'+statusLabel(st)+'</span></td>'+
+       '<td class="muted">'+esc(o.updated_at||'')+(o.updated_by?' by '+esc(o.updated_by):'')+'</td></tr>';
+  });
+  document.getElementById('eTb').innerHTML=h||'<tr><td colspan="11" style="text-align:center;color:#94a3b8">No orders found</td></tr>';
 }
 
 function findOrder(text){
@@ -267,7 +366,37 @@ function saveOne(orderId){
   }).catch(function(){toast('Network error','err')});
 }
 
+function quickSaveEdd(){
+  var text=document.getElementById('eOrder').value;
+  var date=document.getElementById('eDate').value;
+  var info=document.getElementById('eInfo');
+  var o=findOrder(text);
+  if(!o){info.textContent='Order not found.';return}
+  if(!o.can_edit_edd){info.textContent=o.order_number+' is not eligible for tentative EDD.';return}
+  if(!date){info.textContent='Pick a date.';return}
+  apiPost('tentative-edd-set','order_id='+o.order_id+'&edd='+encodeURIComponent(date)).then(function(d){
+    if(!d.ok){if(isAuthFail(d))return authFail(d.message);info.textContent=d.message||'Failed';return}
+    info.textContent=o.order_number+' saved: '+d.tentative_edd;
+    document.getElementById('eOrder').value='';
+    document.getElementById('eDate').value='';
+    toast('Saved '+o.order_number,'ok');
+    load();
+  }).catch(function(){info.textContent='Network error.'});
+}
+
+function saveEddOne(orderId){
+  var el=document.getElementById('e'+orderId);
+  if(!el)return;
+  var date=el.value;
+  apiPost('tentative-edd-set','order_id='+orderId+'&edd='+encodeURIComponent(date)).then(function(d){
+    if(!d.ok){if(isAuthFail(d))return authFail(d.message);toast(d.message||'Failed','err');return}
+    toast(date?'Updated':'Cleared','ok');
+    load();
+  }).catch(function(){toast('Network error','err')});
+}
+
 function exportCSV(){
+  if(S.tab==='edd')return exportCSVEdd();
   var rows=[['Order #','Customer','Dealer','City','Marketing Owner','Type','Stage','Tentative Box Qty','Actual Box','Status','Confirmation','Updated']];
   S.orders.forEach(function(o){
     rows.push([o.order_number||'',o.customer_name||'',o.dealer_name||'',o.city||'',o.marketing_owner||'',o.order_type||'',o.workflow_stage||'',o.planned_box_qty||'',o.actual_box_count||'',statusLabel(statusOf(o)),o.confirmation_date||'',o.updated_at||'']);
@@ -280,8 +409,23 @@ function exportCSV(){
   a.click();
 }
 
+function exportCSVEdd(){
+  var rows=[['Order #','Customer','Dealer','City','Marketing Owner','Type','Stage','EDD','Tentative EDD','Status','Confirmation','Updated']];
+  S.orders.forEach(function(o){
+    rows.push([o.order_number||'',o.customer_name||'',o.dealer_name||'',o.city||'',o.marketing_owner||'',o.order_type||'',o.workflow_stage||'',o.edd||'',o.tentative_edd||'',statusLabel(eddStatusOf(o)),o.confirmation_date||'',o.updated_at||'']);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='tentative-edd-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
 document.getElementById('qOrder').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();quickSave()}});
 document.getElementById('qQty').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();quickSave()}});
+document.getElementById('eOrder').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();quickSaveEdd()}});
+document.getElementById('eDate').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();quickSaveEdd()}});
 
 (function(){
   api('session').then(function(r){

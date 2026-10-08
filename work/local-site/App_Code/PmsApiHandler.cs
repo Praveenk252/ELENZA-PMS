@@ -244,6 +244,9 @@ case "packing-boxes-set":
                 case "tentative-box-set":
                     HandleTentativeBoxSet(context);
                     break;
+                case "tentative-edd-set":
+                    HandleTentativeEddSet(context);
+                    break;
                 case "dispatch-boxes-state":
                     HandleDispatchBoxState(context);
                     break;
@@ -1751,12 +1754,13 @@ case "packing-boxes-set":
             var boxCountLookup = QueryAll(conn, "SELECT order_id, COUNT(*) AS box_count FROM tbl_dispatch_boxes GROUP BY order_id")
                 .ToDictionary(r => I(r, "order_id"), r => I(r, "box_count"));
             var rows = QueryAll(conn,
-                "SELECT o.*, d.dealer_name, d.dealer_code, d.city, d.marketing_owner, d.contact_person, d.mobile_number, t.order_type_name FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS t ON o.order_type_id = t.order_type_id ORDER BY o.confirmation_date DESC, o.order_id DESC");
+                "SELECT o.*, d.dealer_name, d.dealer_code, d.city, d.marketing_owner, d.contact_person, d.mobile_number, t.order_type_name, pp.edd_date FROM ((tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS t ON o.order_type_id = t.order_type_id) LEFT JOIN (SELECT order_id, MIN(sla_date) AS edd_date FROM tbl_production_planner GROUP BY order_id) pp ON o.order_id = pp.order_id ORDER BY o.confirmation_date DESC, o.order_id DESC");
             var orders = new List<Dictionary<string, object>>();
             foreach (var row in rows)
             {
                 var orderClass = OrderClassForOrder(row);
                 var canEdit = string.Equals(orderClass, "Main Order", StringComparison.OrdinalIgnoreCase) && IsPackingPlanEligible(row);
+                var canEditEdd = string.Equals(orderClass, "Main Order", StringComparison.OrdinalIgnoreCase);
                 var orderId = I(row, "order_id");
                 orders.Add(Obj(
                     "order_id", orderId,
@@ -1775,8 +1779,11 @@ case "packing-boxes-set":
                     "workflow_stage", Label(statusLookup, "WORKFLOW", S(row, "workflow_stage_code")),
                     "dispatch_status", Label(statusLookup, "DISPATCH", S(row, "dispatch_status_code")),
                     "planned_box_qty", D(row, "planned_box_qty"),
+                    "edd", FormatDateYmd(DT(row, "edd_date")),
+                    "tentative_edd", FormatDateYmd(DT(row, "tentative_edd")),
                     "actual_box_count", boxCountLookup.ContainsKey(orderId) ? boxCountLookup[orderId] : 0,
                     "can_edit", canEdit,
+                    "can_edit_edd", canEditEdd,
                     "updated_at", FormatDateTime(DT(row, "updated_at")),
                     "updated_by", userNames.ContainsKey(I(row, "updated_by")) ? userNames[I(row, "updated_by")] : ""
                 ));
@@ -1799,6 +1806,44 @@ case "packing-boxes-set":
             if (order == null) throw new ApiFailure(404, "Order not found.");
             SavePlannedBoxQty(conn, user, order, boxQty.Value);
             WriteJson(context, Obj("ok", true, "planned_box_qty", boxQty.Value));
+        }
+    }
+
+    private void HandleTentativeEddSet(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            EnsureTentativeBoxRole(user);
+            var orderId = IntRequired(Value(context, "order_id"), "Order is required.");
+            var eddText = (Value(context, "edd") ?? "").Trim();
+            DateTime? edd = null;
+            if (eddText.Length > 0)
+            {
+                DateTime parsedEdd;
+                if (!DateTime.TryParseExact(eddText, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedEdd))
+                    throw new ApiFailure(400, "Enter a valid date (yyyy-MM-dd).");
+                edd = parsedEdd;
+            }
+            var order = FindOrderById(conn, orderId);
+            if (order == null) throw new ApiFailure(404, "Order not found.");
+            if (!string.Equals(OrderClassForOrder(order), "Main Order", StringComparison.OrdinalIgnoreCase))
+                throw new ApiFailure(400, "Tentative EDD can only be assigned to a Main Order.");
+            var orderKey = Convert.ToInt32(I(order, "order_id"));
+            var previousEdd = FormatDateYmd(DT(order, "tentative_edd"));
+            var newEdd = edd.HasValue ? edd.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "";
+            Execute(conn, "UPDATE tbl_orders SET tentative_edd = " + SqlDateLiteral(edd) + ", updated_by = ?, updated_at = " + SqlDateLiteral(IstNow()) + ", last_action = ? WHERE order_id = ?",
+                I(user, "user_id"), "Tentative EDD Saved", orderKey);
+            Audit(conn, I(user, "user_id"), "Production", "Order", S(order, "order_number"), "Tentative EDD Saved",
+                previousEdd, newEdd, "", null);
+            try
+            {
+                AddHistory(conn, orderKey, null, "TENTATIVE_EDD_UPDATED", previousEdd, newEdd, null, null,
+                    "Tentative EDD: " + (newEdd.Length > 0 ? newEdd : "cleared"), I(user, "user_id"));
+            }
+            catch { }
+            WriteJson(context, Obj("ok", true, "tentative_edd", newEdd));
         }
     }
 
@@ -4250,6 +4295,7 @@ case "packing-boxes-set":
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN panel_qty DOUBLE");
 TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUBLE");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN planned_box_qty DOUBLE");
+        TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN tentative_edd DATETIME");
         TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN dispatch_balance_box_qty DOUBLE");
         TryExecute(conn, "ALTER TABLE tbl_production_planner ADD COLUMN priority_date DATETIME");
         TryExecute(conn, "CREATE UNIQUE INDEX ux_tbl_dealers_code ON tbl_dealers (dealer_code)");
@@ -5255,6 +5301,12 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
     {
         var dt = ToDateTime(value);
         return dt.HasValue ? dt.Value.ToString("yyyy-MM-dd HH:mm") : "-";
+    }
+
+    private static string FormatDateYmd(object value)
+    {
+        var dt = ToDateTime(value);
+        return dt.HasValue ? dt.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "";
     }
 
     private static string DateSortKey(object value)
