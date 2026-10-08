@@ -26,6 +26,14 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     private const string DailyMachineConsolidatedReportKind = "DAILY_MACHINE_CONSOLIDATED";
     private const string RemarksReportKind = "REMARKS_REPORT";
     private const int RemarksReportHour = 21;
+    private const string QuotationEntryReportKind = "QUOTATION_ENTRY_DAILY";
+    private const string DailyProductionReportKind = "DAILY_PRODUCTION_REPORT";
+    private const string OptimisationPendingReportKind = "OPTIMISATION_PENDING_DAILY";
+    private const string ReportRecipientEmail = "praveen@elenzaindia.com";
+    private static readonly TimeSpan QuotationEntryReportTime = new TimeSpan(11, 0, 0);
+    private static readonly TimeSpan DailyProductionReportTime = new TimeSpan(11, 5, 0);
+    private static readonly TimeSpan OptimisationPendingReportTime = new TimeSpan(11, 10, 0);
+    private static readonly TimeSpan MorningReportGraceEnd = new TimeSpan(12, 30, 0);
     private const string MailConfigRelativePath = "~/App_Data/smtp-settings.json";
     private const string CompatScriptRelativePath = "~/App_Data/script-live.js";
     private static readonly TimeSpan DailyReportTime = new TimeSpan(8, 0, 0);
@@ -300,6 +308,15 @@ case "packing-boxes-set":
                     break;
                 case "mail-send-hourly-production":
                     HandleSendHourlyProductionReport(context);
+                    break;
+                case "mail-send-quotation-entry":
+                    HandleSendMorningReport(context, "quotation");
+                    break;
+                case "mail-send-production-report":
+                    HandleSendMorningReport(context, "production");
+                    break;
+                case "mail-send-optimisation-pending":
+                    HandleSendMorningReport(context, "optimisation");
                     break;
                 case "mail-status":
                     HandleMailStatus(context);
@@ -663,6 +680,82 @@ case "packing-boxes-set":
             }
         }
     }
+
+    private void HandleSendMorningReport(HttpContext context, string reportKey)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            EnsureSchema(conn);
+            var siteRoot = ResolveSiteRoot(context);
+            var settings = LoadMailSettings(siteRoot);
+            var now = settings != null ? NowInZone(settings.TimeZoneId) : IstNow();
+            var preview = Value(context, "preview") == "1";
+            var force = Value(context, "force") == "1";
+            DateTime parsedDate = DateTime.MinValue;
+            var hasDate = !string.IsNullOrWhiteSpace(Value(context, "date")) &&
+                DateTime.TryParseExact(Value(context, "date"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedDate);
+
+            string kind, subject, html;
+            DateTime reportDate;
+            if (reportKey == "quotation")
+            {
+                reportDate = hasDate ? parsedDate : now.Date.AddDays(-1);
+                kind = QuotationEntryReportKind;
+                subject = ReportDateSubject("Quotation Entry for Date ", reportDate);
+                html = BuildQuotationEntryMailHtml(conn, reportDate, now);
+            }
+            else if (reportKey == "production")
+            {
+                reportDate = hasDate ? parsedDate : now.Date.AddDays(-1);
+                kind = DailyProductionReportKind;
+                subject = ReportDateSubject("Daily Production Report for Date ", reportDate);
+                html = BuildDailyProductionMailHtml(conn, reportDate, now);
+            }
+            else
+            {
+                reportDate = hasDate ? parsedDate : now.Date;
+                kind = OptimisationPendingReportKind;
+                subject = ReportDateSubject("Optimisation Pending as on ", reportDate);
+                html = BuildOptimisationPendingMailHtml(conn, reportDate, now);
+            }
+
+            if (preview)
+            {
+                WriteJson(context, Obj("ok", true, "preview", true, "report_kind", kind, "report_date", reportDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "subject", subject, "html", html));
+                return;
+            }
+
+            if (settings == null || !settings.Enabled) throw new ApiFailure(400, "SMTP mail is disabled.");
+            if (!force && WasMailAlreadySent(conn, kind, reportDate))
+            {
+                WriteJson(context, Obj("ok", true, "sent", false, "message", "Report already sent for this date."));
+                return;
+            }
+            var recipients = ReportRecipients(settings);
+            var recipientText = string.Join(", ", recipients);
+            try
+            {
+                SendDailyReportMail(settings, subject, html, recipients);
+                LogMailReport(conn, kind, reportDate, recipientText, subject, "SENT", "", now);
+                Audit(conn, I(user, "user_id"), "Email", "Mail", subject, "Report Mail Sent", "", "SENT", "", null);
+                WriteJson(context, Obj("ok", true, "sent", true, "message", "Sent to " + recipientText + "."));
+            }
+            catch (Exception ex)
+            {
+                LogMailReport(conn, kind, reportDate, recipientText, subject, "FAILED", ex.Message, now);
+                Audit(conn, I(user, "user_id"), "Email", "Mail", subject, "Report Mail Failed", "", "FAILED", ex.Message, null);
+                throw new ApiFailure(500, ex.Message);
+            }
+        }
+    }
+
+    private static string ReportDateSubject(string prefix, DateTime date)
+    {
+        return prefix + date.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) + ", Indian Time";
+    }
+
     private static bool TrySendReport(HttpContext context, bool force, bool previousDayReport, out string message)
     {
         message = "Mail not processed.";
@@ -3838,6 +3931,179 @@ case "packing-boxes-set":
             .ToList();
     }
 
+    private static string MailShell(string title, string subtitleHtml, string bodyHtml)
+    {
+        var sb = new StringBuilder();
+        sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+        sb.Append("<title>").Append(Html(title)).Append("</title><style>");
+        sb.Append("body{margin:0;background:#eef2f7;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0f172a}");
+        sb.Append(".shell{max-width:720px;margin:0 auto;padding:20px 12px}");
+        sb.Append(".card{background:#fff;border:1px solid #dbe4ee;border-radius:14px;overflow:hidden}");
+        sb.Append(".head{padding:20px 22px;border-bottom:1px solid #e8eef6}");
+        sb.Append(".head h1{margin:0;font-size:18px;color:#0b57a4}");
+        sb.Append(".head p{margin:6px 0 0;font-size:13px;color:#64748b;line-height:1.5}");
+        sb.Append(".body{padding:18px 22px}");
+        sb.Append(".mtitle{font-size:14px;font-weight:700;margin:20px 0 8px;color:#0f172a}");
+        sb.Append(".mtitle:first-child{margin-top:0}");
+        sb.Append(".mtitle span{font-weight:400;font-size:12px;color:#64748b}");
+        sb.Append("table{width:100%;border-collapse:collapse;font-size:13px;table-layout:auto}");
+        sb.Append("th{background:#f1f5f9;color:#475569;text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid #e2e8f0}");
+        sb.Append("td{padding:9px 10px;border-bottom:1px solid #eef2f7;vertical-align:top;word-break:normal;overflow-wrap:break-word}");
+        sb.Append("tr:last-child td{border-bottom:0}");
+        sb.Append(".num{text-align:right;font-variant-numeric:tabular-nums}");
+        sb.Append("td.num{white-space:nowrap}");
+        sb.Append("tr.total td{font-weight:700;background:#f8fafc;border-top:2px solid #e2e8f0}");
+        sb.Append(".empty{padding:18px;text-align:center;color:#94a3b8;font-size:14px}");
+        sb.Append(".foot{padding:0 22px 18px;font-size:11px;color:#94a3b8;text-align:center}");
+        sb.Append("@media only screen and (max-width:600px){.head,.body{padding:14px}.foot{padding:0 14px 14px}th,td{padding:7px 6px;font-size:12px}th{white-space:normal;letter-spacing:0}.head h1{font-size:16px}}");
+        sb.Append("</style></head><body><div class=\"shell\"><div class=\"card\">");
+        sb.Append("<div class=\"head\"><h1>").Append(Html(title)).Append("</h1><p>").Append(subtitleHtml).Append("</p></div>");
+        sb.Append("<div class=\"body\">").Append(bodyHtml).Append("</div>");
+        sb.Append("<div class=\"foot\">Sent automatically by Elenza PMS &middot; India Standard Time</div>");
+        sb.Append("</div></div></body></html>");
+        return sb.ToString();
+    }
+
+    private static string MailDash(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "&mdash;" : value;
+    }
+
+    private static string MailQty(double value)
+    {
+        return value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    private string BuildQuotationEntryMailHtml(OleDbConnection conn, DateTime reportDate, DateTime sentAt)
+    {
+        var sql = "SELECT o.quotation_date, o.confirmation_date, o.order_number, d.dealer_name, ot.order_type_name, p.edd_date " +
+            "FROM ((tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS ot ON o.order_type_id = ot.order_type_id) " +
+            "LEFT JOIN (SELECT order_id, MIN(sla_date) AS edd_date FROM tbl_production_planner GROUP BY order_id) p ON o.order_id = p.order_id " +
+            "WHERE o.quotation_date >= " + SqlDateLiteral(reportDate) + " AND o.quotation_date < " + SqlDateLiteral(reportDate.AddDays(1)) +
+            " ORDER BY o.quotation_date, o.order_id";
+        var rows = QueryAll(conn, sql);
+        var body = new StringBuilder();
+        if (rows.Count == 0)
+        {
+            body.Append("<div class=\"empty\">No records for this date.</div>");
+        }
+        else
+        {
+            body.Append("<table><thead><tr><th>Confirmation Date</th><th>Order Number</th><th>Dealer Name</th><th>Order Type</th><th>EDD</th></tr></thead><tbody>");
+            foreach (var r in rows)
+            {
+                body.Append("<tr>")
+                    .Append("<td>").Append(MailDash(Html(FormatDateYmd(DT(r, "confirmation_date"))))).Append("</td>")
+                    .Append("<td><strong>").Append(Html(S(r, "order_number"))).Append("</strong></td>")
+                    .Append("<td>").Append(MailDash(Html(S(r, "dealer_name")))).Append("</td>")
+                    .Append("<td>").Append(MailDash(Html(S(r, "order_type_name")))).Append("</td>")
+                    .Append("<td>").Append(MailDash(Html(FormatDateYmd(DT(r, "edd_date"))))).Append("</td>")
+                    .Append("</tr>");
+            }
+            body.Append("</tbody></table>");
+        }
+        var subtitle = "Orders entered on <strong>" + reportDate.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) + "</strong> &middot; " +
+            rows.Count + " order(s) &middot; Sent " + sentAt.ToString("dd MMM yyyy hh:mm tt", CultureInfo.InvariantCulture) + " IST";
+        return MailShell("Quotation Entry", subtitle, body.ToString());
+    }
+
+    private string BuildDailyProductionMailHtml(OleDbConnection conn, DateTime reportDate, DateTime sentAt)
+    {
+        var sql = "SELECT m.machine_name, m.sequence_no, u.full_name AS operator_name, o.order_number, o.board_qty_decimal AS boards, o.panel_qty AS panels " +
+            "FROM (((tbl_order_history AS h LEFT JOIN tbl_machines AS m ON h.station_id = m.machine_id) LEFT JOIN tbl_users AS u ON h.acted_by = u.user_id) " +
+            "LEFT JOIN tbl_orders AS o ON h.order_id = o.order_id) " +
+            "WHERE h.acted_at >= " + SqlDateLiteral(reportDate) + " AND h.acted_at < " + SqlDateLiteral(reportDate.AddDays(1)) +
+            " AND h.station_id IS NOT NULL AND h.action_code IN ('COMPLETED','PARTIAL_COMPLETED') " +
+            "ORDER BY m.sequence_no, m.machine_name, o.order_number";
+        var rows = QueryAll(conn, sql);
+        var machineOrder = new List<string>();
+        var machineNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var operators = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        var orderQty = new Dictionary<string, Dictionary<string, double[]>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in rows)
+        {
+            var machineName = S(r, "machine_name");
+            var orderNumber = S(r, "order_number");
+            if (string.IsNullOrWhiteSpace(machineName) || string.IsNullOrWhiteSpace(orderNumber)) continue;
+            if (!machineNames.ContainsKey(machineName))
+            {
+                machineNames[machineName] = machineName;
+                operators[machineName] = new HashSet<string>();
+                orderQty[machineName] = new Dictionary<string, double[]>();
+                machineOrder.Add(machineName);
+            }
+            var op = S(r, "operator_name");
+            if (!string.IsNullOrWhiteSpace(op)) operators[machineName].Add(op);
+            if (!orderQty[machineName].ContainsKey(orderNumber))
+                orderQty[machineName][orderNumber] = new[] { D(r, "boards"), D(r, "panels") };
+        }
+        var body = new StringBuilder();
+        if (machineOrder.Count == 0)
+        {
+            body.Append("<div class=\"empty\">No records for this date.</div>");
+        }
+        else
+        {
+            foreach (var machineName in machineOrder)
+            {
+                var ops = operators[machineName].OrderBy(v => v, StringComparer.OrdinalIgnoreCase).ToList();
+                var opText = ops.Count > 0 ? string.Join(", ", ops) : "&mdash;";
+                body.Append("<div class=\"mtitle\">").Append(Html(machineName))
+                    .Append(" <span>&middot; Operator: ").Append(opText)
+                    .Append(" &middot; ").Append(reportDate.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture)).Append("</span></div>");
+                body.Append("<table><thead><tr><th>Order Number</th><th class=\"num\">Number of Boards</th><th class=\"num\">Number of Panels</th></tr></thead><tbody>");
+                double totalBoards = 0, totalPanels = 0;
+                foreach (var pair in orderQty[machineName])
+                {
+                    totalBoards += pair.Value[0];
+                    totalPanels += pair.Value[1];
+                    body.Append("<tr>")
+                        .Append("<td><strong>").Append(Html(pair.Key)).Append("</strong></td>")
+                        .Append("<td class=\"num\">").Append(MailQty(pair.Value[0])).Append("</td>")
+                        .Append("<td class=\"num\">").Append(MailQty(pair.Value[1])).Append("</td>")
+                        .Append("</tr>");
+                }
+                body.Append("<tr class=\"total\"><td>Total</td><td class=\"num\">").Append(MailQty(totalBoards))
+                    .Append("</td><td class=\"num\">").Append(MailQty(totalPanels)).Append("</td></tr>");
+                body.Append("</tbody></table>");
+            }
+        }
+        var subtitle = "Production activity for <strong>" + reportDate.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) + "</strong> &middot; " +
+            machineOrder.Count + " machine(s) &middot; Sent " + sentAt.ToString("dd MMM yyyy hh:mm tt", CultureInfo.InvariantCulture) + " IST";
+        return MailShell("Daily Production Report", subtitle, body.ToString());
+    }
+
+    private string BuildOptimisationPendingMailHtml(OleDbConnection conn, DateTime reportDate, DateTime sentAt)
+    {
+        var sql = "SELECT o.confirmation_date, o.order_number, o.customer_name, d.dealer_name, ot.order_type_name " +
+            "FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS ot ON o.order_type_id = ot.order_type_id " +
+            "WHERE o.workflow_stage_code = 'ORDER_CONFIRMED' ORDER BY o.confirmation_date, o.order_id";
+        var rows = QueryAll(conn, sql);
+        var body = new StringBuilder();
+        if (rows.Count == 0)
+        {
+            body.Append("<div class=\"empty\">No pending optimisation orders.</div>");
+        }
+        else
+        {
+            body.Append("<table><thead><tr><th>Confirmation Date</th><th>Order Number</th><th>Dealer</th><th>Customer</th><th>Type</th></tr></thead><tbody>");
+            foreach (var r in rows)
+            {
+                body.Append("<tr>")
+                    .Append("<td>").Append(MailDash(Html(FormatDateYmd(DT(r, "confirmation_date"))))).Append("</td>")
+                    .Append("<td><strong>").Append(Html(S(r, "order_number"))).Append("</strong></td>")
+                    .Append("<td>").Append(MailDash(Html(S(r, "dealer_name")))).Append("</td>")
+                    .Append("<td>").Append(MailDash(Html(S(r, "customer_name")))).Append("</td>")
+                    .Append("<td>").Append(MailDash(Html(S(r, "order_type_name")))).Append("</td>")
+                    .Append("</tr>");
+            }
+            body.Append("</tbody></table>");
+        }
+        var subtitle = "Pending optimisation list as on <strong>" + reportDate.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) + "</strong> &middot; " +
+            rows.Count + " order(s) &middot; Sent " + sentAt.ToString("dd MMM yyyy hh:mm tt", CultureInfo.InvariantCulture) + " IST";
+        return MailShell("Optimisation Pending", subtitle, body.ToString());
+    }
+
     private Dictionary<string, object> GetMailStatus(OleDbConnection conn)
     {
         var rows = QueryAll(conn, "SELECT TOP 10 * FROM tbl_mail_reports ORDER BY sent_at DESC, mail_report_id DESC");
@@ -3877,6 +4143,7 @@ case "packing-boxes-set":
                 FromEmail = ReadString(raw, "from_email"),
                 FromName = ReadString(raw, "from_name"),
                 ToEmails = ReadStringList(raw, "to_emails"),
+                ReportToEmails = ReadStringList(raw, "report_to_emails"),
                 TimeZoneId = ReadString(raw, "timezone_id", "India Standard Time"),
                 DailyHour = ReadInt(raw, "daily_hour", 9),
                 DailyMinute = ReadInt(raw, "daily_minute", 0)
@@ -3935,13 +4202,19 @@ case "packing-boxes-set":
 
     private static void SendDailyReportMail(MailSettings settings, string subject, string html)
     {
+        SendDailyReportMail(settings, subject, html, settings == null ? null : settings.ToEmails);
+    }
+
+    private static void SendDailyReportMail(MailSettings settings, string subject, string html, List<string> recipients)
+    {
         if (settings == null) throw new InvalidOperationException("SMTP settings were not found.");
-        if (settings.ToEmails == null || settings.ToEmails.Count == 0)
+        var toList = (recipients ?? new List<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (toList.Count == 0)
             throw new InvalidOperationException("SMTP recipients are not configured.");
 
         if (string.Equals(settings.DeliveryMode, "brevo_api", StringComparison.OrdinalIgnoreCase))
         {
-            SendViaBrevoApi(settings, subject, html);
+            SendViaBrevoApi(settings, subject, html, toList);
             return;
         }
 
@@ -3954,7 +4227,7 @@ case "packing-boxes-set":
             client.EnableSsl = settings.UseSsl;
             client.Credentials = new NetworkCredential(settings.Username, settings.Password);
             message.From = new MailAddress(settings.FromEmail, string.IsNullOrWhiteSpace(settings.FromName) ? settings.FromEmail : settings.FromName);
-            foreach (var email in settings.ToEmails.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase))
+            foreach (var email in toList)
                 message.To.Add(email);
             message.Subject = subject;
             message.SubjectEncoding = Encoding.UTF8;
@@ -3965,7 +4238,22 @@ case "packing-boxes-set":
         }
     }
 
+    private static List<string> ReportRecipients(MailSettings settings)
+    {
+        if (settings != null && settings.ReportToEmails != null && settings.ReportToEmails.Count > 0)
+        {
+            var configured = settings.ReportToEmails.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (configured.Count > 0) return configured;
+        }
+        return new List<string> { ReportRecipientEmail };
+    }
+
     private static void SendViaBrevoApi(MailSettings settings, string subject, string html)
+    {
+        SendViaBrevoApi(settings, subject, html, settings.ToEmails);
+    }
+
+    private static void SendViaBrevoApi(MailSettings settings, string subject, string html, List<string> recipients)
     {
         if (string.IsNullOrWhiteSpace(settings.BrevoApiKey))
             throw new InvalidOperationException("Brevo API key is missing.");
@@ -3977,7 +4265,7 @@ case "packing-boxes-set":
                 "name", string.IsNullOrWhiteSpace(settings.FromName) ? settings.FromEmail : settings.FromName,
                 "email", settings.FromEmail
             ),
-            "to", settings.ToEmails.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase)
+            "to", recipients
                 .Select(email => Obj("email", email)).ToList(),
             "subject", subject,
             "htmlContent", html
@@ -5690,6 +5978,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         public string FromEmail;
         public string FromName;
         public List<string> ToEmails;
+        public List<string> ReportToEmails;
         public string TimeZoneId;
         public int DailyHour;
         public int DailyMinute;
@@ -7385,6 +7674,65 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         _lastRemarksSchedulerProbeUtc = nowUtc;
         string message;
         try { TrySendRemarksReport(ResolveSiteRoot(null), false, out message); } catch { }
+        try { TrySendMorningScheduledReports(ResolveSiteRoot(null)); } catch { }
+    }
+
+    private static void TrySendMorningScheduledReports(string siteRoot)
+    {
+        if (string.IsNullOrWhiteSpace(siteRoot)) return;
+        if (!Monitor.TryEnter(MailSync)) return;
+        try
+        {
+            var settings = LoadMailSettings(siteRoot);
+            if (settings == null || !settings.Enabled) return;
+            var now = NowInZone(settings.TimeZoneId);
+            if (now.TimeOfDay < QuotationEntryReportTime || now.TimeOfDay >= MorningReportGraceEnd) return;
+            using (var conn = OpenConnection(siteRoot))
+            {
+                var handler = new PmsApiHandler();
+                handler.EnsureSchema(conn);
+                var yesterday = now.Date.AddDays(-1);
+
+                if (now.TimeOfDay >= QuotationEntryReportTime && !WasMailAlreadySent(conn, QuotationEntryReportKind, yesterday))
+                {
+                    var subject = ReportDateSubject("Quotation Entry for Date ", yesterday);
+                    var html = handler.BuildQuotationEntryMailHtml(conn, yesterday, now);
+                    SendMorningReportMail(conn, settings, now, QuotationEntryReportKind, yesterday, subject, html);
+                }
+                if (now.TimeOfDay >= DailyProductionReportTime && !WasMailAlreadySent(conn, DailyProductionReportKind, yesterday))
+                {
+                    var subject = ReportDateSubject("Daily Production Report for Date ", yesterday);
+                    var html = handler.BuildDailyProductionMailHtml(conn, yesterday, now);
+                    SendMorningReportMail(conn, settings, now, DailyProductionReportKind, yesterday, subject, html);
+                }
+                if (now.TimeOfDay >= OptimisationPendingReportTime && !WasMailAlreadySent(conn, OptimisationPendingReportKind, now.Date))
+                {
+                    var subject = ReportDateSubject("Optimisation Pending as on ", now.Date);
+                    var html = handler.BuildOptimisationPendingMailHtml(conn, now.Date, now);
+                    SendMorningReportMail(conn, settings, now, OptimisationPendingReportKind, now.Date, subject, html);
+                }
+            }
+        }
+        catch { }
+        finally
+        {
+            Monitor.Exit(MailSync);
+        }
+    }
+
+    private static void SendMorningReportMail(OleDbConnection conn, MailSettings settings, DateTime now, string reportKind, DateTime reportDate, string subject, string html)
+    {
+        var recipients = ReportRecipients(settings);
+        var recipientText = string.Join(", ", recipients);
+        try
+        {
+            SendDailyReportMail(settings, subject, html, recipients);
+            LogMailReport(conn, reportKind, reportDate, recipientText, subject, "SENT", "", now);
+        }
+        catch (Exception ex)
+        {
+            LogMailReport(conn, reportKind, reportDate, recipientText, subject, "FAILED", ex.Message, now);
+        }
     }
 
     private static DateTime _lastAutoAdvanceProbeUtc = DateTime.MinValue;
