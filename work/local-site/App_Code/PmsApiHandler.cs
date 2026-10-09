@@ -7508,7 +7508,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 return;
             }
             string message;
-            var sent = TrySendRemarksReport(siteRoot, force, out message);
+            var sent = TrySendRemarksReport(siteRoot, force, Value(context, "only_to"), out message);
             WriteJson(context, Obj("ok", true, "sent", sent, "message", message));
         }
     }
@@ -7538,7 +7538,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 return;
             }
             string message;
-            var sent = TrySendDipanRemarksReport(siteRoot, force, out message);
+            var sent = TrySendDipanRemarksReport(siteRoot, force, Value(context, "only_to"), out message);
             WriteJson(context, Obj("ok", true, "sent", sent, "message", message));
         }
     }
@@ -7692,7 +7692,18 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         );
     }
 
-    private static bool TrySendDipanRemarksReport(string siteRoot, bool force, out string message)
+    private static List<string> SplitOnlyRecipients(string onlyTo)
+    {
+        if (string.IsNullOrWhiteSpace(onlyTo)) return null;
+        var list = onlyTo.Split(',')
+            .Select(v => v.Trim())
+            .Where(v => v.Length > 0 && v.IndexOf('@') > 0 && v.IndexOf(' ') < 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return list.Count > 0 ? list : null;
+    }
+
+    private static bool TrySendDipanRemarksReport(string siteRoot, bool force, string onlyTo, out string message)
     {
         message = "Dipan report not processed.";
         if (!Monitor.TryEnter(MailSync))
@@ -7739,7 +7750,10 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 var olderRows = handler.LoadRemarkRequestsForReport(conn, I(dipan, "user_id"), reportDate, false);
                 var html = BuildDipanRemarksReportHtml(todayRows, olderRows, now, S(dipan, "full_name"));
                 var subject = "Elenza PMS Remarks Activity - " + S(dipan, "full_name") + " | " + reportDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
-                var recipients = DipanRemarksReportEmails.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var onlyRecipients = SplitOnlyRecipients(onlyTo);
+                var recipients = onlyRecipients != null
+                    ? onlyRecipients
+                    : DipanRemarksReportEmails.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                 var recipientText = string.Join(", ", recipients);
                 byte[] pdf = null;
                 try
@@ -7931,7 +7945,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         return sb.ToString();
     }
 
-    private static bool TrySendRemarksReport(string siteRoot, bool force, out string message)
+    private static bool TrySendRemarksReport(string siteRoot, bool force, string onlyTo, out string message)
     {
         message = "Remarks report not processed.";
         if (!Monitor.TryEnter(MailSync))
@@ -7972,16 +7986,22 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 new PmsApiHandler().BuildRemarksReportData(conn, false, 0, out doneRows, out pendingRows);
                 var html = BuildRemarksReportHtml(doneRows, pendingRows, settings, now);
                 var subject = "Elenza PMS Remarks Replies Report | " + reportDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
-                var recipients = (settings.ToEmails ?? new List<string>())
-                    .Concat(RemarksReportExtraRecipients)
-                    .Where(v => !string.IsNullOrWhiteSpace(v))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                var ccRecipients = RemarksReportCcRecipients
-                    .Where(v => !string.IsNullOrWhiteSpace(v))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                var recipientText = string.Join(", ", recipients) + " (cc: " + string.Join(", ", ccRecipients) + ")";
+                var onlyRecipients = SplitOnlyRecipients(onlyTo);
+                var recipients = onlyRecipients != null
+                    ? onlyRecipients
+                    : (settings.ToEmails ?? new List<string>())
+                        .Concat(RemarksReportExtraRecipients)
+                        .Where(v => !string.IsNullOrWhiteSpace(v))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                var ccRecipients = onlyRecipients != null
+                    ? new List<string>()
+                    : RemarksReportCcRecipients
+                        .Where(v => !string.IsNullOrWhiteSpace(v))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                var recipientText = string.Join(", ", recipients)
+                    + (ccRecipients.Count > 0 ? " (cc: " + string.Join(", ", ccRecipients) + ")" : "");
                 byte[] pdf = null;
                 try
                 {
@@ -8031,8 +8051,8 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         if ((nowUtc - _lastRemarksSchedulerProbeUtc).TotalMinutes < 1) return;
         _lastRemarksSchedulerProbeUtc = nowUtc;
         string message;
-        try { TrySendRemarksReport(ResolveSiteRoot(null), false, out message); } catch { }
-        try { TrySendDipanRemarksReport(ResolveSiteRoot(null), false, out message); } catch { }
+        try { TrySendRemarksReport(ResolveSiteRoot(null), false, null, out message); } catch { }
+        try { TrySendDipanRemarksReport(ResolveSiteRoot(null), false, null, out message); } catch { }
         try { TrySendMorningScheduledReports(ResolveSiteRoot(null)); } catch { }
     }
 
