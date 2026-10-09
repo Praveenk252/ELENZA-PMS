@@ -4219,7 +4219,12 @@ case "packing-boxes-set":
         SendDailyReportMail(settings, subject, html, settings == null ? null : settings.ToEmails);
     }
 
-    private static void SendDailyReportMail(MailSettings settings, string subject, string html, List<string> recipients)
+    private static void SendDailyReportMail(MailSettings settings, string subject, string html, byte[] pdf, string pdfName)
+    {
+        SendDailyReportMail(settings, subject, html, settings == null ? null : settings.ToEmails, pdf, pdfName);
+    }
+
+    private static void SendDailyReportMail(MailSettings settings, string subject, string html, List<string> recipients, byte[] pdf = null, string pdfName = null)
     {
         if (settings == null) throw new InvalidOperationException("SMTP settings were not found.");
         var toList = (recipients ?? new List<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -4228,7 +4233,7 @@ case "packing-boxes-set":
 
         if (string.Equals(settings.DeliveryMode, "brevo_api", StringComparison.OrdinalIgnoreCase))
         {
-            SendViaBrevoApi(settings, subject, html, toList);
+            SendViaBrevoApi(settings, subject, html, toList, pdf, pdfName);
             return;
         }
 
@@ -4248,6 +4253,8 @@ case "packing-boxes-set":
             message.BodyEncoding = Encoding.UTF8;
             message.IsBodyHtml = true;
             message.Body = html;
+            if (pdf != null && pdf.Length > 0)
+                message.Attachments.Add(new Attachment(new MemoryStream(pdf), string.IsNullOrWhiteSpace(pdfName) ? "report.pdf" : pdfName, "application/pdf"));
             client.Send(message);
         }
     }
@@ -4282,7 +4289,7 @@ case "packing-boxes-set":
         SendViaBrevoApi(settings, subject, html, settings.ToEmails);
     }
 
-    private static void SendViaBrevoApi(MailSettings settings, string subject, string html, List<string> recipients)
+    private static void SendViaBrevoApi(MailSettings settings, string subject, string html, List<string> recipients, byte[] pdf = null, string pdfName = null)
     {
         if (string.IsNullOrWhiteSpace(settings.BrevoApiKey))
             throw new InvalidOperationException("Brevo API key is missing.");
@@ -4299,6 +4306,13 @@ case "packing-boxes-set":
             "subject", subject,
             "htmlContent", html
         );
+        if (pdf != null && pdf.Length > 0)
+        {
+            payload["attachments"] = new List<object>
+            {
+                Obj("name", string.IsNullOrWhiteSpace(pdfName) ? "report.pdf" : pdfName, "content", Convert.ToBase64String(pdf))
+            };
+        }
 
         var request = (HttpWebRequest)WebRequest.Create("https://api.brevo.com/v3/smtp/email");
         request.Method = "POST";
@@ -7364,14 +7378,14 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         {
             EnsureSchema(conn);
             var user = RequireLogin(context, conn);
+            if (S(user, "role_name") != "Admin")
+                throw new ApiFailure(403, "Only admins can delete requests.");
             var requestIdVal = N(Value(context, "request_id"));
             if (requestIdVal.HasValue)
             {
                 var requestId = (int)requestIdVal.Value;
                 var request = QueryOne(conn, "SELECT * FROM tbl_remarks_requests WHERE request_id = ?", requestId);
                 if (request == null) throw new ApiFailure(404, "Request not found.");
-                if (I(request, "requested_by") != I(user, "user_id") && S(user, "role_name") != "Admin")
-                    throw new ApiFailure(403, "You can only delete your own requests.");
                 if (S(request, "status") != "pending")
                     throw new ApiFailure(400, "Only pending requests can be deleted.");
                 Execute(conn, "DELETE FROM tbl_remarks_replies WHERE request_id = ?", requestId);
@@ -7458,6 +7472,21 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
             EnsureRole(user, "Admin", "Production Planner User");
             var force = Value(context, "force") == "1";
             var siteRoot = ResolveSiteRoot(context);
+            if (Value(context, "preview") == "1")
+            {
+                var settings = LoadMailSettings(siteRoot);
+                var now = settings != null ? NowInZone(settings.TimeZoneId) : IstNow();
+                List<Dictionary<string, object>> doneRows;
+                List<Dictionary<string, object>> pendingRows;
+                BuildRemarksReportData(conn, false, 0, out doneRows, out pendingRows);
+                var html = BuildRemarksReportHtml(doneRows, pendingRows, settings, now);
+                var pdf = ReportPdfRenderer.Render(html, "Elenza PMS Remarks Replies Report");
+                context.Response.Clear();
+                context.Response.ContentType = "application/pdf";
+                context.Response.AddHeader("Content-Disposition", "inline; filename=\"Elenza-Remarks-Report-Preview.pdf\"");
+                context.Response.BinaryWrite(pdf);
+                return;
+            }
             string message;
             var sent = TrySendRemarksReport(siteRoot, force, out message);
             WriteJson(context, Obj("ok", true, "sent", sent, "message", message));
@@ -7506,6 +7535,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
             var requestedBy = I(r, "requested_by");
             var reqUser = requestedBy != 0 ? QueryOne(conn, "SELECT full_name FROM tbl_users WHERE user_id = " + requestedBy) : null;
             pendingRows.Add(Obj(
+                "request_id", I(r, "request_id"),
                 "requested_date", FmtDate(DT(r, "requested_at")),
                 "requested_time", FmtTime(DT(r, "requested_at")),
                 "status", S(r, "status"),
@@ -7602,13 +7632,13 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
             sb.Append("</tr></thead><tbody>");
             foreach (var r in pendingRows)
             {
-                var orderLabel = S(r, "order_number");
                 var count = Convert.ToInt32(r["order_count"]);
-                if (count > 1) orderLabel += " <span style=\"color:#64748b;font-size:11px;\">(+" + (count - 1) + " more)</span>";
+                var orderCell = Html(S(r, "order_number"));
+                if (count > 1) orderCell += " <span style=\"color:#64748b;font-size:11px;\">(+" + (count - 1) + " more)</span>";
                 sb.Append("<tr>");
                 sb.Append("<td class=\"report-cell\"><span class=\"dt\">" + Html(S(r, "requested_date")) + "</span></td>");
                 sb.Append("<td class=\"report-cell\"><span class=\"tm\">" + Html(S(r, "requested_time")) + "</span></td>");
-                sb.Append("<td class=\"report-cell\">" + Html(orderLabel) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + orderCell + "</td>");
                 sb.Append("<td class=\"report-cell\">" + Html(S(r, "dealer_name")) + "</td>");
                 sb.Append("<td class=\"report-cell\">" + Html(S(r, "customer_name")) + "</td>");
                 sb.Append("<td class=\"report-cell\">" + Html(S(r, "requester_name")) + "</td>");
@@ -7663,9 +7693,19 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 new PmsApiHandler().BuildRemarksReportData(conn, false, 0, out doneRows, out pendingRows);
                 var html = BuildRemarksReportHtml(doneRows, pendingRows, settings, now);
                 var subject = "Elenza PMS Remarks Replies Report | " + reportDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+                byte[] pdf = null;
                 try
                 {
-                    SendDailyReportMail(settings, subject, html);
+                    pdf = ReportPdfRenderer.Render(html, "Elenza PMS Remarks Replies Report");
+                }
+                catch (Exception pdfEx)
+                {
+                    LogMailReport(conn, RemarksReportKind, reportDate, string.Join(", ", settings.ToEmails), subject, "PDF_SKIPPED", pdfEx.Message, now);
+                }
+                var pdfName = "Elenza-Remarks-Report-" + reportDate.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + ".pdf";
+                try
+                {
+                    SendDailyReportMail(settings, subject, html, pdf, pdfName);
                     LogMailReport(conn, RemarksReportKind, reportDate, string.Join(", ", settings.ToEmails), subject, "SENT", "", now);
                     message = "Remarks report sent to " + string.Join(", ", settings.ToEmails) + ".";
                     return true;

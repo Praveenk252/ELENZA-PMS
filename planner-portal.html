@@ -186,6 +186,17 @@
     .tm{color:var(--muted)}
     .remark{color:#334155;font-size:12.5px;line-height:1.45;white-space:normal}
     .pill-pending{background:var(--medium);color:#9a6700}
+    .del-btn{
+      padding:5px 10px;
+      border-radius:8px;
+      background:#fdeaea;
+      color:#b42318;
+      border:1px solid #f3c1c1;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .del-btn:hover{background:#f8d4d4}
     .priority-cell{
       display:flex;
       align-items:center;
@@ -417,6 +428,7 @@
                   <th>Customer</th>
                   <th>Requested By</th>
                   <th>Status</th>
+                  <th id="remarks-pending-action-th" style="display:none;">Action</th>
                 </tr>
               </thead>
               <tbody id="remarks-pending-body"></tbody>
@@ -665,8 +677,14 @@
         </tr>
       `).join("") : `<tr><td colspan="7" class="empty">No replies completed today.</td></tr>`;
 
+      const isAdmin = String((state.session && state.session.role_name) || "") === "Admin";
+      document.querySelector("#remarks-pending-action-th").style.display = isAdmin ? "" : "none";
+
       document.querySelector("#remarks-pending-body").innerHTML = pendingRows.length ? pendingRows.map((row) => {
         const orderLabel = row.order_count > 1 ? `${escapeHtml(row.order_number)} (+${row.order_count - 1} more)` : escapeHtml(row.order_number);
+        const actionCell = isAdmin && row.request_id != null
+          ? `<td class="slim-cell"><button class="del-btn" type="button" onclick="deleteRemarkRequest(${Number(row.request_id)})">Delete</button></td>`
+          : "";
         return `
         <tr>
           <td class="slim-cell"><span class="dt">${escapeHtml(row.requested_date)}</span></td>
@@ -676,9 +694,21 @@
           <td class="customer-cell wrap">${escapeHtml(row.customer_name)}</td>
           <td class="slim-cell">${escapeHtml(row.requester_name)}</td>
           <td class="slim-cell"><span class="pill pill-pending">Pending</span></td>
+          ${actionCell}
         </tr>
       `;
-      }).join("") : `<tr><td colspan="7" class="empty">No pending replies. Everything is answered.</td></tr>`;
+      }).join("") : `<tr><td colspan="${isAdmin ? 8 : 7}" class="empty">No pending replies. Everything is answered.</td></tr>`;
+    }
+
+    async function deleteRemarkRequest(requestId) {
+      if (!confirm("Delete this pending remarks request? This cannot be undone.")) return;
+      try {
+        await apiPost("remarks-request-delete", { request_id: requestId });
+        showMessage("Request deleted.", "ok");
+        await loadRemarksReport();
+      } catch (error) {
+        showMessage(error.message || "Delete failed.", "error");
+      }
     }
 
     function getFilteredRows() {
