@@ -3141,6 +3141,7 @@ case "packing-boxes-set":
         var rows = new List<Dictionary<string, object>>();
         var plannerLookup = QueryAll(conn, "SELECT order_id, [priority] FROM tbl_production_planner")
             .ToDictionary(r => I(r, "order_id"), r => S(r, "priority"));
+        var pendingReplyCounts = LoadPendingReplyCounts(conn);
         var search = (filters["report_search"] ?? "").ToLowerInvariant();
         var statusFilter = filters["report_status"];
         var dealerFilter = filters["report_dealer"];
@@ -3165,7 +3166,7 @@ case "packing-boxes-set":
             if (stationFilter != "all" && !((List<string>)order["visible_stations"]).Contains(stationFilter) && !(stationFilter == "Correction Queue" && B(order, "correction_queue"))) continue;
             if (!string.IsNullOrWhiteSpace(dateFrom) && string.CompareOrdinal(orderDate, dateFrom) < 0) continue;
             if (!string.IsNullOrWhiteSpace(dateTo) && string.CompareOrdinal(orderDate, dateTo) > 0) continue;
-            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "workflow_stage", workflowStage, "visible_stations", visibleStations, "last_action", S(order, "last_action"), "updated_at", FormatDateTime(DT(order, "updated_at")), "updated_sort", DateSortKey(DT(order, "updated_at")), "dispatch_status", dispatchStatus, "panel_qty", D(order, "panel_qty") > 0 ? D(order, "panel_qty").ToString("0.##", CultureInfo.InvariantCulture) : "", "board_qty", D(order, "number_of_boards") > 0 ? D(order, "number_of_boards").ToString("0.##", CultureInfo.InvariantCulture) : "", "planned_box_qty", D(order, "planned_box_qty") > 0 ? D(order, "planned_box_qty").ToString("0.##", CultureInfo.InvariantCulture) : ""));
+            rows.Add(Obj("order_id", I(order, "order_id"), "order_number", S(order, "order_number"), "dealer_name", S(order, "dealer_name"), "customer_name", S(order, "customer_name"), "order_type", S(order, "order_type_name"), "workflow_stage", workflowStage, "visible_stations", visibleStations, "last_action", S(order, "last_action"), "updated_at", FormatDateTime(DT(order, "updated_at")), "updated_sort", DateSortKey(DT(order, "updated_at")), "dispatch_status", dispatchStatus, "panel_qty", D(order, "panel_qty") > 0 ? D(order, "panel_qty").ToString("0.##", CultureInfo.InvariantCulture) : "", "board_qty", D(order, "number_of_boards") > 0 ? D(order, "number_of_boards").ToString("0.##", CultureInfo.InvariantCulture) : "", "planned_box_qty", D(order, "planned_box_qty") > 0 ? D(order, "planned_box_qty").ToString("0.##", CultureInfo.InvariantCulture) : "", "replies_pending", pendingReplyCounts.ContainsKey(I(order, "order_id")) ? pendingReplyCounts[I(order, "order_id")] : 0));
         }
 
         rows = SortReportRows(rows, sortKey);
@@ -3976,12 +3977,13 @@ case "packing-boxes-set":
 
     private string BuildQuotationEntryMailHtml(OleDbConnection conn, DateTime reportDate, DateTime sentAt)
     {
-        var sql = "SELECT o.quotation_date, o.confirmation_date, o.order_number, d.dealer_name, ot.order_type_name, p.edd_date " +
+        var sql = "SELECT o.order_id, o.quotation_date, o.confirmation_date, o.order_number, d.dealer_name, ot.order_type_name, p.edd_date " +
             "FROM ((tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS ot ON o.order_type_id = ot.order_type_id) " +
             "LEFT JOIN (SELECT order_id, MIN(sla_date) AS edd_date FROM tbl_production_planner GROUP BY order_id) p ON o.order_id = p.order_id " +
             "WHERE o.quotation_date >= " + SqlDateLiteral(reportDate) + " AND o.quotation_date < " + SqlDateLiteral(reportDate.AddDays(1)) +
             " ORDER BY o.quotation_date, o.order_id";
         var rows = QueryAll(conn, sql);
+        var pendingCounts = LoadPendingReplyCounts(conn);
         var body = new StringBuilder();
         if (rows.Count == 0)
         {
@@ -3989,7 +3991,7 @@ case "packing-boxes-set":
         }
         else
         {
-            body.Append("<table><thead><tr><th>Confirmation Date</th><th>Order Number</th><th>Dealer Name</th><th>Order Type</th><th>EDD</th></tr></thead><tbody>");
+            body.Append("<table><thead><tr><th>Confirmation Date</th><th>Order Number</th><th>Dealer Name</th><th>Order Type</th><th>EDD</th><th class=\"num\">Replies Pending</th></tr></thead><tbody>");
             foreach (var r in rows)
             {
                 body.Append("<tr>")
@@ -3998,6 +4000,7 @@ case "packing-boxes-set":
                     .Append("<td>").Append(MailDash(Html(S(r, "dealer_name")))).Append("</td>")
                     .Append("<td>").Append(MailDash(Html(S(r, "order_type_name")))).Append("</td>")
                     .Append("<td>").Append(MailDash(Html(FormatDateYmd(DT(r, "edd_date"))))).Append("</td>")
+                    .Append("<td class=\"num\">").Append(pendingCounts.ContainsKey(I(r, "order_id")) ? pendingCounts[I(r, "order_id")].ToString(CultureInfo.InvariantCulture) : "0").Append("</td>")
                     .Append("</tr>");
             }
             body.Append("</tbody></table>");
@@ -4009,13 +4012,15 @@ case "packing-boxes-set":
 
     private string BuildDailyProductionMailHtml(OleDbConnection conn, DateTime reportDate, DateTime sentAt)
     {
-        var sql = "SELECT m.machine_name, m.sequence_no, u.full_name AS operator_name, o.order_number, o.board_qty_decimal AS boards, o.panel_qty AS panels " +
+        var sql = "SELECT m.machine_name, m.sequence_no, u.full_name AS operator_name, o.order_id, o.order_number, o.board_qty_decimal AS boards, o.panel_qty AS panels " +
             "FROM (((tbl_order_history AS h LEFT JOIN tbl_machines AS m ON h.station_id = m.machine_id) LEFT JOIN tbl_users AS u ON h.acted_by = u.user_id) " +
             "LEFT JOIN tbl_orders AS o ON h.order_id = o.order_id) " +
             "WHERE h.acted_at >= " + SqlDateLiteral(reportDate) + " AND h.acted_at < " + SqlDateLiteral(reportDate.AddDays(1)) +
             " AND h.station_id IS NOT NULL AND h.action_code IN ('COMPLETED','PARTIAL_COMPLETED') " +
             "ORDER BY m.sequence_no, m.machine_name, o.order_number";
         var rows = QueryAll(conn, sql);
+        var pendingCounts = LoadPendingReplyCounts(conn);
+        var orderIdByNumber = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var machineOrder = new List<string>();
         var machineNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var operators = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
@@ -4036,6 +4041,8 @@ case "packing-boxes-set":
             if (!string.IsNullOrWhiteSpace(op)) operators[machineName].Add(op);
             if (!orderQty[machineName].ContainsKey(orderNumber))
                 orderQty[machineName][orderNumber] = new[] { D(r, "boards"), D(r, "panels") };
+            if (!string.IsNullOrWhiteSpace(orderNumber) && !orderIdByNumber.ContainsKey(orderNumber))
+                orderIdByNumber[orderNumber] = I(r, "order_id");
         }
         var body = new StringBuilder();
         if (machineOrder.Count == 0)
@@ -4051,20 +4058,25 @@ case "packing-boxes-set":
                 body.Append("<div class=\"mtitle\">").Append(Html(machineName))
                     .Append(" <span>&middot; Operator: ").Append(opText)
                     .Append(" &middot; ").Append(reportDate.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture)).Append("</span></div>");
-                body.Append("<table><thead><tr><th>Order Number</th><th class=\"num\">Number of Boards</th><th class=\"num\">Number of Panels</th></tr></thead><tbody>");
+                body.Append("<table><thead><tr><th>Order Number</th><th class=\"num\">Number of Boards</th><th class=\"num\">Number of Panels</th><th class=\"num\">Replies Pending</th></tr></thead><tbody>");
                 double totalBoards = 0, totalPanels = 0;
                 foreach (var pair in orderQty[machineName])
                 {
                     totalBoards += pair.Value[0];
                     totalPanels += pair.Value[1];
+                    var pending = 0;
+                    int rowOrderId;
+                    if (orderIdByNumber.TryGetValue(pair.Key, out rowOrderId) && pendingCounts.ContainsKey(rowOrderId))
+                        pending = pendingCounts[rowOrderId];
                     body.Append("<tr>")
                         .Append("<td><strong>").Append(Html(pair.Key)).Append("</strong></td>")
                         .Append("<td class=\"num\">").Append(MailQty(pair.Value[0])).Append("</td>")
                         .Append("<td class=\"num\">").Append(MailQty(pair.Value[1])).Append("</td>")
+                        .Append("<td class=\"num\">").Append(pending.ToString(CultureInfo.InvariantCulture)).Append("</td>")
                         .Append("</tr>");
                 }
                 body.Append("<tr class=\"total\"><td>Total</td><td class=\"num\">").Append(MailQty(totalBoards))
-                    .Append("</td><td class=\"num\">").Append(MailQty(totalPanels)).Append("</td></tr>");
+                    .Append("</td><td class=\"num\">").Append(MailQty(totalPanels)).Append("</td><td class=\"num\">&nbsp;</td></tr>");
                 body.Append("</tbody></table>");
             }
         }
@@ -4075,10 +4087,11 @@ case "packing-boxes-set":
 
     private string BuildOptimisationPendingMailHtml(OleDbConnection conn, DateTime reportDate, DateTime sentAt)
     {
-        var sql = "SELECT o.confirmation_date, o.order_number, o.customer_name, d.dealer_name, ot.order_type_name " +
+        var sql = "SELECT o.order_id, o.confirmation_date, o.order_number, o.customer_name, d.dealer_name, ot.order_type_name " +
             "FROM (tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id) LEFT JOIN tbl_order_types AS ot ON o.order_type_id = ot.order_type_id " +
             "WHERE o.workflow_stage_code = 'ORDER_CONFIRMED' ORDER BY o.confirmation_date, o.order_id";
         var rows = QueryAll(conn, sql);
+        var pendingCounts = LoadPendingReplyCounts(conn);
         var body = new StringBuilder();
         if (rows.Count == 0)
         {
@@ -4086,7 +4099,7 @@ case "packing-boxes-set":
         }
         else
         {
-            body.Append("<table><thead><tr><th>Confirmation Date</th><th>Order Number</th><th>Dealer</th><th>Customer</th><th>Type</th></tr></thead><tbody>");
+            body.Append("<table><thead><tr><th>Confirmation Date</th><th>Order Number</th><th>Dealer</th><th>Customer</th><th>Type</th><th class=\"num\">Replies Pending</th></tr></thead><tbody>");
             foreach (var r in rows)
             {
                 body.Append("<tr>")
@@ -4095,6 +4108,7 @@ case "packing-boxes-set":
                     .Append("<td>").Append(MailDash(Html(S(r, "dealer_name")))).Append("</td>")
                     .Append("<td>").Append(MailDash(Html(S(r, "customer_name")))).Append("</td>")
                     .Append("<td>").Append(MailDash(Html(S(r, "order_type_name")))).Append("</td>")
+                    .Append("<td class=\"num\">").Append(pendingCounts.ContainsKey(I(r, "order_id")) ? pendingCounts[I(r, "order_id")].ToString(CultureInfo.InvariantCulture) : "0").Append("</td>")
                     .Append("</tr>");
             }
             body.Append("</tbody></table>");
@@ -4246,6 +4260,21 @@ case "packing-boxes-set":
             if (configured.Count > 0) return configured;
         }
         return new List<string> { ReportRecipientEmail };
+    }
+
+    private Dictionary<int, int> LoadPendingReplyCounts(OleDbConnection conn)
+    {
+        var counts = new Dictionary<int, int>();
+        foreach (var r in QueryAll(conn, "SELECT order_ids FROM tbl_remarks_requests WHERE status = 'pending'"))
+        {
+            foreach (var part in S(r, "order_ids").Split(','))
+            {
+                int oid;
+                if (int.TryParse(part.Trim(), out oid))
+                    counts[oid] = counts.ContainsKey(oid) ? counts[oid] + 1 : 1;
+            }
+        }
+        return counts;
     }
 
     private static void SendViaBrevoApi(MailSettings settings, string subject, string html)

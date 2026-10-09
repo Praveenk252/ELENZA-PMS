@@ -495,16 +495,21 @@ function getCheckedOrderRows(tab){
     var s=gs(o);
     var bq=tab==='packed'?String(o.box_count||''):'';
     var bb=tab==='packed'?String(o.packing_balance_box_qty||''):'';
-    rows.push({on:o.order_number,cd:cd,status:s,bq:bq,bb:bb});
+    rows.push({on:o.order_number,cd:cd,status:s,bq:bq,bb:bb,oid:o.order_id});
   }});
   return rows;
+}
+function pendingRepliesCount(oid){
+  var n=0;
+  ((S.requestLookup&&S.requestLookup[oid])||[]).forEach(function(rq){if(rq.status==='pending')n++});
+  return n;
 }
 function buildOrderTable(rows,tab){
   var lines=[];
   if(tab==='packed'){
-    rows.forEach(function(r){lines.push(r.on+' | '+fmtDate(r.cd)+' | '+r.status+' | Box:'+r.bq+' | Bal:'+r.bb)});
+    rows.forEach(function(r){lines.push(r.on+' | '+fmtDate(r.cd)+' | '+r.status+' | Box:'+r.bq+' | Bal:'+r.bb+' | Replies Pending: '+pendingRepliesCount(r.oid))});
   } else {
-    rows.forEach(function(r){lines.push(r.on+' | '+fmtDate(r.cd)+' | '+r.status)});
+    rows.forEach(function(r){lines.push(r.on+' | '+fmtDate(r.cd)+' | '+r.status+' | Replies Pending: '+pendingRepliesCount(r.oid))});
   }
   return lines.join('\n');
 }
@@ -586,10 +591,17 @@ function fmtDate(d){
 function submitUrgentWa(){
   var date=document.getElementById('waUrgentDate').value;
   if(!date){toast('Select a date','err');return}
+  var ids=getCheckedOrders(waTab);
   var rows=getCheckedOrderRows(waTab);
   var msg='Below orders required on Date :-- '+fmtDate(date)+'\n\n'+buildOrderTable(rows,waTab);
-  shareMsg(msg,waTab);
-  closeModal('waUrgentModal');
+  apiPost('remarks-request-create','order_ids='+encodeURIComponent(ids.join(','))).then(function(r){
+    if(!r.ok){toast(r.message||'Failed to create request','err');return}
+    var url=window.location.origin+'/remarks-reply.html?token='+r.token;
+    shareMsg(msg+'\n\nRemarks here: '+url,waTab);
+    closeModal('waUrgentModal');
+    toast('Request created','ok');
+    loadRequests();
+  }).catch(function(){toast('Connection error','err')});
 }
 function submitCustomWa(){
   var custom=document.getElementById('waCustomMsg').value.trim();

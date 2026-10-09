@@ -802,7 +802,7 @@
     clearTable(refs.sharedPlanningProcurementBody, 9, "Sign in to load planner view.");
     clearTable(refs.sharedPlanningProductionBody, 9, "Sign in to load planner view.");
     clearTable(refs.sharedPlanningDispatchBody, 9, "Sign in to load planner view.");
-    clearTable(refs.reportsBody, 11, "Sign in to load reports.");
+    clearTable(refs.reportsBody, 13, "Sign in to load reports.");
     clearTable(refs.auditBody, 6, "Sign in to load audit logs.");
     clearTable(refs.historyBody, 7, "Sign in to load movement history.");
     refs.lifecycleTitle.textContent = "No Order Selected";
@@ -2437,7 +2437,7 @@
       rows: reports.rows,
       bodyRef: refs.reportsBody,
       paginationRef: refs.reportsPagination,
-      emptyColumns: 11,
+      emptyColumns: 13,
       emptyMessage: "No report rows match the filter.",
       renderRow: (row) => `
         <tr>
@@ -2447,10 +2447,12 @@
           <td>${escapeHtml(row.order_type)}</td>
           <td>${escapeHtml(row.panel_qty || "-")}</td>
           <td>${escapeHtml(row.board_qty || "-")}</td>
+          <td>${escapeHtml(row.planned_box_qty || "-")}</td>
           <td>${pill(row.workflow_stage)}</td>
           <td>${escapeHtml(row.visible_stations)}</td>
           <td>${escapeHtml(row.last_action)}</td>
           <td>${escapeHtml(row.updated_at)}</td>
+          <td>${escapeHtml(String(row.replies_pending != null ? row.replies_pending : 0))}</td>
           <td><button class="micro-button" type="button" data-lifecycle-order="${row.order_id}">View</button></td>
         </tr>
       `
