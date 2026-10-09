@@ -7868,7 +7868,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         sb.Append(".sec-sub{font-size:13px;color:#64748b;margin:0 0 12px;}");
         sb.Append(".count-pill{padding:4px 12px;border-radius:999px;background:#e8f1fb;color:#0f6cbd;font-size:12px;font-weight:700;}");
         sb.Append(".report-wrap{overflow-x:auto;border:0.5px solid #d9e5f3;border-radius:18px;background:#fff;}");
-        sb.Append(".report-table{width:100%;border-collapse:collapse;min-width:820px;}");
+        sb.Append(".report-table{width:100%;border-collapse:collapse;min-width:940px;}");
         sb.Append(".report-head th{padding:12px 14px;text-align:left;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#1e293b;border-bottom:0.5px solid #d9e5f3;background:#f0f5fa;}");
         sb.Append(".report-cell{padding:11px 14px;font-size:13px;color:#0f172a;border-bottom:0.5px solid #eef2f7;vertical-align:top;}");
         sb.Append(".dt{font-weight:700;color:#0f172a;} .tm{color:#64748b;}");
@@ -7895,7 +7895,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         else
         {
             sb.Append("<div class=\"report-wrap\"><table class=\"report-table\"><thead class=\"report-head\"><tr>");
-            sb.Append("<th>Replied Date</th><th>Replied Time</th><th>Order</th><th>Dealer</th><th>Customer</th><th>Replied By</th><th>Remarks</th>");
+            sb.Append("<th>Replied Date</th><th>Replied Time</th><th>Order</th><th>Dealer</th><th>Customer</th><th>Asked By</th><th>Replied By</th><th>Remarks</th>");
             sb.Append("</tr></thead><tbody>");
             foreach (var r in doneRows)
             {
@@ -7905,6 +7905,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 sb.Append("<td class=\"report-cell\">" + Html(S(r, "order_number")) + "</td>");
                 sb.Append("<td class=\"report-cell\">" + Html(S(r, "dealer_name")) + "</td>");
                 sb.Append("<td class=\"report-cell\">" + Html(S(r, "customer_name")) + "</td>");
+                sb.Append("<td class=\"report-cell\">" + Html(S(r, "requester_name")) + "</td>");
                 sb.Append("<td class=\"report-cell\">" + Html(S(r, "replier_name")) + "</td>");
                 sb.Append("<td class=\"report-cell\"><div class=\"remark\">" + Html(S(r, "reply_remarks")) + "</div></td>");
                 sb.Append("</tr>");

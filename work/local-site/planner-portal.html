@@ -410,6 +410,7 @@
                   <th>Order</th>
                   <th>Dealer</th>
                   <th>Customer</th>
+                  <th>Asked By</th>
                   <th>Replied By</th>
                   <th>Remarks</th>
                 </tr>
@@ -675,10 +676,11 @@
           <td class="order-cell wrap">${escapeHtml(row.order_number)}</td>
           <td class="dealer-cell wrap">${escapeHtml(row.dealer_name)}</td>
           <td class="customer-cell wrap">${escapeHtml(row.customer_name)}</td>
+          <td class="slim-cell">${escapeHtml(row.requester_name)}</td>
           <td class="slim-cell">${escapeHtml(row.replier_name)}</td>
           <td class="wrap"><div class="remark">${escapeHtml(row.reply_remarks)}</div></td>
         </tr>
-      `).join("") : `<tr><td colspan="7" class="empty">No replies completed today.</td></tr>`;
+      `).join("") : `<tr><td colspan="8" class="empty">No replies completed today.</td></tr>`;
 
       const isAdmin = String((state.session && state.session.role_name) || "") === "Admin";
       document.querySelector("#remarks-pending-action-th").style.display = isAdmin ? "" : "none";
