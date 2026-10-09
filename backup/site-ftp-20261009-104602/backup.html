@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elenza Site Backup</title>
+<style>
+  :root {
+    --blue: #046BD2;
+    --blue-hover: #045CB4;
+    --navy: #1E293B;
+    --slate: #334155;
+    --gray: #64748B;
+    --border: #D1D5DB;
+    --bg: #F0F5FA;
+    --white: #FFFFFF;
+    --red: #DC2626;
+    --green: #16A34A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--slate); min-height: 100vh; }
+
+  #auth-shell { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+  #auth-shell.hidden { display: none; }
+  .auth-card { background: var(--white); border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; }
+  .auth-card img { height: 48px; margin-bottom: 12px; }
+  .auth-card h1 { font-size: 20px; color: var(--navy); margin-bottom: 4px; }
+  .auth-card p { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+  .auth-actions a { display: inline-block; padding: 10px 22px; background: var(--blue); color: var(--white); border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+
+  #app-shell { display: none; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+  #app-shell.visible { display: flex; }
+  .backup-card { background: var(--white); border-radius: 12px; padding: 40px; width: 100%; max-width: 420px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; }
+  .backup-card img { height: 48px; margin-bottom: 12px; }
+  .backup-card h1 { font-size: 20px; color: var(--navy); margin-bottom: 6px; }
+  .backup-card p.desc { font-size: 13px; color: var(--gray); margin-bottom: 28px; line-height: 1.5; }
+  #btn-backup { width: 100%; padding: 14px 20px; background: var(--blue); color: var(--white); border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  #btn-backup:hover:not(:disabled) { background: var(--blue-hover); }
+  #btn-backup:disabled { opacity: 0.6; cursor: wait; }
+  #status { margin-top: 18px; font-size: 13px; color: var(--gray); min-height: 18px; word-break: break-word; }
+  #status.ok { color: var(--green); }
+  #status.err { color: var(--red); }
+</style>
+</head>
+<body>
+
+<div id="auth-shell">
+  <div class="auth-card">
+    <img src="assets/elenza-logo.png" alt="ElenzaIndia.com" onerror="this.style.display='none'">
+    <h1>Site Backup</h1>
+    <p id="auth-message">Checking access&hellip;</p>
+    <div class="auth-actions hidden" id="go-login"><a href="index.html">Go to login</a></div>
+  </div>
+</div>
+
+<div id="app-shell">
+  <div class="backup-card">
+    <img src="assets/elenza-logo.png" alt="ElenzaIndia.com" onerror="this.style.display='none'">
+    <h1>Backup Entire Site</h1>
+    <p class="desc">Downloads a ZIP of every site file &mdash; pages, scripts, styles and the database &mdash; straight to your computer.</p>
+    <button id="btn-backup" type="button">Download Site Backup (.zip)</button>
+    <div id="status"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+
+  function apiGet(action) {
+    return fetch('/api.ashx?action=' + action, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); });
+  }
+
+  function showApp() {
+    $('auth-shell').className = 'hidden';
+    $('app-shell').className = 'visible';
+  }
+
+  function deny(message, withLogin) {
+    $('auth-message').textContent = message;
+    if (withLogin) $('go-login').className = '';
+  }
+
+  apiGet('session').then(function (s) {
+    if (s && s.authenticated && s.user) {
+      if (String(s.user.role_name || '') === 'Admin') {
+        showApp();
+      } else {
+        deny('Admin access is required to run a backup.', false);
+      }
+    } else {
+      deny('Please log in as an admin first.', true);
+    }
+  }).catch(function () {
+    deny('Could not reach the server. Try again.', true);
+  });
+
+  $('btn-backup').addEventListener('click', function () {
+    var btn = $('btn-backup');
+    var status = $('status');
+    btn.disabled = true;
+    status.className = '';
+    status.textContent = 'Preparing backup\u2026 this can take a moment.';
+    fetch('/api.ashx?action=backup-download', { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          throw new Error(j.message || ('Request failed (' + r.status + ').'));
+        });
+      }
+      var name = 'elenza-site-backup.zip';
+      var cd = r.headers.get('Content-Disposition');
+      if (cd) {
+        var m = /filename="?([^";]+)"?/i.exec(cd);
+        if (m) name = m[1];
+      }
+      return r.blob().then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        status.className = 'ok';
+        status.textContent = 'Saved ' + name + ' (' + (blob.size > 1048576
+          ? (blob.size / 1048576).toFixed(1) + ' MB'
+          : Math.round(blob.size / 1024) + ' KB') + '). Check your Downloads folder.';
+        btn.disabled = false;
+      });
+    }).catch(function (e) {
+      status.className = 'err';
+      status.textContent = e.message || 'Backup failed.';
+      btn.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

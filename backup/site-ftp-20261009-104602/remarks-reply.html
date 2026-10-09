@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ElenzaIndia - Remarks Reply</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+.topbar{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:16px;font-weight:600}
+.topbar .uinfo{font-size:12px;opacity:.9}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
+.btn-success{background:#16a34a;color:#fff}.btn-success:hover{background:#15803d}
+.btn-cancel{background:#e2e8f0;color:#475569}.btn-cancel:hover{background:#cbd5e1}
+.btn-sm{padding:5px 10px;font-size:11px}
+.container{max-width:900px;margin:0 auto;padding:16px}
+.login-box{background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,.08);max-width:380px;margin:60px auto;text-align:center}
+.login-box h2{font-size:18px;margin-bottom:16px;color:#1e293b}
+.login-box input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;margin-bottom:12px}
+.login-box .err{color:#dc2626;font-size:12px;margin-bottom:8px;display:none}
+.login-box .btn{width:100%;margin-top:4px}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+.auth-quick-link-icon{font-size:18px;line-height:1}
+.auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+.auth-quick-link-desc{display:none}
+@media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#1e293b}
+.info-bar{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.info-bar .tag{background:#f1f5f9;padding:4px 10px;border-radius:6px;font-size:12px;color:#475569}
+.info-bar .tag b{color:#1e293b}
+.bulk-area{margin-bottom:16px}
+.bulk-area label{font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px}
+.bulk-area textarea{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;resize:vertical;min-height:60px;font-family:inherit}
+.bulk-area .hint{font-size:11px;color:#94a3b8;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8fafc;text-align:left;padding:8px 10px;font-weight:600;color:#475569;border-bottom:2px solid #e2e8f0;font-size:12px}
+td{padding:6px 10px;border-bottom:1px solid #f1f5f9}
+tr:hover{background:#f8fafc}
+.remarks-input{width:100%;padding:5px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;font-family:inherit}
+.remarks-input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
+.existing{font-size:11px;color:#16a34a;font-style:italic}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.status-pending{background:#fef9c3;color:#854d0e}
+.status-replied{background:#dcfce7;color:#166534}
+.actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:13px;font-weight:500;z-index:999;display:none}
+.toast.ok{background:#16a34a}.toast.err{background:#dc2626}
+#loading{text-align:center;padding:60px;color:#64748b}
+.no-orders{text-align:center;padding:40px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>ElenzaIndia - Remarks Reply</h1>
+  <div class="uinfo" id="uInfo"></div>
+</div>
+
+<div id="loginOv" class="login-box">
+  <h2>Sign in to reply</h2>
+  <div class="err" id="lErr"></div>
+  <form id="loginF" onsubmit="doLogin(event)">
+    <input type="text" id="lUser" placeholder="Login ID" required>
+    <input type="password" id="lPass" placeholder="Password" required>
+    <button class="btn btn-primary" type="submit">Sign In</button>
+  </form>
+  <div class="auth-quick-links">
+  <div class="auth-quick-links-grid">
+  <a href="stations.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏭</span><span class="auth-quick-link-label">Stations</span><span class="auth-quick-link-desc">Station workflow</span></a>
+  <a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+  <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+  <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+  <a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+  <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+  <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+  <a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+  <a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+  </div>
+  </div>
+</div>
+
+<div id="loading" style="display:none">Loading request...</div>
+
+<div id="main" class="container" style="display:none">
+  <div class="card">
+    <h3>Request Details</h3>
+    <div class="info-bar" id="reqInfo"></div>
+  </div>
+
+  <div class="card">
+    <h3>Bulk Remark (applies to all selected orders)</h3>
+    <div class="bulk-area">
+      <textarea id="bulkRemark" placeholder="Type a remark that applies to all orders..."></textarea>
+      <div class="hint">Leave blank to use individual remarks below. Individual remarks override this.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Orders</h3>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Order #</th><th>Dealer</th><th>Customer</th><th>Confirmation</th><th>Remarks</th></tr></thead>
+        <tbody id="orderTb"></tbody>
+      </table>
+    </div>
+    <div class="no-orders" id="noOrders" style="display:none">No orders in this request.</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-cancel" onclick="window.close()">Cancel</button>
+    <button class="btn btn-success" onclick="submitRemarks()">Share to WhatsApp &amp; Update</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var S={ses:null,request:null,orders:[]};
+var token=new URLSearchParams(window.location.search).get('token');
+
+function api(a){return fetch('api.ashx?action='+a,{credentials:'same-origin'}).then(function(r){return r.json()})}
+function apiPost(a,body){return fetch('api.ashx?action='+a,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){return r.json()})}
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
+function esc(h){return String(h).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function doLogin(e){
+  e.preventDefault();
+  var u=document.getElementById('lUser').value.trim(),p=document.getElementById('lPass').value,er=document.getElementById('lErr');
+  er.style.display='none';
+  api('login&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(function(r){
+    if(!r.ok){er.textContent=r.message||'Failed';er.style.display='block';return}
+    S.ses=r.user;
+    document.getElementById('loginOv').style.display='none';
+    document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
+    loadRequest();
+  }).catch(function(){er.textContent='Connection error';er.style.display='block'})
+}
+
+function loadRequest(){
+  if(!token){toast('No token provided','err');return}
+  document.getElementById('loading').style.display='block';
+  api('remarks-request-info&token='+encodeURIComponent(token)).then(function(r){
+    document.getElementById('loading').style.display='none';
+    if(!r.ok){toast(r.message||'Request not found','err');return}
+    S.request=r;
+    S.orders=r.orders||[];
+    document.getElementById('main').style.display='block';
+    renderInfo();
+    renderOrders();
+  }).catch(function(){document.getElementById('loading').style.display='none';toast('Connection error','err')});
+}
+
+function renderInfo(){
+  var r=S.request;
+  var statusClass=r.status==='replied'?'status-replied':'status-pending';
+  document.getElementById('reqInfo').innerHTML=
+    '<div class="tag"><b>Status:</b> <span class="status-badge '+statusClass+'">'+esc(r.status)+'</span></div>'+
+    '<div class="tag"><b>Requested:</b> '+esc(r.requested_at)+'</div>'+
+    '<div class="tag"><b>Orders:</b> '+S.orders.length+'</div>';
+}
+
+function renderOrders(){
+  var h='';
+  S.orders.forEach(function(o){
+    var existing=o.existing_remarks||'';
+    h+='<tr><td><b>'+esc(o.order_number)+'</b></td><td>'+esc(o.dealer_name)+'</td><td>'+esc(o.customer_name)+'</td><td>'+esc(o.confirmation_date)+'</td><td>'+
+      (existing?'<div class="existing">Replied: '+esc(existing)+'</div>':'<input class="remarks-input" data-oid="'+o.order_id+'" placeholder="Enter remark...">')+
+      '</td></tr>';
+  });
+  document.getElementById('orderTb').innerHTML=h;
+  if(!S.orders.length){document.getElementById('noOrders').style.display='block'}
+}
+
+function fmtDate(d){
+  if(!d)return'-';
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  try{var dt=new Date(d);if(!isNaN(dt.getTime()))return dt.getDate()+'-'+months[dt.getMonth()]+'-'+String(dt.getFullYear()).slice(2)}catch(e){}
+  return d;
+}
+
+function submitRemarks(){
+  var bulk=document.getElementById('bulkRemark').value.trim();
+  var perOrder=[];
+  document.querySelectorAll('.remarks-input').forEach(function(inp){
+    var v=inp.value.trim();
+    if(v){perOrder.push(inp.getAttribute('data-oid')+':'+v)}
+  });
+  if(!bulk && !perOrder.length){toast('Enter at least one remark','err');return}
+  var orderRemarks=perOrder.join('~');
+  var params='request_id='+S.request.request_id+'&remarks='+encodeURIComponent(bulk)+'&order_remarks='+encodeURIComponent(orderRemarks);
+  var btn=document.querySelector('.btn-success');
+  btn.disabled=true;btn.textContent='Saving...';
+  apiPost('remarks-reply-save',params).then(function(r){
+    btn.disabled=false;btn.textContent='Share to WhatsApp & Update';
+    if(!r.ok){toast(r.message||'Failed to save','err');return}
+    toast('Remarks saved','ok');
+    var lines=[];
+    lines.push('*Remarks Updated*');
+    lines.push('');
+    if(bulk)lines.push('*Overall:* '+bulk);
+    lines.push('');
+    S.orders.forEach(function(o){
+      var remark='';
+      perOrder.forEach(function(po){
+        var parts=po.split(':');
+        if(parts[0]==String(o.order_id))remark=parts.slice(1).join(':');
+      });
+      if(!remark && o.existing_remarks)remark=o.existing_remarks;
+      if(!remark && bulk)remark=bulk;
+      lines.push('*'+o.order_number+'* | '+fmtDate(o.confirmation_date)+' | '+remark);
+    });
+    var msg=lines.join('\n');
+    if(navigator.share){navigator.share({text:msg}).catch(function(){fallbackCopy(msg)})}
+    else{fallbackCopy(msg)}
+  }).catch(function(){btn.disabled=false;btn.textContent='Share to WhatsApp & Update';toast('Connection error','err')});
+}
+
+function fallbackCopy(msg){var ta=document.createElement('textarea');ta.value=msg;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Copied to clipboard','ok')}catch(e){prompt('Copy this message:',msg)}document.body.removeChild(ta)}
+
+(function(){
+  if(!token){document.getElementById('loginOv').style.display='none';document.getElementById('loading').style.display='none';toast('No token in URL','err');return}
+  api('session').then(function(r){
+    if(r.authenticated&&r.user){
+      S.ses=r.user;
+      document.getElementById('loginOv').style.display='none';
+      document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
+      loadRequest();
+    }
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>
