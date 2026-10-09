@@ -606,10 +606,17 @@ function submitUrgentWa(){
 function submitCustomWa(){
   var custom=document.getElementById('waCustomMsg').value.trim();
   if(!custom){toast('Enter a message','err');return}
+  var ids=getCheckedOrders(waTab);
   var rows=getCheckedOrderRows(waTab);
   var msg='Message :- '+custom+'\n\n'+buildOrderTable(rows,waTab);
-  shareMsg(msg,waTab);
-  closeModal('waModal');
+  apiPost('remarks-request-create','order_ids='+encodeURIComponent(ids.join(','))).then(function(r){
+    if(!r.ok){toast(r.message||'Failed to create request','err');return}
+    var url=window.location.origin+'/remarks-reply.html?token='+r.token;
+    shareMsg(msg+'\n\nRemarks here: '+url,waTab);
+    closeModal('waModal');
+    toast('Request created','ok');
+    loadRequests();
+  }).catch(function(){toast('Connection error','err')});
 }
 function openEddModal(oid,oname){pendingEddOrderId=oid;document.getElementById('eddOrderInfo').textContent='Order: '+oname;document.getElementById('eddNewDate').value='';document.getElementById('eddComments').value='';document.getElementById('eddModal').className='modal-bg on'}
 function openPriModal(oid,oname){
