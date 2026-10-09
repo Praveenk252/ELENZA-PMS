@@ -25,11 +25,17 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     private const string HourlyProductionReportKindPrefix = "HOURLY_PRODUCTION_";
     private const string DailyMachineConsolidatedReportKind = "DAILY_MACHINE_CONSOLIDATED";
     private const string RemarksReportKind = "REMARKS_REPORT";
+    private const string DipanRemarksReportKind = "DIPAN_REMARKS_DAILY";
+    private const int DipanRemarksReportHour = 8;
+    private const string DipanRemarksReportLoginId = "dipan";
+    private static readonly string[] DipanRemarksReportEmails = { "dipan.elenza@gmail.com", "praveen@elenzaindia.com" };
     private const int RemarksReportHour = 21;
     private const string QuotationEntryReportKind = "QUOTATION_ENTRY_DAILY";
     private const string DailyProductionReportKind = "DAILY_PRODUCTION_REPORT";
     private const string OptimisationPendingReportKind = "OPTIMISATION_PENDING_DAILY";
     private const string ReportRecipientEmail = "praveen@elenzaindia.com";
+    private static readonly string[] RemarksReportExtraRecipients = { "vicky.elenza@gmail.com" };
+    private static readonly string[] RemarksReportCcRecipients = { "1673mahesh@gmail.com", "Pratik@elenzaindia.com" };
     private static readonly TimeSpan QuotationEntryReportTime = new TimeSpan(11, 0, 0);
     private static readonly TimeSpan DailyProductionReportTime = new TimeSpan(11, 5, 0);
     private static readonly TimeSpan OptimisationPendingReportTime = new TimeSpan(11, 10, 0);
@@ -377,6 +383,9 @@ case "packing-boxes-set":
                     break;
                 case "remarks-report-mail":
                     HandleRemarksReportMail(context);
+                    break;
+                case "dipan-report-mail":
+                    HandleDipanReportMail(context);
                     break;
                 case "station-update":
                     HandleStationUpdate(context);
@@ -4224,16 +4233,21 @@ case "packing-boxes-set":
         SendDailyReportMail(settings, subject, html, settings == null ? null : settings.ToEmails, pdf, pdfName);
     }
 
-    private static void SendDailyReportMail(MailSettings settings, string subject, string html, List<string> recipients, byte[] pdf = null, string pdfName = null)
+    private static void SendDailyReportMail(MailSettings settings, string subject, string html, List<string> recipients, byte[] pdf = null, string pdfName = null, List<string> cc = null)
     {
         if (settings == null) throw new InvalidOperationException("SMTP settings were not found.");
         var toList = (recipients ?? new List<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (toList.Count == 0)
             throw new InvalidOperationException("SMTP recipients are not configured.");
+        var ccList = (cc ?? new List<string>())
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(v => !toList.Contains(v, StringComparer.OrdinalIgnoreCase))
+            .ToList();
 
         if (string.Equals(settings.DeliveryMode, "brevo_api", StringComparison.OrdinalIgnoreCase))
         {
-            SendViaBrevoApi(settings, subject, html, toList, pdf, pdfName);
+            SendViaBrevoApi(settings, subject, html, toList, pdf, pdfName, ccList);
             return;
         }
 
@@ -4248,6 +4262,8 @@ case "packing-boxes-set":
             message.From = new MailAddress(settings.FromEmail, string.IsNullOrWhiteSpace(settings.FromName) ? settings.FromEmail : settings.FromName);
             foreach (var email in toList)
                 message.To.Add(email);
+            foreach (var email in ccList)
+                message.CC.Add(email);
             message.Subject = subject;
             message.SubjectEncoding = Encoding.UTF8;
             message.BodyEncoding = Encoding.UTF8;
@@ -4289,7 +4305,7 @@ case "packing-boxes-set":
         SendViaBrevoApi(settings, subject, html, settings.ToEmails);
     }
 
-    private static void SendViaBrevoApi(MailSettings settings, string subject, string html, List<string> recipients, byte[] pdf = null, string pdfName = null)
+    private static void SendViaBrevoApi(MailSettings settings, string subject, string html, List<string> recipients, byte[] pdf = null, string pdfName = null, List<string> cc = null)
     {
         if (string.IsNullOrWhiteSpace(settings.BrevoApiKey))
             throw new InvalidOperationException("Brevo API key is missing.");
@@ -4306,6 +4322,10 @@ case "packing-boxes-set":
             "subject", subject,
             "htmlContent", html
         );
+        if (cc != null && cc.Count > 0)
+        {
+            payload["cc"] = cc.Select(email => Obj("email", email)).ToList();
+        }
         if (pdf != null && pdf.Length > 0)
         {
             payload["attachments"] = new List<object>
@@ -7493,6 +7513,265 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         }
     }
 
+    private void HandleDipanReportMail(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            var user = RequireLogin(context, conn);
+            EnsureRole(user, "Admin", "Production Planner User");
+            var force = Value(context, "force") == "1";
+            var siteRoot = ResolveSiteRoot(context);
+            if (Value(context, "preview") == "1")
+            {
+                var settings = LoadMailSettings(siteRoot);
+                var now = settings != null ? NowInZone(settings.TimeZoneId) : IstNow();
+                var dipanPrev = QueryOne(conn, "SELECT user_id, full_name FROM tbl_users WHERE login_id = ? AND is_active = TRUE", DipanRemarksReportLoginId);
+                if (dipanPrev == null) throw new ApiFailure(404, "Dipan user was not found.");
+                var prevToday = LoadRemarkRequestsForReport(conn, I(dipanPrev, "user_id"), now.Date, true);
+                var prevOlder = LoadRemarkRequestsForReport(conn, I(dipanPrev, "user_id"), now.Date, false);
+                var prevHtml = BuildDipanRemarksReportHtml(prevToday, prevOlder, now, S(dipanPrev, "full_name"));
+                var prevPdf = ReportPdfRenderer.Render(prevHtml, "Remarks Activity Report");
+                context.Response.Clear();
+                context.Response.ContentType = "application/pdf";
+                context.Response.AddHeader("Content-Disposition", "inline; filename=\"Dipan-Remarks-Report-Preview.pdf\"");
+                context.Response.BinaryWrite(prevPdf);
+                return;
+            }
+            string message;
+            var sent = TrySendDipanRemarksReport(siteRoot, force, out message);
+            WriteJson(context, Obj("ok", true, "sent", sent, "message", message));
+        }
+    }
+
+    private List<Dictionary<string, object>> LoadRemarkRequestsForReport(OleDbConnection conn, int userId, DateTime reportDate, bool todayOnly)
+    {
+        var rows = new List<Dictionary<string, object>>();
+        var where = todayOnly
+            ? " AND requested_at >= " + SqlDateLiteral(reportDate)
+            : " AND status = 'pending' AND requested_at < " + SqlDateLiteral(reportDate);
+        var sql = "SELECT request_id, order_ids, status, requested_at FROM tbl_remarks_requests WHERE requested_by = " + SqlIntLiteral(userId) + where + " ORDER BY requested_at DESC";
+        foreach (var r in QueryAll(conn, sql))
+        {
+            var ids = (S(r, "order_ids") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => { int id; return int.TryParse(s.Trim(), out id) ? id : 0; })
+                .Where(id => id > 0).ToList();
+            var orders = new List<object>();
+            var orderNumbers = new Dictionary<int, string>();
+            foreach (var oid in ids)
+            {
+                var o = QueryOne(conn, "SELECT o.order_number, d.dealer_name, o.customer_name FROM tbl_orders AS o LEFT JOIN tbl_dealers AS d ON o.dealer_id = d.dealer_id WHERE o.order_id = ?", oid);
+                if (o == null) continue;
+                orderNumbers[oid] = S(o, "order_number");
+                orders.Add(Obj("order_id", oid, "order_number", S(o, "order_number"), "dealer_name", S(o, "dealer_name"), "customer_name", S(o, "customer_name")));
+            }
+            var replies = new List<object>();
+            var replySql = "SELECT rep.order_id, rep.remarks, rep.replied_at, u.full_name AS replier_name FROM tbl_remarks_replies AS rep LEFT JOIN tbl_users AS u ON rep.replied_by = u.user_id WHERE rep.request_id = " + SqlIntLiteral(I(r, "request_id")) + " ORDER BY rep.replied_at";
+            foreach (var rep in QueryAll(conn, replySql))
+            {
+                var oid = I(rep, "order_id");
+                replies.Add(Obj(
+                    "order_number", orderNumbers.ContainsKey(oid) ? orderNumbers[oid] : "",
+                    "remarks", S(rep, "remarks"),
+                    "replied_at", FmtDate(DT(rep, "replied_at")) + " " + FmtTime(DT(rep, "replied_at")),
+                    "replier_name", S(rep, "replier_name")
+                ));
+            }
+            rows.Add(Obj(
+                "request_id", I(r, "request_id"),
+                "requested_at", FmtDate(DT(r, "requested_at")) + " " + FmtTime(DT(r, "requested_at")),
+                "status", S(r, "status"),
+                "orders", orders,
+                "replies", replies
+            ));
+        }
+        return rows;
+    }
+
+    private static string DipanStatusPill(string status)
+    {
+        if (status == "replied") return "<span style=\"background:#e9f8ef;color:#15803d;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;\">Replied</span>";
+        if (status == "partial") return "<span style=\"background:#e8f1fb;color:#0f6cbd;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;\">Partial</span>";
+        return "<span style=\"background:#fff4db;color:#9a6700;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;\">Pending</span>";
+    }
+
+    private static string DipanOrdersCell(List<object> orders)
+    {
+        if (orders == null || orders.Count == 0) return "&mdash;";
+        var parts = new List<string>();
+        foreach (var oRaw in orders)
+        {
+            var o = oRaw as Dictionary<string, object>;
+            if (o != null) parts.Add(Html(S(o, "order_number")));
+        }
+        return parts.Count > 0 ? string.Join("<br>", parts.ToArray()) : "&mdash;";
+    }
+
+    private static string DipanCustomerCell(List<object> orders)
+    {
+        if (orders == null || orders.Count == 0) return "&mdash;";
+        var first = orders[0] as Dictionary<string, object>;
+        var customer = first != null ? S(first, "customer_name") : "";
+        if (orders.Count > 1) customer += " (+" + (orders.Count - 1) + " more)";
+        return string.IsNullOrWhiteSpace(customer) ? "&mdash;" : Html(customer);
+    }
+
+    private static string BuildDipanRemarksReportHtml(List<Dictionary<string, object>> todayRows, List<Dictionary<string, object>> olderRows, DateTime sentAt, string personName)
+    {
+        var sb = new StringBuilder();
+        sb.Append("<p style=\"margin:0 0 14px;color:#334155;font-size:13px;\">Hi ").Append(Html(personName)).Append(", here is your remarks activity for ").Append(Html(sentAt.ToString("dd MMM yyyy", CultureInfo.InvariantCulture))).Append(" (IST) &mdash; what you asked today, the replies received, and replies still pending.</p>");
+
+        sb.Append("<div class=\"mtitle\">Asked Today <span>").Append(todayRows.Count).Append(" request(s)</span></div>");
+        if (todayRows.Count == 0)
+        {
+            sb.Append("<div class=\"empty\">No remarks requests were raised today.</div>");
+        }
+        else
+        {
+            sb.Append("<table><tr><th>Asked At</th><th>Order(s)</th><th>Customer</th><th>Status</th><th>Reply Received</th></tr>");
+            foreach (var r in todayRows)
+            {
+                var orders = (List<object>)r["orders"];
+                var replies = (List<object>)r["replies"];
+                sb.Append("<tr>");
+                sb.Append("<td>").Append(Html((string)r["requested_at"])).Append("</td>");
+                sb.Append("<td>").Append(DipanOrdersCell(orders)).Append("</td>");
+                sb.Append("<td>").Append(DipanCustomerCell(orders)).Append("</td>");
+                sb.Append("<td>").Append(DipanStatusPill((string)r["status"])).Append("</td>");
+                if (replies.Count == 0)
+                {
+                    sb.Append("<td style=\"color:#94a3b8;\">Awaiting reply</td>");
+                }
+                else
+                {
+                    sb.Append("<td>");
+                    var replyParts = new List<string>();
+                    foreach (var repRaw in replies)
+                    {
+                        var rep = repRaw as Dictionary<string, object>;
+                        if (rep == null) continue;
+                        var text = "<b>" + Html(S(rep, "order_number")) + "</b>: " + Html(S(rep, "remarks"));
+                        var by = S(rep, "replier_name");
+                        var at = S(rep, "replied_at");
+                        if (!string.IsNullOrWhiteSpace(by) || !string.IsNullOrWhiteSpace(at))
+                            text += " <span style=\"color:#64748b;font-size:11px;\">(" + Html(by) + (string.IsNullOrWhiteSpace(at) ? "" : ", " + Html(at)) + ")</span>";
+                        replyParts.Add(text);
+                    }
+                    sb.Append(string.Join("<br>", replyParts.ToArray()));
+                    sb.Append("</td>");
+                }
+                sb.Append("</tr>");
+            }
+            sb.Append("</table>");
+        }
+
+        sb.Append("<div class=\"mtitle\">Still Pending <span>").Append(olderRows.Count).Append(" older request(s) awaiting reply</span></div>");
+        if (olderRows.Count == 0)
+        {
+            sb.Append("<div class=\"empty\">Nothing pending &mdash; every request of yours has a reply.</div>");
+        }
+        else
+        {
+            sb.Append("<table><tr><th>Asked At</th><th>Order(s)</th><th>Customer</th><th>Status</th></tr>");
+            foreach (var r in olderRows)
+            {
+                var orders = (List<object>)r["orders"];
+                sb.Append("<tr>");
+                sb.Append("<td>").Append(Html((string)r["requested_at"])).Append("</td>");
+                sb.Append("<td>").Append(DipanOrdersCell(orders)).Append("</td>");
+                sb.Append("<td>").Append(DipanCustomerCell(orders)).Append("</td>");
+                sb.Append("<td>").Append(DipanStatusPill((string)r["status"])).Append("</td>");
+                sb.Append("</tr>");
+            }
+            sb.Append("</table>");
+        }
+
+        return MailShell(
+            "Your Remarks Activity",
+            "Daily summary of remarks requests raised by " + Html(personName) + " &middot; " + Html(sentAt.ToString("dd MMM yyyy hh:mm tt", CultureInfo.InvariantCulture)) + " IST",
+            sb.ToString()
+        );
+    }
+
+    private static bool TrySendDipanRemarksReport(string siteRoot, bool force, out string message)
+    {
+        message = "Dipan report not processed.";
+        if (!Monitor.TryEnter(MailSync))
+        {
+            message = "Mail job is already running.";
+            return false;
+        }
+        try
+        {
+            if (string.IsNullOrWhiteSpace(siteRoot))
+            {
+                message = "Site root could not be resolved.";
+                return false;
+            }
+            var settings = LoadMailSettings(siteRoot);
+            if (settings == null || !settings.Enabled)
+            {
+                message = "SMTP mail is disabled.";
+                return false;
+            }
+            var now = NowInZone(settings.TimeZoneId);
+            if (!force && now.Hour < DipanRemarksReportHour)
+            {
+                message = "Dipan report is scheduled for 8:00 AM IST.";
+                return false;
+            }
+            var reportDate = now.Date;
+            using (var conn = OpenConnection(siteRoot))
+            {
+                var handler = new PmsApiHandler();
+                handler.EnsureSchema(conn);
+                if (!force && WasMailAlreadySent(conn, DipanRemarksReportKind, reportDate))
+                {
+                    message = "Dipan report already sent today.";
+                    return false;
+                }
+                var dipan = handler.QueryOne(conn, "SELECT user_id, full_name FROM tbl_users WHERE login_id = ? AND is_active = TRUE", DipanRemarksReportLoginId);
+                if (dipan == null)
+                {
+                    message = "Dipan user was not found.";
+                    return false;
+                }
+                var todayRows = handler.LoadRemarkRequestsForReport(conn, I(dipan, "user_id"), reportDate, true);
+                var olderRows = handler.LoadRemarkRequestsForReport(conn, I(dipan, "user_id"), reportDate, false);
+                var html = BuildDipanRemarksReportHtml(todayRows, olderRows, now, S(dipan, "full_name"));
+                var subject = "Elenza PMS Remarks Activity - " + S(dipan, "full_name") + " | " + reportDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+                var recipients = DipanRemarksReportEmails.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var recipientText = string.Join(", ", recipients);
+                byte[] pdf = null;
+                try
+                {
+                    pdf = ReportPdfRenderer.Render(html, "Remarks Activity Report");
+                }
+                catch (Exception pdfEx)
+                {
+                    LogMailReport(conn, DipanRemarksReportKind, reportDate, recipientText, subject, "PDF_SKIPPED", pdfEx.Message, now);
+                }
+                var pdfName = "Remarks-Activity-" + reportDate.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + ".pdf";
+                try
+                {
+                    SendDailyReportMail(settings, subject, html, recipients, pdf, pdfName);
+                    LogMailReport(conn, DipanRemarksReportKind, reportDate, recipientText, subject, "SENT", "", now);
+                    message = "Dipan report sent to " + recipientText + ".";
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    LogMailReport(conn, DipanRemarksReportKind, reportDate, recipientText, subject, "FAILED", ex.Message, now);
+                    message = ex.Message;
+                    return false;
+                }
+            }
+        }
+        finally
+        {
+            Monitor.Exit(MailSync);
+        }
+    }
+
     private void BuildRemarksReportData(OleDbConnection conn, bool applyUserFilter, int userId, out List<Dictionary<string, object>> doneRows, out List<Dictionary<string, object>> pendingRows)
     {
         doneRows = new List<Dictionary<string, object>>();
@@ -7693,6 +7972,16 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 new PmsApiHandler().BuildRemarksReportData(conn, false, 0, out doneRows, out pendingRows);
                 var html = BuildRemarksReportHtml(doneRows, pendingRows, settings, now);
                 var subject = "Elenza PMS Remarks Replies Report | " + reportDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+                var recipients = (settings.ToEmails ?? new List<string>())
+                    .Concat(RemarksReportExtraRecipients)
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var ccRecipients = RemarksReportCcRecipients
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var recipientText = string.Join(", ", recipients) + " (cc: " + string.Join(", ", ccRecipients) + ")";
                 byte[] pdf = null;
                 try
                 {
@@ -7700,19 +7989,19 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 }
                 catch (Exception pdfEx)
                 {
-                    LogMailReport(conn, RemarksReportKind, reportDate, string.Join(", ", settings.ToEmails), subject, "PDF_SKIPPED", pdfEx.Message, now);
+                    LogMailReport(conn, RemarksReportKind, reportDate, recipientText, subject, "PDF_SKIPPED", pdfEx.Message, now);
                 }
                 var pdfName = "Elenza-Remarks-Report-" + reportDate.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + ".pdf";
                 try
                 {
-                    SendDailyReportMail(settings, subject, html, pdf, pdfName);
-                    LogMailReport(conn, RemarksReportKind, reportDate, string.Join(", ", settings.ToEmails), subject, "SENT", "", now);
-                    message = "Remarks report sent to " + string.Join(", ", settings.ToEmails) + ".";
+                    SendDailyReportMail(settings, subject, html, recipients, pdf, pdfName, ccRecipients);
+                    LogMailReport(conn, RemarksReportKind, reportDate, recipientText, subject, "SENT", "", now);
+                    message = "Remarks report sent to " + recipientText + ".";
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    LogMailReport(conn, RemarksReportKind, reportDate, string.Join(", ", settings.ToEmails), subject, "FAILED", ex.Message, now);
+                    LogMailReport(conn, RemarksReportKind, reportDate, recipientText, subject, "FAILED", ex.Message, now);
                     message = ex.Message;
                     return false;
                 }
@@ -7743,6 +8032,7 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         _lastRemarksSchedulerProbeUtc = nowUtc;
         string message;
         try { TrySendRemarksReport(ResolveSiteRoot(null), false, out message); } catch { }
+        try { TrySendDipanRemarksReport(ResolveSiteRoot(null), false, out message); } catch { }
         try { TrySendMorningScheduledReports(ResolveSiteRoot(null)); } catch { }
     }
 

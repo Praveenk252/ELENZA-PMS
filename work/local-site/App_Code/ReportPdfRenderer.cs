@@ -314,7 +314,9 @@ public static class ReportPdfRenderer
                  .Replace("&gt;", ">").Replace("&quot;", "\"").Replace("&#39;", "'")
                  .Replace("&rsquo;", "\u2019").Replace("&lsquo;", "\u2018")
                  .Replace("&rdquo;", "\u201d").Replace("&ldquo;", "\u201c")
-                 .Replace("&mdash;", "\u2014").Replace("&ndash;", "\u2013");
+                 .Replace("&mdash;", "\u2014").Replace("&ndash;", "\u2013")
+                 .Replace("&middot;", "\u00b7").Replace("&hellip;", "\u2026")
+                 .Replace("&copy;", "\u00a9").Replace("&bull;", "\u2022");
             s = Regex.Replace(s, @"&#(\d+);", delegate(Match m)
             {
                 int code;
@@ -729,7 +731,12 @@ public static class ReportPdfRenderer
                     continue;
                 }
                 var tag = child.Tag;
-                if (tag == "script" || tag == "style" || tag == "br" || tag == "hr") continue;
+                if (tag == "br")
+                {
+                    runs.Add(new Run { Text = "\n", Style = style });
+                    continue;
+                }
+                if (tag == "script" || tag == "style" || tag == "hr") continue;
                 if (tag == "table")
                 {
                     // tables inside inline context: treat as block boundary marker - flush as separate paragraph handled by caller

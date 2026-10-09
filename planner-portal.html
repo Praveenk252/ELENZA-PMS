@@ -396,6 +396,7 @@
           <div class="card-head">
             <h2>Remarks Reply Status</h2>
             <div class="topbar-actions">
+              <button class="ghost" id="send-remarks-mail" type="button">On Demand Mail</button>
               <button class="ghost" id="refresh-remarks" type="button">Refresh</button>
             </div>
           </div>
@@ -512,6 +513,8 @@
       });
       const refreshRemarksButton = document.querySelector("#refresh-remarks");
       if (refreshRemarksButton) refreshRemarksButton.addEventListener("click", loadRemarksReport);
+      const sendRemarksMailButton = document.querySelector("#send-remarks-mail");
+      if (sendRemarksMailButton) sendRemarksMailButton.addEventListener("click", sendRemarksReportMail);
       refs.consolidatedBody.addEventListener("change", onPriorityChange);
       refs.consolidatedBody.addEventListener("click", onPrioritySave);
       refs.machineGroups.addEventListener("change", onPriorityChange);
@@ -708,6 +711,22 @@
         await loadRemarksReport();
       } catch (error) {
         showMessage(error.message || "Delete failed.", "error");
+      }
+    }
+
+    async function sendRemarksReportMail() {
+      if (!confirm("Send the Remarks Replies Report mail now?")) return;
+      const button = document.querySelector("#send-remarks-mail");
+      button.disabled = true;
+      button.textContent = "Sending...";
+      try {
+        const result = await apiPost("remarks-report-mail", { force: 1 });
+        showMessage(result.message || "Mail sent.", result.sent ? "ok" : "error");
+      } catch (error) {
+        showMessage(error.message || "Mail send failed.", "error");
+      } finally {
+        button.disabled = false;
+        button.textContent = "On Demand Mail";
       }
     }
 
