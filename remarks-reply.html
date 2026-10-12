@@ -53,12 +53,19 @@ tr:hover{background:#f8fafc}
 .toast.ok{background:#16a34a}.toast.err{background:#dc2626}
 #loading{text-align:center;padding:60px;color:#64748b}
 .no-orders{text-align:center;padding:40px;color:#94a3b8}
+.identity-guard{display:none;align-items:center;justify-content:space-between;gap:12px;background:#fef9c3;color:#854d0e;padding:10px 20px;font-size:13px;border-bottom:1px solid #fde68a}
+.identity-guard b{color:#713f12}
 </style>
 </head>
 <body>
 <div class="topbar">
   <h1>ElenzaIndia - Remarks Reply</h1>
   <div class="uinfo" id="uInfo"></div>
+</div>
+
+<div class="identity-guard" id="identityGuard">
+  <span id="identityText"></span>
+  <button class="btn btn-sm btn-cancel" type="button" onclick="switchAccount()">Switch Account</button>
 </div>
 
 <div id="loginOv" class="login-box">
@@ -128,6 +135,20 @@ function apiPost(a,body){return fetch('api.ashx?action='+a,{method:'POST',header
 function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t;e.style.display='block';setTimeout(function(){e.style.display='none'},3000)}
 function esc(h){return String(h).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
+function showIdentityGuard(user){
+  var g=document.getElementById('identityGuard');
+  document.getElementById('identityText').innerHTML='You are signed in as <b>'+esc(user.full_name)+'</b> ('+esc(user.role_name)+'). Replies you save will be recorded under your name.';
+  g.style.display='flex';
+}
+function switchAccount(){
+  api('logout').catch(function(){});
+  S.ses=null;
+  document.getElementById('identityGuard').style.display='none';
+  document.getElementById('main').style.display='none';
+  document.getElementById('uInfo').textContent='';
+  document.getElementById('loginOv').style.display='block';
+}
+
 function doLogin(e){
   e.preventDefault();
   var u=document.getElementById('lUser').value.trim(),p=document.getElementById('lPass').value,er=document.getElementById('lErr');
@@ -137,6 +158,7 @@ function doLogin(e){
     S.ses=r.user;
     document.getElementById('loginOv').style.display='none';
     document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
+    showIdentityGuard(r.user);
     loadRequest();
   }).catch(function(){er.textContent='Connection error';er.style.display='block'})
 }
@@ -229,6 +251,7 @@ function fallbackCopy(msg){var ta=document.createElement('textarea');ta.value=ms
       S.ses=r.user;
       document.getElementById('loginOv').style.display='none';
       document.getElementById('uInfo').textContent=r.user.full_name+' | '+r.user.role_name;
+      showIdentityGuard(r.user);
       loadRequest();
     }
   }).catch(function(){});

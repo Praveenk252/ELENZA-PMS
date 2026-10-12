@@ -375,6 +375,9 @@ case "packing-boxes-set":
                 case "remarks-request-delete":
                     HandleRemarksRequestDelete(context);
                     break;
+                case "remarks-reply-reassign":
+                    HandleRemarksReplyReassign(context);
+                    break;
                 case "remarks-report-export":
                     HandleRemarksReportExport(context);
                     break;
@@ -7425,6 +7428,26 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 }
             }
             WriteJson(context, Obj("ok", true));
+        }
+    }
+
+    private void HandleRemarksReplyReassign(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            if (S(user, "role_name") != "Admin")
+                throw new ApiFailure(403, "Only admins can reassign replies.");
+            var requestId = IntRequired(Value(context, "request_id"), "Request ID required.");
+            var repliedBy = IntRequired(Value(context, "replied_by"), "Replied by user ID required.");
+            var target = QueryOne(conn, "SELECT user_id, full_name FROM tbl_users WHERE user_id = ? AND is_active = TRUE", repliedBy);
+            if (target == null) throw new ApiFailure(404, "Replier user not found.");
+            var request = QueryOne(conn, "SELECT request_id FROM tbl_remarks_requests WHERE request_id = ?", requestId);
+            if (request == null) throw new ApiFailure(404, "Request not found.");
+            Execute(conn, "UPDATE tbl_remarks_replies SET replied_by = ? WHERE request_id = ?", repliedBy, requestId);
+            Execute(conn, "UPDATE tbl_remarks_requests SET replied_by = ? WHERE request_id = ?", repliedBy, requestId);
+            WriteJson(context, Obj("ok", true, "request_id", requestId, "replied_by", repliedBy, "replied_by_name", S(target, "full_name")));
         }
     }
 
