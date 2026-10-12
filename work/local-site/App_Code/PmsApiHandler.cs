@@ -7849,40 +7849,27 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;margin:0;padding:16px}h2{font-size:16px;margin:0 0 4px}p.meta{color:#64748b;font-size:12px;margin:0 0 14px}h3{font-size:13px;margin:16px 0 6px;background:#046bd2;color:#fff;padding:6px 10px;border-radius:4px}table{border-collapse:collapse;width:100%;font-size:11px}th{background:#f1f5f9;text-align:left;padding:6px;border:1px solid #e2e8f0}td{padding:5px 6px;border:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafc}.empty{color:#94a3b8;padding:10px 0}</style></head><body>");
         sb.Append("<h2>Elenza PMS - Marketing Order List</h2>");
-        sb.Append("<p class=\"meta\">For daily check and verification | " + now.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) + " " + now.ToString("hh:mm tt", CultureInfo.InvariantCulture) + " IST | Sorted by Dealer, then Confirmation Date (newest first)</p>");
+        sb.Append("<p class=\"meta\">In production orders for daily check and verification | " + now.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) + " " + now.ToString("hh:mm tt", CultureInfo.InvariantCulture) + " IST | Sorted by Dealer, then Confirmation Date (newest first)</p>");
         foreach (var loginId in MarketingVerifyReportLogins)
         {
             var target = QueryOne(conn, "SELECT user_id, full_name FROM tbl_users WHERE login_id = ? AND is_active = TRUE", loginId);
             var name = target != null ? S(target, "full_name") : loginId;
             var probe = Obj("user_id", target != null ? I(target, "user_id") : 0, "full_name", name, "role_name", "Marketing User");
             var orders = LoadEnrichedOrders(conn, masters, probe);
-            var planning = ((List<Dictionary<string, object>>)BuildPlanningState(conn, probe, orders, statusLookup)["rows"])
-                .Where(r => !string.Equals(S(r, "order_class"), "Sub Order", StringComparison.OrdinalIgnoreCase)).ToList();
-            var dispatch = (List<Dictionary<string, object>>)BuildDispatchState(conn, orders, statusLookup)["rows"];
-            var dispatchStatus = dispatch.ToDictionary(r => I(r, "order_id"), r => S(r, "dispatch_status"));
+            var rows = ((List<Dictionary<string, object>>)BuildPlanningState(conn, probe, orders, statusLookup)["rows"])
+                .Where(r => !string.Equals(S(r, "order_class"), "Sub Order", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             var orderLookup = orders.ToDictionary(o => I(o, "order_id"));
-            var rows = new List<Dictionary<string, object>>();
-            var seen = new HashSet<int>();
-            foreach (var r in planning) { seen.Add(I(r, "order_id")); rows.Add(r); }
-            foreach (var r in dispatch) { if (!seen.Contains(I(r, "order_id"))) { seen.Add(I(r, "order_id")); rows.Add(r); } }
             foreach (var r in rows)
             {
                 var orderId = I(r, "order_id");
-                string status;
-                if (dispatchStatus.ContainsKey(orderId))
-                {
-                    status = string.Equals(dispatchStatus[orderId], "Dispatched", StringComparison.OrdinalIgnoreCase) ? "Dispatched" : "Packed";
-                }
-                else
-                {
-                    var stage = (S(r, "current_stage_hint") + " " + S(r, "planner_stage_label")).ToLowerInvariant();
-                    status = (stage.Contains("packed") || stage.Contains("packing") || stage.Contains("dispatch")) ? "Packed" : "In Production";
-                }
-                r["mail_status"] = status;
+                var stage = (S(r, "current_stage_hint") + " " + S(r, "planner_stage_label")).ToLowerInvariant();
+                r["mail_status"] = (stage.Contains("packed") || stage.Contains("packing") || stage.Contains("dispatch")) ? "Packed" : "In Production";
                 Dictionary<string, object> eo;
                 r["mail_edd"] = orderLookup.TryGetValue(orderId, out eo) ? IsoDate(DT(eo, "sla_date")) : "";
             }
             rows = rows
+                .Where(r => string.Equals(S(r, "mail_status"), "In Production", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(r => S(r, "dealer_name"), StringComparer.OrdinalIgnoreCase)
                 .ThenByDescending(r => S(r, "confirmation_date"), StringComparer.OrdinalIgnoreCase)
                 .ToList();
