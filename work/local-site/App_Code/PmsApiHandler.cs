@@ -7867,6 +7867,8 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 r["mail_status"] = (stage.Contains("packed") || stage.Contains("packing") || stage.Contains("dispatch")) ? "Packed" : "In Production";
                 Dictionary<string, object> eo;
                 r["mail_edd"] = orderLookup.TryGetValue(orderId, out eo) ? IsoDate(DT(eo, "sla_date")) : "";
+                var tentative = D(r, "planned_box_qty");
+                r["mail_tentative"] = tentative > 0 ? tentative.ToString("0.##", CultureInfo.InvariantCulture) : "-";
             }
             rows = rows
                 .Where(r => string.Equals(S(r, "mail_status"), "In Production", StringComparison.OrdinalIgnoreCase))
@@ -7881,10 +7883,10 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
             }
             else
             {
-                sb.Append("<table><thead><tr><th>Order #</th><th>Confirmation Date</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th><th>Main / Sub</th></tr></thead><tbody>");
+                sb.Append("<table><thead><tr><th>Order #</th><th>Confirmation Date</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>EDD</th><th>Tentative Box</th><th>Main / Sub</th></tr></thead><tbody>");
                 foreach (var r in rows)
                 {
-                    sb.Append("<tr><td>" + Html(S(r, "order_number")) + "</td><td>" + Html(S(r, "confirmation_date")) + "</td><td>" + Html(S(r, "order_type")) + "</td><td>" + Html(S(r, "dealer_name")) + "</td><td>" + Html(S(r, "customer_name")) + "</td><td>" + Html(S(r, "mail_status")) + "</td><td>" + Html(S(r, "mail_edd")) + "</td><td>" + Html(S(r, "order_class")) + "</td></tr>");
+                    sb.Append("<tr><td>" + Html(S(r, "order_number")) + "</td><td>" + Html(S(r, "confirmation_date")) + "</td><td>" + Html(S(r, "order_type")) + "</td><td>" + Html(S(r, "dealer_name")) + "</td><td>" + Html(S(r, "customer_name")) + "</td><td>" + Html(S(r, "mail_edd")) + "</td><td>" + Html(S(r, "mail_tentative")) + "</td><td>" + Html(S(r, "order_class")) + "</td></tr>");
                 }
                 sb.Append("</tbody></table>");
             }
