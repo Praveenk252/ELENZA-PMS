@@ -29,7 +29,7 @@ public class PmsApiHandler : IHttpHandler, IRequiresSessionState
     private const int DipanRemarksReportHour = 8;
     private const string DipanRemarksReportLoginId = "dipan";
     private static readonly string[] DipanRemarksReportEmails = { "dipan.elenza@gmail.com", "praveen@elenzaindia.com" };
-    private const int RemarksReportHour = 21;
+    private static readonly TimeSpan RemarksReportTime = new TimeSpan(23, 55, 0);
     private const string MarketingVerifyReportKind = "MARKETING_ORDER_VERIFY_DAILY";
     private const int MarketingVerifyReportHour = 22;
     private static readonly string[] MarketingVerifyReportLogins = { "dipan", "praveen" };
@@ -8142,9 +8142,9 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
                 return false;
             }
             var now = NowInZone(settings.TimeZoneId);
-            if (!force && now.Hour < RemarksReportHour)
+            if (!force && now.TimeOfDay < RemarksReportTime)
             {
-                message = "Remarks report is scheduled for 9:00 PM IST.";
+                message = "Remarks report is scheduled for 11:55 PM IST.";
                 return false;
             }
             var reportDate = now.Date;
