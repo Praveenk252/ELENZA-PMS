@@ -770,8 +770,16 @@
     }
 
     function renderConsolidated(rows) {
+      const sorted = [...rows].sort((a, b) => {
+        const da = String(a.confirmation_date || "");
+        const db = String(b.confirmation_date || "");
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da.localeCompare(db);
+      });
       refs.consolidatedCount.textContent = `${rows.length} Orders`;
-      refs.consolidatedBody.innerHTML = rows.length ? rows.map((row) => `
+      refs.consolidatedBody.innerHTML = sorted.length ? sorted.map((row) => `
         <tr class="${priorityClass(row.priority)}">
           <td class="slim-cell">${escapeHtml(shortDate(row.confirmation_date))}</td>
           <td class="order-cell wrap">${escapeHtml(row.order_number)}</td>
