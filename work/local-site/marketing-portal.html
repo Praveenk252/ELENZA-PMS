@@ -120,6 +120,7 @@ tr.row-medium:hover{background:#fde047!important}
       <input type="text" id="ipSearch" placeholder="Search orders..." oninput="rOrdersTab('production')">
       <span id="ipTentTotal" style="display:none;font-size:13px;font-weight:600;color:#046bd2;white-space:nowrap"></span>
       <button class="btn-sm btn-all" onclick="selectAll('production')">Select All</button>
+      <button class="btn-sm btn-all" onclick="exportOrdersTab('production')">Export Excel</button>
       <div class="wa-wrap"><button class="btn-sm btn-wa" onclick="toggleWaMenu('production')">WhatsApp &#9662;</button><div class="wa-menu" id="waMenu-production"><div onclick="genWhatsApp('production','status')">Status Ask</div><div onclick="genWhatsApp('production','urgent')">Need Urgent</div><div onclick="genWhatsApp('production','custom')">Custom Message</div><div class="wa-sep"></div><label class="wa-copy-opt desktop-only" onclick="event.stopPropagation()"><input type="checkbox" id="waCopy-production" onclick="event.stopPropagation()"> Just copy to clipboard</label></div></div>
     </div>
     <div class="tscroll"><table><thead><tr><th class="cb"><input type="checkbox" class="cb" id="ipCbAll" onchange="toggleAll('production')"></th><th>Order #</th><th>Confirmation</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th><th>Tentative Box</th><th>Actions</th><th>Main / Sub</th></tr></thead><tbody id="ipTb"></tbody></table></div>
@@ -128,6 +129,7 @@ tr.row-medium:hover{background:#fde047!important}
     <div class="sbox">
       <input type="text" id="pkSearch" placeholder="Search orders..." oninput="rOrdersTab('packed')">
       <button class="btn-sm btn-all" onclick="selectAll('packed')">Select All</button>
+      <button class="btn-sm btn-all" onclick="exportOrdersTab('packed')">Export Excel</button>
       <div class="wa-wrap"><button class="btn-sm btn-wa" onclick="toggleWaMenu('packed')">WhatsApp &#9662;</button><div class="wa-menu" id="waMenu-packed"><div onclick="genWhatsApp('packed','dispatch')">Ready for Dispatch</div><div onclick="genWhatsApp('packed','boxbalance')">Box Balance</div><div onclick="genWhatsApp('packed','custom')">Custom Message</div><div class="wa-sep"></div><label class="wa-copy-opt desktop-only" onclick="event.stopPropagation()"><input type="checkbox" id="waCopy-packed" onclick="event.stopPropagation()"> Just copy to clipboard</label></div></div>
     </div>
     <div class="tscroll"><table><thead><tr><th class="cb"><input type="checkbox" class="cb" id="pkCbAll" onchange="toggleAll('packed')"></th><th>Order #</th><th>Confirmation</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th><th>Box Qty</th><th>Balance Box</th><th>Packed Date</th></tr></thead><tbody id="pkTb"></tbody></table></div>
@@ -136,6 +138,7 @@ tr.row-medium:hover{background:#fde047!important}
     <div class="sbox">
       <input type="text" id="diSearch" placeholder="Search orders..." oninput="rOrdersTab('dispatched')">
       <button class="btn-sm btn-all" onclick="selectAll('dispatched')">Select All</button>
+      <button class="btn-sm btn-all" onclick="exportOrdersTab('dispatched')">Export Excel</button>
       <div class="wa-wrap"><button class="btn-sm btn-wa" onclick="toggleWaMenu('dispatched')">WhatsApp &#9662;</button><div class="wa-menu" id="waMenu-dispatched"><div onclick="genWhatsApp('dispatched','status')">Status Ask</div><div onclick="genWhatsApp('dispatched','urgent')">Need Urgent</div><div onclick="genWhatsApp('dispatched','custom')">Custom Message</div><div class="wa-sep"></div><label class="wa-copy-opt desktop-only" onclick="event.stopPropagation()"><input type="checkbox" id="waCopy-dispatched" onclick="event.stopPropagation()"> Just copy to clipboard</label></div></div>
     </div>
     <div class="tscroll"><table><thead><tr><th class="cb"><input type="checkbox" class="cb" id="diCbAll" onchange="toggleAll('dispatched')"></th><th>Order #</th><th>Confirmation</th><th>Order Type</th><th>Dealer</th><th>Customer</th><th>Status</th><th>EDD</th></tr></thead><tbody id="diTb"></tbody></table></div>
@@ -167,6 +170,8 @@ tr.row-medium:hover{background:#fde047!important}
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
 <div class="modal-bg" id="eddModal">
   <div class="modal">
@@ -431,13 +436,12 @@ function orderClassLabel(o){
   if(combined.indexOf('sub')>=0||so)return 'Sub Order';
   return 'Main Order';
 }
-function rOrdersTab(tab){
+function collectTabRows(tab){
   var target=TAB_STATUS[tab];
   var q=(document.getElementById(TAB_SEARCH[tab]).value||'').toLowerCase();
   var ctFilter=document.getElementById('ctFilter').value;
   var otFilter=document.getElementById('otFilter').value;
   var priFilter=document.getElementById('priFilter').value;
-  var h='';
   var rows=[];
   S.orders.forEach(function(o){
     var s=gs(o);
@@ -455,6 +459,24 @@ function rOrdersTab(tab){
     rows.push({o:o,s:s,pri:pri,on:on,dn:dn,cn:cn,ty:ty,cd:cd,edd:edd,oid:oid,pdSort:pdSort});
   });
   if(tab==='packed')rows.sort(function(a,b){return (b.pdSort||'').localeCompare(a.pdSort||'')});
+  return rows;
+}
+function exportOrdersTab(tab){
+  if(typeof XLSX==='undefined'){alert('Excel export library did not load.');return}
+  var rows=collectTabRows(tab);
+  if(!rows.length){alert('No rows to export.');return}
+  var data;
+  if(tab==='production')data=rows.map(function(r){return {'Order #':r.on,'Confirmation Date':r.cd,'Order Type':r.ty,'Dealer':r.dn,'Customer':r.cn,'Status':r.s,'EDD':r.edd,'Tentative Box':tentativeBox(r.o),'Priority':r.pri||'','Main / Sub':orderClassLabel(r.o)}});
+  else if(tab==='packed')data=rows.map(function(r){return {'Order #':r.on,'Confirmation Date':r.cd,'Order Type':r.ty,'Dealer':r.dn,'Customer':r.cn,'Status':r.s,'EDD':r.edd,'Box Qty':String(r.o.box_count||''),'Balance Box':String(r.o.packing_balance_box_qty||''),'Packed Date':r.pdSort?fmtDate(r.pdSort):'-'}});
+  else data=rows.map(function(r){return {'Order #':r.on,'Confirmation Date':r.cd,'Order Type':r.ty,'Dealer':r.dn,'Customer':r.cn,'Status':r.s,'EDD':r.edd}});
+  var ws=XLSX.utils.json_to_sheet(data);
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,tab==='production'?'In Production':tab==='packed'?'Packed':'Dispatched');
+  XLSX.writeFile(wb,'Marketing-'+tab+'-'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+function rOrdersTab(tab){
+  var h='';
+  var rows=collectTabRows(tab);
   rows.forEach(function(r){
     var priBadge='';
     if(r.pri==='High')priBadge=' <span class="pri-badge high" title="High Priority">HIGH</span>';
