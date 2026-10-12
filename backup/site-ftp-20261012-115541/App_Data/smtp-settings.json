@@ -1,0 +1,18 @@
+﻿{
+    "delivery_mode":  "smtp",
+    "from_name":  "Elenza PMS Reports",
+    "brevo_api_key":  "",
+    "daily_hour":  9,
+    "smtp_username":  "praveenk252@gmail.com",
+    "daily_minute":  0,
+    "from_email":  "praveenk252@gmail.com",
+    "timezone_id":  "India Standard Time",
+    "smtp_password":  "yqkb tkok ioqk gelt",
+    "smtp_port":  587,
+    "use_ssl":  true,
+    "to_emails":  [
+                      "praveenk252@gmail.com"
+                  ],
+    "enabled":  true,
+    "smtp_host":  "smtp.gmail.com"
+}

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elenza PMS — Work Station</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#046BD2;--navy:#1E293B;--slate:#334155;--bg:#F0F5FA;--white:#FFFFFF;--border:#D1D5DB;--red:#DC2626;--green:#16A34A;--orange:#EA580C}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--slate);min-height:100vh}
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:var(--white);border-radius:12px;padding:40px;width:100%;max-width:400px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.login-box h1{text-align:center;color:var(--navy);font-size:22px;margin-bottom:8px}
+.login-box p{text-align:center;color:var(--slate);font-size:13px;margin-bottom:24px;opacity:.7}
+.login-box label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--navy)}
+.login-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;margin-bottom:16px;outline:none}
+.login-box input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(4,107,210,.15)}
+.login-box .error{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
+.login-box button{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer}
+.login-box button:hover{background:#045CB4}
+.login-box button:disabled{opacity:.5;cursor:not-allowed}
+.auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+.auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+.auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+.auth-quick-link-icon{font-size:18px;line-height:1}
+.auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+.auth-quick-link-desc{display:none}
+@media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
+
+.app{display:none;min-height:100vh;flex-direction:column}
+.top-bar{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.top-bar h1{font-size:16px;font-weight:600}
+.top-bar .user-info{font-size:12px;opacity:.7}
+.top-bar .logout-btn{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer}
+.top-bar .logout-btn:hover{background:rgba(255,255,255,.1)}
+
+.tabs{display:flex;background:var(--white);border-bottom:2px solid var(--border);overflow-x:auto}
+.tab{padding:12px 16px;font-size:13px;font-weight:600;color:var(--slate);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--blue);background:rgba(4,107,210,.04)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+.main{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px}
+
+.card{background:var(--white);border-radius:12px;padding:16px}
+.card h3{font-size:14px;color:var(--navy);margin-bottom:12px;font-weight:600}
+
+.select-section label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.select-section select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;outline:none;background:var(--white);color:var(--navy)}
+.select-section select:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(4,107,210,.15)}
+
+.combo{position:relative;margin-bottom:12px}
+.combo-clear{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:none;background:var(--bg);color:var(--slate);border-radius:50%;font-size:15px;line-height:1;cursor:pointer;z-index:2}
+.combo-clear:hover{background:var(--border);color:var(--navy)}
+.combo-input{width:100%;padding:10px 12px 10px 38px;border:1px solid var(--border);border-radius:6px;font-size:14px;outline:none;color:var(--navy)}
+.combo-input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(4,107,210,.15)}
+.combo-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:1px solid var(--border);border-radius:6px;max-height:280px;overflow-y:auto;display:none;z-index:60;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.combo-dropdown.show{display:block}
+.combo-dropdown .ci{padding:10px 12px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--border)}
+.combo-dropdown .ci:last-child{border-bottom:none}
+.combo-dropdown .ci:hover{background:rgba(4,107,210,.06)}
+.combo-dropdown .ci .cn{font-weight:700;color:var(--navy)}
+.combo-dropdown .ci .cmeta{font-size:11px;color:var(--slate);opacity:.7;margin-top:2px}
+
+.update-btn{width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;margin-top:12px}
+.update-btn:hover{background:#15803D}
+.update-btn:disabled{opacity:.5;cursor:not-allowed}
+.partial-btn{background:#EA580C;margin-top:8px}
+.partial-btn:hover{background:#C2410C}
+.gate-banner{display:none;background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-top:12px;line-height:1.4}
+.status-chip{display:none;background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+
+.info-row{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:12px 0}
+.info-row .detail .label{color:var(--slate);opacity:.6;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.info-row .detail .value{color:var(--navy);font-weight:600;font-size:13px}
+
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;color:#fff;z-index:1000;transform:translateX(120%);transition:transform .3s}
+.toast.show{transform:translateX(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.info{background:var(--blue)}
+
+.order-count{background:var(--white);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.order-count .count{font-size:13px;color:var(--slate)}
+.order-count .count strong{color:var(--navy)}
+.order-count .refresh-btn{background:none;border:1px solid var(--border);padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer;color:var(--slate)}
+.order-count .refresh-btn:hover{background:var(--bg)}
+
+.pending-list{background:var(--white);border-radius:12px;overflow:hidden}
+.pending-list h3{padding:12px 16px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);font-weight:600}
+.pending-list .list{max-height:400px;overflow-y:auto}
+.pending-list .item{padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .1s}
+.pending-list .item:last-child{border-bottom:none}
+.pending-list .item:hover{background:rgba(4,107,210,.04)}
+.pending-list .item .order{font-weight:700;color:var(--navy)}
+.pending-list .item .meta{color:var(--slate);opacity:.7;font-size:12px}
+.pending-list .item .station-date{font-size:11px;color:var(--green);font-weight:600}
+.pending-list .item .no-date{font-size:11px;color:var(--slate);opacity:.4}
+.pending-list .empty{padding:24px;text-align:center;color:var(--slate);opacity:.5;font-size:13px}
+
+.history-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--white);margin-bottom:10px}
+.history-card .hc-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.history-card .hc-order{font-weight:700;color:var(--navy);font-size:14px}
+.history-card .hc-action{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.hc-action.COMPLETED{background:#DCFCE7;color:#15803D}
+.hc-action.PARTIAL_COMPLETED{background:#FFEDD5;color:#C2410C}
+.hc-action.REJECTED{background:#FEE2E2;color:#B91C1C}
+.history-card .hc-meta{font-size:12px;color:var(--slate);margin-top:4px;opacity:.8}
+
+.content-tabs{display:flex;background:var(--white);border-bottom:2px solid var(--border);overflow-x:auto}
+.content-tabs .ctab{padding:12px 16px;font-size:13px;font-weight:600;color:var(--slate);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px}
+.content-tabs .ctab:hover{color:var(--blue);background:rgba(4,107,210,.04)}
+.content-tabs .ctab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+.hidden{display:none !important}
+
+.order-timeline{margin-top:12px;padding:10px 0}
+.order-timeline h4{font-size:13px;color:var(--navy);margin-bottom:8px;font-weight:700}
+.tl-step{display:flex;align-items:flex-start;gap:10px;padding:6px 0;position:relative}
+.tl-step:not(:last-child)::after{content:'';position:absolute;left:7px;top:22px;width:2px;height:calc(100% - 10px);background:var(--border)}
+.tl-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:2px;border:2px solid var(--border);background:var(--white)}
+.tl-dot.done{background:var(--green);border-color:var(--green)}
+.tl-dot.current{background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 3px rgba(4,107,210,.2)}
+.tl-dot.pending{background:var(--white);border-color:#cbd5e1}
+.tl-info{flex:1}
+.tl-label{font-size:12px;font-weight:600;color:var(--navy)}
+.tl-time{font-size:11px;color:var(--slate);opacity:.8}
+.tl-remarks{font-size:11px;color:var(--orange);font-style:italic;margin-top:2px}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>Work Station</h1>
+    <p>Login with your machine user credentials</p>
+    <div class="error" id="loginError"></div>
+    <form onsubmit="doLogin(event)">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="e.g. cutting.user" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+      <button type="submit" id="loginBtn">Login</button>
+    </form>
+    <div class="auth-quick-links">
+      <div class="auth-quick-links-grid">
+        <a class="auth-quick-link" href="/index.html"><span class="auth-quick-link-icon">&#127968;</span><span class="auth-quick-link-label">Admin</span><span class="auth-quick-link-desc">Admin Portal</span></a>
+        <a class="auth-quick-link" href="/packing-portal.html"><span class="auth-quick-link-icon">&#128230;</span><span class="auth-quick-link-label">Packing</span><span class="auth-quick-link-desc">Packing Portal</span></a>
+        <a class="auth-quick-link" href="/planner-portal.html"><span class="auth-quick-link-icon">&#128197;</span><span class="auth-quick-link-label">Planner</span><span class="auth-quick-link-desc">Planner Portal</span></a>
+        <a class="auth-quick-link" href="/marketing-portal.html"><span class="auth-quick-link-icon">&#128188;</span><span class="auth-quick-link-label">Marketing</span><span class="auth-quick-link-desc">Marketing Portal</span></a>
+        <a class="auth-quick-link" href="/remarks-reply.html"><span class="auth-quick-link-icon">&#128172;</span><span class="auth-quick-link-label">Remarks</span><span class="auth-quick-link-desc">Remarks Reply</span></a>
+        <a class="auth-quick-link" href="/priority-desk.html"><span class="auth-quick-link-icon">&#9888;&#65039;</span><span class="auth-quick-link-label">Priority</span><span class="auth-quick-link-desc">Priority Desk</span></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appShell">
+  <div class="top-bar">
+    <h1>Work Station</h1>
+    <span class="user-info" id="sessionMeta"></span>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="content-tabs">
+    <button class="ctab active" onclick="showView('update')">Update Stage</button>
+    <button class="ctab" onclick="showView('orders')">Orders at Station</button>
+    <button class="ctab" onclick="showView('history')">Action History</button>
+  </div>
+
+  <div class="main">
+    <div id="updateView">
+      <div class="card">
+        <h3>Select Order</h3>
+        <div class="combo">
+          <button class="combo-clear" onclick="clearCombo()">&times;</button>
+          <input class="combo-input" id="orderInput" placeholder="Type order number to search..." oninput="filterCombo(this.value)" onfocus="filterCombo(this.value)">
+          <div class="combo-dropdown" id="comboDropdown"></div>
+        </div>
+        <div id="selectedInfo" class="info-row hidden"></div>
+        <span id="myStatusChip" class="status-chip">This station: Partial</span>
+        <div id="gateBanner" class="gate-banner"></div>
+        <button class="update-btn" id="updateBtn" disabled onclick="doUpdate()">Mark Completed</button>
+        <button class="update-btn partial-btn" id="partialBtn" disabled onclick="doPartial()">Mark Partial</button>
+        <div id="orderTimeline" class="order-timeline hidden"></div>
+      </div>
+    </div>
+
+    <div id="ordersView" class="hidden">
+      <div class="order-count">
+        <div class="count">Pending at <strong id="stationLabel">-</strong>: <strong id="pendingCount">0</strong></div>
+        <button class="refresh-btn" onclick="loadState()">Refresh</button>
+      </div>
+      <div class="pending-list" style="margin-top:12px">
+        <h3>Orders at this station</h3>
+        <div class="list" id="pendingList"></div>
+      </div>
+    </div>
+
+    <div id="historyView" class="hidden">
+      <div class="card">
+        <h3>Action History at <span id="historyStation">-</span></h3>
+        <div id="historyList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API='/api.ashx';
+var currentUser=null;
+var allOrders=[];
+var readyOrders=[];
+var selectedOrder=null;
+var gateBlocked=false,gateStations=[];
+var currentStation='';
+var gateRequestId=0;
+
+function doLogin(e){
+  e.preventDefault();
+  var u=document.getElementById('loginUser').value.trim();
+  var p=document.getElementById('loginPass').value;
+  if(!u||!p){showError('Please enter username and password');return;}
+  document.getElementById('loginBtn').disabled=true;
+  var fd=new URLSearchParams();
+  fd.append('action','login');
+  fd.append('username',u);
+  fd.append('password',p);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    document.getElementById('loginBtn').disabled=false;
+    if(d.error){showError(d.error);return;}
+    currentUser=d.user;
+    currentStation=currentUser.station_name||'';
+    sessionStorage.setItem('station_session',JSON.stringify(currentUser));
+    showApp();
+    loadState();
+  })
+  .catch(function(){document.getElementById('loginBtn').disabled=false;showError('Login failed');});
+}
+
+function showError(msg){
+  var el=document.getElementById('loginError');
+  el.textContent=msg;el.style.display='block';
+  setTimeout(function(){el.style.display='none';},4000);
+}
+
+function doLogout(){
+  sessionStorage.removeItem('station_session');
+  currentUser=null;allOrders=[];readyOrders=[];selectedOrder=null;
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+
+function showApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+  document.getElementById('sessionMeta').textContent=currentUser.full_name+' | '+currentStation;
+  document.getElementById('stationLabel').textContent=currentStation;
+  document.getElementById('historyStation').textContent=currentStation;
+}
+
+function showView(view){
+  document.getElementById('updateView').classList.toggle('hidden',view!=='update');
+  document.getElementById('ordersView').classList.toggle('hidden',view!=='orders');
+  document.getElementById('historyView').classList.toggle('hidden',view!=='history');
+  document.querySelectorAll('.content-tabs .ctab').forEach(function(t,i){
+    t.classList.toggle('active',(view==='update'&&i===0)||(view==='orders'&&i===1)||(view==='history'&&i===2));
+  });
+}
+
+function loadState(){
+  if(!currentUser)return;
+  var url=API+'?action=station-state&station_name='+encodeURIComponent(currentStation);
+  var readyUrl=API+'?action=station-ready-orders&station_name='+encodeURIComponent(currentStation);
+  fetch(url,{credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.error){showToast(d.error,'error');return;}
+    allOrders=d.orders||[];
+    renderHistory(d.history||[]);
+    filterCombo('');
+    return fetch(readyUrl,{credentials:'same-origin'});
+  })
+  .then(function(r){return r?r.json():null;})
+  .then(function(d){
+    if(d&&d.orders){
+      readyOrders=d.orders||[];
+      renderReadyOrders();
+    }
+  })
+  .catch(function(){showToast('Failed to load state','error');});
+}
+
+function renderReadyOrders(){
+  var list=document.getElementById('pendingList');
+  if(!list)return;
+  if(!readyOrders.length){list.innerHTML='<div class="empty">No orders ready at '+escHtml(currentStation)+'</div>';return;}
+  var h='';
+  readyOrders.forEach(function(o){
+    var num=o.order_number||('Order #'+o.order_id);
+    var dateHtml=o.station_date?'<span class="station-date">'+escHtml(shortDate(o.station_date))+'</span>':'<span class="no-date">Not updated</span>';
+    h+='<div class="item" data-id="'+o.order_id+'">';
+    h+='<div><span class="order">'+escHtml(num)+'</span><div class="meta">'+escHtml(o.dealer_name||'')+' | '+escHtml(o.customer_name||'')+'</div></div>';
+    h+=dateHtml+'</div>';
+  });
+  list.innerHTML=h;
+  document.getElementById('pendingCount').textContent=readyOrders.length;
+  Array.prototype.forEach.call(list.querySelectorAll('.item'),function(el){
+    el.onclick=function(){
+      var id=parseInt(el.getAttribute('data-id'),10);
+      var order=allOrders.find(function(o){return o.order_id===id;});
+      if(order){selectOrder(order);}
+      showView('update');
+    };
+  });
+}
+
+function renderHistory(rows){
+  var el=document.getElementById('historyList');
+  if(!el)return;
+  if(!rows.length){el.innerHTML='<div class="empty">No history at this station</div>';return;}
+  var h='';
+  rows.forEach(function(r){
+    var code=r.action_code||'';
+    var label=code==='COMPLETED'?'Completed':code==='PARTIAL_COMPLETED'?'Partial':code==='REJECTED'?'Rejected':code;
+    h+='<div class="history-card">';
+    h+='<div class="hc-top"><span class="hc-order">'+escHtml(r.order_number||'Order #'+r.order_id)+'</span>';
+    h+='<span class="hc-action '+code+'">'+escHtml(label)+'</span></div>';
+    h+='<div class="hc-meta">'+escHtml(r.acted_at||'')+' by '+escHtml(r.user_name||'')+'</div>';
+    if(r.remarks)h+='<div class="hc-remarks">'+escHtml(r.remarks)+'</div>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
+function filterCombo(q){
+  var dd=document.getElementById('comboDropdown');
+  q=(q||'').trim().toLowerCase();
+  var matches=allOrders.filter(function(o){
+    if(!q)return true;
+    var hay=(o.order_number||'')+' '+(o.customer_name||'')+' '+(o.dealer_name||'');
+    return hay.toLowerCase().indexOf(q)>=0;
+  });
+  if(!matches.length){
+    dd.innerHTML='<div class="ci"><div class="cmeta">No matching orders</div></div>';
+    dd.classList.add('show');
+    return;
+  }
+  var h='';
+  matches.forEach(function(o){
+    var num=o.order_number||('Order #'+o.order_id);
+    var dateStr=o.station_date?shortDate(o.station_date):'Not updated';
+    h+='<div class="ci" data-id="'+o.order_id+'">';
+    h+='<div class="cn">'+escHtml(num)+'</div>';
+    h+='<div class="cmeta">'+escHtml(o.dealer_name||'')+' | '+escHtml(o.customer_name||'')+' | '+dateStr+'</div>';
+    h+='</div>';
+  });
+  dd.innerHTML=h;
+  dd.classList.add('show');
+  Array.prototype.forEach.call(dd.querySelectorAll('.ci[data-id]'),function(el){
+    el.onclick=function(){
+      var id=parseInt(el.getAttribute('data-id'),10);
+      var order=allOrders.find(function(o){return o.order_id===id;});
+      if(order)selectOrder(order);
+    };
+  });
+}
+
+function selectOrder(order){
+  selectedOrder=order;
+  document.getElementById('orderInput').value=order.order_number||('Order #'+order.order_id);
+  document.getElementById('comboDropdown').classList.remove('show');
+  var info=document.getElementById('selectedInfo');
+  info.classList.remove('hidden');
+  var dateStr=order.station_date?shortDate(order.station_date):'Not updated';
+  info.innerHTML='<div class="detail"><div class="label">Order Number</div><div class="value">'+escHtml(order.order_number)+'</div></div>'
+    +'<div class="detail"><div class="label">'+escHtml(currentStation)+' Date</div><div class="value">'+escHtml(dateStr)+'</div></div>';
+  loadOrderTimeline(order.order_id);
+  updateGate(order);
+}
+
+function updateGate(order){
+  document.getElementById('updateBtn').disabled=true;
+  document.getElementById('partialBtn').disabled=true;
+  document.getElementById('gateBanner').style.display='none';
+  document.getElementById('gateBanner').innerHTML='';
+  document.getElementById('myStatusChip').style.display='none';
+  gateBlocked=false;gateStations=[];
+  var requestId=++gateRequestId;
+  var fd=new URLSearchParams();
+  fd.append('action','station-gate');
+  fd.append('order_id',order.order_id);
+  fd.append('station_name',currentStation);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(requestId!==gateRequestId)return;
+    if(!selectedOrder||selectedOrder.order_id!==order.order_id)return;
+    if(d.error){updateButtonStates();return;}
+    gateBlocked=!!d.upstream_partial;
+    gateStations=d.upstream_partial_stations||[];
+    if(gateBlocked){
+      var b=document.getElementById('gateBanner');
+      var msg='Cannot complete yet - '+escHtml(gateStations.join(', '))+' still partial. Complete there first.';
+      var remarks=d.upstream_partial_remarks||[];
+      if(remarks.length>0) msg+='<br><strong>Remarks:</strong> '+escHtml(remarks.join(' | '));
+      b.innerHTML=msg;
+      b.style.display='block';
+    }
+    if(String(d.my_queue_status)==='PARTIAL_COMPLETED'){
+      var chip=document.getElementById('myStatusChip');
+      chip.textContent='This station: Partial'+(d.my_queue_remarks?' - '+escHtml(d.my_queue_remarks):'');
+      chip.style.display='inline-block';
+    }
+    updateButtonStates();
+  })
+  .catch(function(){
+    if(requestId===gateRequestId&&selectedOrder&&selectedOrder.order_id===order.order_id)updateButtonStates();
+  });
+}
+
+function updateButtonStates(){
+  var has=!!selectedOrder;
+  document.getElementById('updateBtn').disabled=!has||gateBlocked;
+  document.getElementById('partialBtn').disabled=!has;
+}
+
+function doPartial(){
+  if(!selectedOrder)return;
+  var rm=prompt('Remarks for PARTIAL completion at '+currentStation+' (required):','');
+  if(rm===null)return;
+  rm=rm.trim();
+  while(!rm){
+    rm=prompt('Remarks are mandatory for partial completion:','');
+    if(rm===null)return;
+    rm=rm.trim();
+  }
+  if(!confirm('Record PARTIAL completion at '+currentStation+' for '+selectedOrder.order_number+'?'))return;
+  document.getElementById('partialBtn').disabled=true;
+  document.getElementById('partialBtn').textContent='Saving...';
+  var fd=new URLSearchParams();
+  fd.append('action','station-update');
+  fd.append('order_id',selectedOrder.order_id);
+  fd.append('station_name',currentStation);
+  fd.append('action_code','PARTIAL_COMPLETED');
+  fd.append('remarks',rm);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    document.getElementById('partialBtn').disabled=false;
+    document.getElementById('partialBtn').textContent='Mark Partial';
+    if(d.error){showToast(d.error,'error');return;}
+    showToast(d.message||'Partial completed','success');
+    clearCombo();
+    loadState();
+  })
+  .catch(function(){
+    document.getElementById('partialBtn').disabled=false;
+    document.getElementById('partialBtn').textContent='Mark Partial';
+    showToast('Update failed. Try again.','error');
+  });
+}
+
+function clearCombo(){
+  selectedOrder=null;
+  gateBlocked=false;gateStations=[];
+  document.getElementById('orderInput').value='';
+  document.getElementById('comboDropdown').classList.remove('show');
+  document.getElementById('selectedInfo').classList.add('hidden');
+  document.getElementById('orderTimeline').classList.add('hidden');
+  document.getElementById('orderTimeline').innerHTML='';
+  document.getElementById('updateBtn').disabled=true;
+  document.getElementById('partialBtn').disabled=true;
+  document.getElementById('gateBanner').style.display='none';
+  document.getElementById('gateBanner').innerHTML='';
+  document.getElementById('myStatusChip').style.display='none';
+}
+
+function doUpdate(){
+  if(!selectedOrder)return;
+  if(!confirm('Update '+currentStation+' stage for '+selectedOrder.order_number+'?'))return;
+  document.getElementById('updateBtn').disabled=true;
+  document.getElementById('updateBtn').textContent='Updating...';
+  var fd=new URLSearchParams();
+  fd.append('action','station-update');
+  fd.append('order_id',selectedOrder.order_id);
+  fd.append('station_name',currentStation);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    document.getElementById('updateBtn').disabled=false;
+    document.getElementById('updateBtn').textContent='Mark Completed';
+    if(d.error){showToast(d.error,'error');return;}
+    showToast(d.message||'Updated successfully','success');
+    clearCombo();
+    loadState();
+  })
+  .catch(function(){
+    document.getElementById('updateBtn').disabled=false;
+    document.getElementById('updateBtn').textContent='Mark Completed';
+    showToast('Update failed. Try again.','error');
+  });
+}
+
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast '+type+' show';
+  setTimeout(function(){t.classList.remove('show');},3000);
+}
+
+function escHtml(s){
+  if(!s)return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function shortDate(v){
+  var raw=String(v||'').trim();
+  if(!raw)return '-';
+  var m=raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+  if(m){
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var d=parseInt(m[3],10), mon=months[parseInt(m[2],10)-1], y=m[1].slice(-2);
+    return d+'-'+mon+'-'+y+', '+m[4]+':'+m[5];
+  }
+  return raw;
+}
+
+function loadOrderTimeline(orderId){
+  var el=document.getElementById('orderTimeline');
+  el.classList.add('hidden');el.innerHTML='';
+  var fd=new URLSearchParams();
+  fd.append('action','order-timeline');
+  fd.append('order_id',orderId);
+  fetch(API,{method:'POST',body:fd,credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.error||!d.timeline||!d.timeline.length){el.classList.add('hidden');return;}
+    var h='<h4>Order History — '+escHtml(d.order_number||'')+'</h4>';
+    d.timeline.forEach(function(t){
+      var dotClass=t.status==='done'?'done':t.status==='current'?'current':'pending';
+      h+='<div class="tl-step">';
+      h+='<div class="tl-dot '+dotClass+'"></div>';
+      h+='<div class="tl-info"><div class="tl-label">'+escHtml(t.step||'');
+      if(t.by)h+=' <span style="font-weight:400;color:var(--slate)">('+escHtml(t.by)+')</span>';
+      h+='</div>';
+      if(t.time)h+='<div class="tl-time">'+escHtml(t.time)+'</div>';
+      if(t.remarks)h+='<div class="tl-remarks">'+escHtml(t.remarks)+'</div>';
+      h+='</div></div>';
+    });
+    el.innerHTML=h;
+    el.classList.remove('hidden');
+  })
+  .catch(function(){el.classList.add('hidden');});
+}
+
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('comboDropdown');
+  if(dd.classList.contains('show')&&!e.target.closest('.combo')){
+    dd.classList.remove('show');
+  }
+});
+
+(function init(){
+  var s=sessionStorage.getItem('station_session');
+  if(s){
+    try{currentUser=JSON.parse(s);currentStation=currentUser.station_name||'';showApp();loadState();}catch(e){doLogout();}
+  }
+})();
+</script>
+</body>
+</html>
