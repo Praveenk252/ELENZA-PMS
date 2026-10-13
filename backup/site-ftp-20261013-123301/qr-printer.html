@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elenza QR Label Printer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root {
+    --blue: #046BD2;
+    --blue-hover: #045CB4;
+    --navy: #1E293B;
+    --slate: #334155;
+    --gray: #64748B;
+    --border: #D1D5DB;
+    --bg: #F0F5FA;
+    --white: #FFFFFF;
+    --red: #DC2626;
+    --green: #16A34A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--slate); min-height: 100vh; }
+
+  /* Auth */
+  #auth-shell { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+  #auth-shell.hidden { display: none; }
+  .auth-card { background: var(--white); border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; }
+  .auth-card img { height: 48px; margin-bottom: 12px; }
+  .auth-card h1 { font-size: 20px; color: var(--navy); margin-bottom: 4px; }
+  .auth-card p { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+  .auth-card label { display: block; text-align: left; margin-bottom: 14px; }
+  .auth-card label span { display: block; font-size: 12px; font-weight: 600; color: var(--slate); margin-bottom: 4px; }
+  .auth-card input[type="text"], .auth-card input[type="password"] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
+  }
+  .auth-card input:focus { outline: 2px solid var(--blue); border-color: transparent; }
+  .auth-card button[type="submit"] {
+    width: 100%; padding: 12px; background: var(--blue); color: white; border: none; border-radius: 6px;
+    font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px;
+  }
+  .auth-card button[type="submit"]:hover { background: var(--blue-hover); }
+  .banner { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+  .banner.error { background: #FEE2E2; color: var(--red); }
+  .banner.hidden { display: none; }
+
+  /* App */
+  #app-shell { display: none; }
+  #app-shell.active { display: block; }
+  .topbar { background: var(--navy); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar h1 { font-size: 18px; font-weight: 600; }
+  .topbar .sub { font-size: 12px; color: #94A3B8; margin-left: 12px; }
+  .topbar-right { display: flex; gap: 8px; align-items: center; }
+  .topbar button { background: rgba(255,255,255,0.15); color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-size: 13px; }
+  .topbar button:hover { background: rgba(255,255,255,0.25); }
+
+  .main { display: flex; gap: 16px; padding: 16px; height: calc(100vh - 52px); }
+  .panel { background: var(--white); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+  .panel-left { flex: 1; min-width: 0; }
+  .panel-right { width: 340px; flex-shrink: 0; }
+  .panel-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .panel-head h3 { font-size: 14px; color: var(--navy); }
+  .panel-head .count { font-size: 12px; color: var(--gray); background: var(--bg); padding: 2px 8px; border-radius: 10px; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+
+  .search-box { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+  .search-box:focus { outline: 2px solid var(--blue); border-color: transparent; }
+
+  .select-bar { display: flex; gap: 8px; margin-bottom: 10px; }
+  .select-bar button { background: none; border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--slate); }
+  .select-bar button:hover { background: var(--bg); }
+
+  .order-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid #F1F5F9; }
+  .order-item:last-child { border-bottom: none; }
+  .order-item:hover { background: var(--bg); }
+  .order-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; flex-shrink: 0; }
+  .order-info { flex: 1; min-width: 0; }
+  .order-num { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .order-meta { font-size: 11px; color: var(--gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .order-stage { font-size: 10px; padding: 2px 6px; border-radius: 8px; background: #DBEAFE; color: var(--blue); white-space: nowrap; flex-shrink: 0; }
+  .order-date { font-size: 10px; color: var(--gray); white-space: nowrap; flex-shrink: 0; }
+  .qr-badge { font-size: 9px; padding: 2px 6px; border-radius: 8px; background: #D1FAE5; color: #065F46; white-space: nowrap; flex-shrink: 0; font-weight: 600; }
+  .date-filter { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+  .date-filter label { font-size: 11px; color: var(--gray); }
+  .date-filter input[type="date"] { padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
+
+  .queue-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; background: var(--bg); margin-bottom: 6px; }
+  .queue-item .q-num { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .queue-item .q-meta { font-size: 11px; color: var(--gray); }
+  .queue-item button { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 0 4px; }
+  .queue-empty { text-align: center; color: var(--gray); font-size: 13px; padding: 30px 0; }
+
+  .config-group { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .config-title { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+  .config-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .config-row label { font-size: 12px; color: var(--slate); }
+  .config-row input[type="number"] { width: 70px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; text-align: right; }
+  .config-row input[type="number"]:focus { outline: 2px solid var(--blue); border-color: transparent; }
+  .format-row { display: flex; gap: 12px; margin-top: 4px; }
+  .format-opt { display: flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; }
+  .format-opt input { accent-color: var(--blue); }
+
+  .actions { padding: 14px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .btn { padding: 9px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; flex: 1; }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: var(--blue-hover); }
+  .btn-secondary { background: var(--bg); color: var(--slate); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #E2E8F0; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .auth-quick-links{margin-top:16px;padding-top:14px;border-top:1px solid rgba(19,72,116,.12)}
+  .auth-quick-links-grid{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .auth-quick-link{flex:0 0 auto;min-width:84px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:9px 12px;border:1px solid rgba(19,72,116,.12);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.6);transition:all .15s}
+  .auth-quick-link:hover{background:rgba(255,255,255,.95);border-color:#368dcc;box-shadow:0 2px 8px rgba(158,220,255,.3)}
+  .auth-quick-link-icon{font-size:18px;line-height:1}
+  .auth-quick-link-label{font-size:12px;font-weight:600;color:#123d63;white-space:nowrap}
+  .auth-quick-link-desc{display:none}
+  @media(min-width:600px){.auth-quick-links-grid{display:grid;grid-template-columns:1fr 1fr 1fr;overflow:visible;gap:8px}.auth-quick-link{flex:initial;min-width:0;flex-direction:column;gap:2px;padding:10px 8px;border-radius:10px}.auth-quick-link-desc{display:block;font-size:10px;color:#63788b}}
+
+  .preview-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px; }
+  .preview-overlay.active { display: block; }
+  .preview-box { background: white; max-width: 900px; margin: 0 auto; border-radius: 8px; padding: 24px; }
+  .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .preview-header h2 { font-size: 16px; color: var(--navy); }
+  .preview-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray); }
+  .preview-labels { display: flex; flex-wrap: wrap; gap: 0; }
+  .label-preview { border: 1px dashed #ccc; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+  .label-preview .qr-container { display: flex; align-items: center; justify-content: center; }
+  .label-preview .qr-container canvas, .label-preview .qr-container img { display: block; }
+  .label-preview .label-text { text-align: center; font-weight: 600; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  @media print {
+    body > *:not(#print-area) { display: none !important; }
+    #print-area { position: static !important; left: auto !important; width: 100% !important; visibility: visible !important; }
+    #print-area * { visibility: visible !important; }
+  }
+  @page { margin: 0; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<section id="auth-shell">
+  <div class="auth-card">
+    <img src="assets/elenza-logo.png" alt="ElenzaIndia.com" onerror="this.style.display='none'">
+    <h1>QR Label Printer</h1>
+    <p>ElenzaIndia.com — Production Management</p>
+    <div id="auth-message" class="banner hidden"></div>
+    <form id="login-form">
+      <label>
+        <span>Username</span>
+        <input id="login-username" type="text" autocomplete="username" required>
+      </label>
+      <label>
+        <span>Password</span>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit">Sign In</button>
+    </form>
+    <div class="auth-quick-links">
+    <div class="auth-quick-links-grid">
+    <a href="stations.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏭</span><span class="auth-quick-link-label">Stations</span><span class="auth-quick-link-desc">Station workflow</span></a>
+    <a href="qr-printer.html" class="auth-quick-link"><span class="auth-quick-link-icon">🏷️</span><span class="auth-quick-link-label">QR Label Printer</span><span class="auth-quick-link-desc">Print order QR labels</span></a>
+    <a href="planner-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Planner Portal</span><span class="auth-quick-link-desc">Production planning</span></a>
+    <a href="packing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📦</span><span class="auth-quick-link-label">Packing Portal</span><span class="auth-quick-link-desc">Packing workspace</span></a>
+    <a href="priority-desk.html" class="auth-quick-link"><span class="auth-quick-link-icon">⭐</span><span class="auth-quick-link-label">Priority Desk</span><span class="auth-quick-link-desc">Assign & track priorities</span></a>
+    <a href="marketing-portal.html" class="auth-quick-link"><span class="auth-quick-link-icon">📢</span><span class="auth-quick-link-label">Marketing Portal</span><span class="auth-quick-link-desc">Dealers & orders</span></a>
+    <a href="marketing-assignment.html" class="auth-quick-link"><span class="auth-quick-link-icon">📋</span><span class="auth-quick-link-label">Marketing Assignment</span><span class="auth-quick-link-desc">Assign dealers to users</span></a>
+    <a href="remarks-reply.html" class="auth-quick-link"><span class="auth-quick-link-icon">💬</span><span class="auth-quick-link-label">Remarks Reply</span><span class="auth-quick-link-desc">Reply to remarks requests</span></a>
+    <a href="dealer-detail.html" class="auth-quick-link"><span class="auth-quick-link-icon">📂</span><span class="auth-quick-link-label">Dealer Detail</span><span class="auth-quick-link-desc">View dealer info</span></a>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="app-shell">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;">
+      <h1>QR Label Printer</h1>
+      <span class="sub">Select orders and print QR labels</span>
+    </div>
+    <div class="topbar-right">
+      <span id="user-label" style="font-size:12px;color:#94A3B8;"></span>
+      <button id="btn-refresh" type="button">Refresh</button>
+      <button id="btn-logout" type="button">Logout</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="panel panel-left">
+      <div class="panel-head">
+        <h3>Orders</h3>
+        <span class="count" id="order-count">0</span>
+      </div>
+      <div class="panel-body">
+        <input class="search-box" id="order-search" type="search" placeholder="Search order, customer, dealer, type...">
+        <div class="date-filter">
+          <label>From</label>
+          <input type="date" id="date-from">
+          <label>To</label>
+          <input type="date" id="date-to">
+          <button type="button" id="btn-clear-dates" style="background:none;border:1px solid #D1D5DB;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;color:#334155;">Clear</button>
+        </div>
+        <div class="select-bar">
+          <button type="button" id="btn-select-all">Select All</button>
+          <button type="button" id="btn-select-none">Deselect All</button>
+        </div>
+        <div id="order-list"></div>
+      </div>
+    </div>
+    <div class="panel panel-right">
+      <div class="panel-head">
+        <h3>Print Queue</h3>
+        <span class="count" id="queue-count">0</span>
+      </div>
+      <div class="panel-body">
+        <div id="queue-list">
+          <div class="queue-empty">No orders selected</div>
+        </div>
+        <div class="config-group">
+          <div class="config-title">Label Configuration</div>
+          <div class="config-row"><label>Width (mm)</label><input id="cfg-width" type="number" value="60" min="20" max="200"></div>
+          <div class="config-row"><label>Height (mm)</label><input id="cfg-height" type="number" value="40" min="15" max="200"></div>
+          <div class="config-row"><label>Margin (mm)</label><input id="cfg-margin" type="number" value="3" min="0" max="20"></div>
+          <div class="config-row"><label>Font Size (px)</label><input id="cfg-font" type="number" value="12" min="6" max="24"></div>
+          <div class="config-row"><label>QR Size (px)</label><input id="cfg-qr" type="number" value="120" min="30" max="300"></div>
+          <div class="config-row"><label>Format</label></div>
+          <div class="format-row">
+            <label class="format-opt"><input type="radio" name="fmt" value="roll" checked> Roll</label>
+            <label class="format-opt"><input type="radio" name="fmt" value="sheet"> Sheet (A4)</label>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" id="btn-preview" type="button" disabled>Preview</button>
+        <button class="btn btn-primary" id="btn-print" type="button" disabled>Print</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="preview-overlay" id="preview-overlay">
+  <div class="preview-box">
+    <div class="preview-header">
+      <h2 id="preview-title">Label Preview</h2>
+      <button class="preview-close" id="preview-close">&times;</button>
+    </div>
+    <div id="preview-labels" class="preview-labels"></div>
+    <div style="text-align:center;margin-top:20px;">
+      <button class="btn btn-primary" id="btn-print-from-preview" style="max-width:200px;">Print Now</button>
+    </div>
+  </div>
+</div>
+
+<div id="print-area" style="position:absolute;left:-9999px;top:0;visibility:hidden;"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  var state = { session: null, orders: [], queue: [], filteredOrders: [] };
+
+  function $(id) { return document.getElementById(id); }
+
+  var authShell = $('auth-shell');
+  var appShell = $('app-shell');
+  var authMessage = $('auth-message');
+  var loginForm = $('login-form');
+  var loginUsername = $('login-username');
+  var loginPassword = $('login-password');
+  var userLabel = $('user-label');
+  var orderSearch = $('order-search');
+  var orderList = $('order-list');
+  var orderCount = $('order-count');
+  var queueList = $('queue-list');
+  var queueCount = $('queue-count');
+  var btnRefresh = $('btn-refresh');
+  var btnLogout = $('btn-logout');
+  var btnPreview = $('btn-preview');
+  var btnPrint = $('btn-print');
+  var btnSelectAll = $('btn-select-all');
+  var btnSelectNone = $('btn-select-none');
+  var dateFrom = $('date-from');
+  var dateTo = $('date-to');
+  var btnClearDates = $('btn-clear-dates');
+  var previewOverlay = $('preview-overlay');
+  var previewLabels = $('preview-labels');
+  var previewTitle = $('preview-title');
+  var previewClose = $('preview-close');
+  var btnPrintFromPreview = $('btn-print-from-preview');
+  var printArea = $('print-area');
+
+  /* ─── QR Generated Tracking ─────────────── */
+  var qrGeneratedKey = 'elenza_qr_generated';
+  function getQrGenerated() { try { return JSON.parse(localStorage.getItem(qrGeneratedKey)) || {}; } catch(e) { return {}; } }
+  function markQrGenerated(ids) { var d = getQrGenerated(); ids.forEach(function(id) { d[id] = new Date().toISOString(); }); localStorage.setItem(qrGeneratedKey, JSON.stringify(d)); }
+  function isQrGenerated(id) { return !!getQrGenerated()[id]; }
+
+  /* ─── API ─────────────────────────────────── */
+  function apiGet(action) {
+    return fetch('/api.ashx?action=' + action, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.ok === false) throw new Error(d.message || 'Request failed.'); return d; });
+  }
+
+  function apiPost(action, payload) {
+    var params = new URLSearchParams();
+    Object.keys(payload).forEach(function(k) { params.append(k, payload[k] == null ? '' : payload[k]); });
+    return fetch('/api.ashx?action=' + action, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: params.toString()
+    }).then(function(r) { return r.json(); })
+      .then(function(d) { if (d.ok === false) throw new Error(d.message || 'Request failed.'); return d; });
+  }
+
+  /* ─── Auth ────────────────────────────────── */
+  function showAuth(msg) {
+    authShell.classList.remove('hidden');
+    appShell.classList.remove('active');
+    if (msg) { authMessage.textContent = msg; authMessage.classList.remove('hidden'); }
+    else { authMessage.classList.add('hidden'); }
+  }
+
+  function showApp() {
+    authShell.classList.add('hidden');
+    appShell.classList.add('active');
+    userLabel.textContent = state.session ? (state.session.full_name || state.session.login_id) : '';
+  }
+
+  function restoreSession() {
+    return apiGet('session').then(function(s) {
+      if (s.authenticated && s.user) { state.session = s.user; showApp(); return loadOrders(); }
+      showAuth();
+    }).catch(function() { showAuth(); });
+  }
+
+  loginForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var u = loginUsername.value.trim().toLowerCase();
+    var p = loginPassword.value;
+    if (!u || !p) { showAuth('Enter username and password.'); return; }
+    apiPost('login', { username: u, password: p }).then(function(r) {
+      state.session = r.user;
+      loginPassword.value = '';
+      showApp();
+      loadOrders();
+    }).catch(function(err) { showAuth(err.message); });
+  });
+
+  btnLogout.addEventListener('click', function() {
+    apiPost('logout', {}).catch(function() {});
+    state.session = null; state.orders = []; state.queue = [];
+    showAuth();
+  });
+
+  /* ─── Load Orders ─────────────────────────── */
+  function loadOrders() {
+    orderList.innerHTML = '<div style="text-align:center;color:#64748B;padding:20px;">Loading orders...</div>';
+    return apiGet('app-state').then(function(app) {
+      var excludeStages = ['dispatched', 'packed', 'hold'];
+      var seen = {};
+      var orders = [];
+
+      function addOrder(q, src) {
+        var stage = (q.workflow_stage || q.planner_stage_label || '').toLowerCase();
+        if (excludeStages.indexOf(stage) !== -1) return;
+        if (seen[q.order_id]) return;
+        seen[q.order_id] = true;
+        var rawDate = q.quotation_date || q.confirmation_date || '';
+        orders.push({
+          order_id: q.order_id,
+          order_number: q.order_number || '',
+          quotation_number: q.quotation_number || '',
+          customer_name: q.customer_name || '',
+          dealer_name: q.dealer_name || '',
+          order_type: q.order_type || '',
+          workflow_stage: q.workflow_stage || q.planner_stage_label || '',
+          quotation_date: rawDate,
+          _sortDate: parseDate(rawDate)
+        });
+      }
+
+      (app.data_entry && app.data_entry.quotations || []).forEach(function(q) { addOrder(q, 'de'); });
+      (app.planning && app.planning.rows || []).forEach(function(q) { addOrder(q, 'pl'); });
+      (app.production && app.production.rows || []).forEach(function(q) { addOrder(q, 'pr'); });
+
+      orders.sort(function(a, b) { return b._sortDate - a._sortDate; });
+
+      state.orders = orders;
+      state.filteredOrders = orders.slice();
+      renderOrders();
+    }).catch(function(err) {
+      orderList.innerHTML = '<div style="color:#DC2626;font-size:13px;">Failed to load: ' + esc(err.message) + '</div>';
+    });
+  }
+
+  function parseDate(s) {
+    if (!s) return 0;
+    var p = s.split(/[\s\-\/]/);
+    if (p.length >= 3) {
+      var d = parseInt(p[0], 10), m = parseInt(p[1], 10) - 1, y = parseInt(p[2], 10);
+      if (y < 100) y += 2000;
+      return new Date(y, m, d).getTime();
+    }
+    var t = new Date(s);
+    return isNaN(t.getTime()) ? 0 : t.getTime();
+  }
+
+  /* ─── Render Orders ───────────────────────── */
+  function renderOrders() {
+    var html = '';
+    var list = state.filteredOrders;
+    orderCount.textContent = list.length;
+    if (!list.length) {
+      orderList.innerHTML = '<div class="queue-empty">No orders found</div>';
+      return;
+    }
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i];
+      var inQueue = state.queue.some(function(q) { return q.order_id === o.order_id; });
+      var qrDone = isQrGenerated(o.order_id);
+      html += '<div class="order-item" data-id="' + o.order_id + '">'
+        + '<input type="checkbox" ' + (inQueue ? 'checked' : '') + ' data-check="' + o.order_id + '">'
+        + '<div class="order-info">'
+        + '<div class="order-num">' + esc(o.order_number) + (qrDone ? ' <span class="qr-badge">QR Generated</span>' : '') + '</div>'
+        + '<div class="order-meta">' + esc(o.customer_name) + ' &middot; ' + esc(o.dealer_name) + ' &middot; ' + esc(o.order_type) + '</div>'
+        + '</div>'
+        + '<span class="order-date">' + esc(o.quotation_date) + '</span>'
+        + '<span class="order-stage">' + esc(o.workflow_stage) + '</span>'
+        + '</div>';
+    }
+    orderList.innerHTML = html;
+  }
+
+  /* ─── Search + Date Filter ───────────────── */
+  function applyFilters() {
+    var q = orderSearch.value.toLowerCase();
+    var fromMs = dateFrom.value ? parseDate(dateFrom.value) : 0;
+    var toMs = dateTo.value ? parseDate(dateTo.value) : Infinity;
+    state.filteredOrders = state.orders.filter(function(o) {
+      if (q && ![o.order_number, o.quotation_number, o.customer_name, o.dealer_name, o.order_type, o.workflow_stage]
+        .some(function(v) { return (v || '').toLowerCase().indexOf(q) !== -1; })) return false;
+      if (o._sortDate < fromMs || o._sortDate > toMs) return false;
+      return true;
+    });
+    renderOrders();
+  }
+
+  orderSearch.addEventListener('input', applyFilters);
+  dateFrom.addEventListener('change', applyFilters);
+  dateTo.addEventListener('change', applyFilters);
+  btnClearDates.addEventListener('click', function() { dateFrom.value = ''; dateTo.value = ''; applyFilters(); });
+
+  /* ─── Select All / None ───────────────────── */
+  btnSelectAll.addEventListener('click', function() {
+    state.filteredOrders.forEach(function(o) {
+      if (!state.queue.some(function(q) { return q.order_id === o.order_id; })) {
+        state.queue.push(o);
+      }
+    });
+    renderQueue(); renderOrders();
+  });
+
+  btnSelectNone.addEventListener('click', function() {
+    var ids = state.filteredOrders.map(function(o) { return o.order_id; });
+    state.queue = state.queue.filter(function(q) { return ids.indexOf(q.order_id) === -1; });
+    renderQueue(); renderOrders();
+  });
+
+  /* ─── Checkbox ────────────────────────────── */
+  orderList.addEventListener('change', function(e) {
+    if (!e.target.matches('[data-check]')) return;
+    var id = Number(e.target.dataset.check);
+    if (e.target.checked) {
+      var order = state.orders.find(function(o) { return o.order_id === id; });
+      if (order && !state.queue.some(function(q) { return q.order_id === id; })) state.queue.push(order);
+    } else {
+      state.queue = state.queue.filter(function(q) { return q.order_id !== id; });
+    }
+    renderQueue(); renderOrders();
+  });
+
+  orderList.addEventListener('click', function(e) {
+    var item = e.target.closest('.order-item');
+    if (!item || e.target.matches('[data-check]')) return;
+    var cb = item.querySelector('[data-check]');
+    if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+  });
+
+  /* ─── Queue ───────────────────────────────── */
+  function renderQueue() {
+    queueCount.textContent = state.queue.length;
+    var has = state.queue.length > 0;
+    btnPreview.disabled = !has;
+    btnPrint.disabled = !has;
+    if (!has) { queueList.innerHTML = '<div class="queue-empty">No orders selected</div>'; return; }
+    var html = '';
+    for (var i = 0; i < state.queue.length; i++) {
+      var o = state.queue[i];
+      html += '<div class="queue-item">'
+        + '<div><div class="q-num">' + esc(o.order_number) + '</div>'
+        + '<div class="q-meta">' + esc(o.customer_name) + '</div></div>'
+        + '<button data-remove="' + o.order_id + '" title="Remove">&times;</button></div>';
+    }
+    queueList.innerHTML = html;
+  }
+
+  queueList.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    state.queue = state.queue.filter(function(q) { return q.order_id !== Number(btn.dataset.remove); });
+    renderQueue(); renderOrders();
+  });
+
+  /* ─── Config ──────────────────────────────── */
+  function getConfig() {
+    return {
+      width: Number($('cfg-width').value) || 50,
+      height: Number($('cfg-height').value) || 30,
+      margin: Number($('cfg-margin').value) || 3,
+      fontSize: Number($('cfg-font').value) || 10,
+      qrSize: Number($('cfg-qr').value) || 80,
+      format: document.querySelector('[name="fmt"]:checked').value
+    };
+  }
+
+  function mmToPx(mm) { return Math.round(mm * 3.7795); }
+
+  /* ─── Preview ─────────────────────────────── */
+  function showPreview() {
+    var cfg = getConfig();
+    previewTitle.textContent = 'Preview — ' + state.queue.length + ' labels (' + cfg.format + ')';
+    previewLabels.innerHTML = '';
+    var w = mmToPx(cfg.width), h = mmToPx(cfg.height), m = mmToPx(cfg.margin);
+    var qrS = Math.min(cfg.qrSize, w - m * 2, h - m * 2 - cfg.fontSize - 4);
+    var cellSize = Math.max(1, Math.floor(qrS / 33));
+    for (var i = 0; i < state.queue.length; i++) {
+      var o = state.queue[i];
+      var div = document.createElement('div');
+      div.className = 'label-preview';
+      div.style.width = w + 'px';
+      div.style.height = h + 'px';
+      div.style.padding = m + 'px';
+      var qrDiv = document.createElement('div');
+      qrDiv.className = 'qr-container';
+      var dataUrl = makeQR(o.order_number, qrS, cellSize);
+      var img = document.createElement('img');
+      img.src = dataUrl;
+      img.style.width = qrS + 'px';
+      img.style.height = qrS + 'px';
+      qrDiv.appendChild(img);
+      div.appendChild(qrDiv);
+      var txt = document.createElement('div');
+      txt.className = 'label-text';
+      txt.style.fontSize = cfg.fontSize + 'px';
+      txt.style.marginTop = '2px';
+      txt.textContent = o.order_number;
+      div.appendChild(txt);
+      previewLabels.appendChild(div);
+    }
+    previewOverlay.classList.add('active');
+  }
+
+  btnPreview.addEventListener('click', showPreview);
+  previewClose.addEventListener('click', function() { previewOverlay.classList.remove('active'); });
+  previewOverlay.addEventListener('click', function(e) { if (e.target === previewOverlay) previewOverlay.classList.remove('active'); });
+
+  /* ─── Print ───────────────────────────────── */
+  function doPrint() {
+    if (!state.queue.length) return;
+    var cfg = getConfig();
+    var w = mmToPx(cfg.width), h = mmToPx(cfg.height), m = mmToPx(cfg.margin);
+    var qrS = Math.min(cfg.qrSize, w - m * 2, h - m * 2 - cfg.fontSize - 4);
+    var cellSize = Math.max(1, Math.floor(qrS / 33));
+
+    var html = '';
+    if (cfg.format === 'sheet') {
+      html += '<style>@page{size:A4;margin:10mm;}.ps{display:grid;grid-template-columns:repeat(auto-fill,' + w + 'px);gap:0;justify-content:center;}.pl{width:' + w + 'px;height:' + h + 'px;border:1px dashed #ccc;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:' + m + 'px;box-sizing:border-box;page-break-inside:avoid;}.pl .qi{line-height:0;}.pl .qi img{width:' + qrS + 'px;height:' + qrS + 'px;}.pl .qt{text-align:center;font-weight:600;font-size:' + cfg.fontSize + 'px;margin-top:2px;font-family:"Segoe UI",system-ui,sans-serif;}</style><div class="ps">';
+    } else {
+      html += '<style>@page{size:' + w + 'px ' + h + 'px;margin:0;}.pr{display:flex;flex-direction:column;align-items:center;}.pl{width:' + w + 'px;height:' + h + 'px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:' + m + 'px;box-sizing:border-box;page-break-after:always;page-break-inside:avoid;}.pl:last-child{page-break-after:auto;}.pl .qi{line-height:0;}.pl .qi img{width:' + qrS + 'px;height:' + qrS + 'px;}.pl .qt{text-align:center;font-weight:600;font-size:' + cfg.fontSize + 'px;margin-top:2px;font-family:"Segoe UI",system-ui,sans-serif;}</style><div class="pr">';
+    }
+    for (var i = 0; i < state.queue.length; i++) {
+      var o = state.queue[i];
+      var dataUrl = makeQR(o.order_number, qrS, cellSize);
+      html += '<div class="pl"><div class="qi"><img src="' + dataUrl + '"></div><div class="qt">' + esc(o.order_number) + '</div></div>';
+    }
+    html += '</div>';
+    printArea.innerHTML = html;
+    previewOverlay.classList.remove('active');
+    var printedIds = state.queue.map(function(o) { return o.order_id; });
+    markQrGenerated(printedIds);
+    renderOrders();
+    renderQueue();
+    setTimeout(function() { window.print(); }, 500);
+  }
+
+  btnPrint.addEventListener('click', doPrint);
+  btnPrintFromPreview.addEventListener('click', doPrint);
+  btnRefresh.addEventListener('click', function() { loadOrders(); });
+
+  /* ─── QR Data URL (synchronous) ────────────── */
+  function makeQR(text, size, cellSize) {
+    var qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    var modules = qr.getModuleCount();
+    var canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000000';
+    var step = size / modules;
+    for (var r = 0; r < modules; r++) {
+      for (var c = 0; c < modules; c++) {
+        if (qr.isDark(r, c)) {
+          ctx.fillRect(c * step, r * step, step + 0.5, step + 0.5);
+        }
+      }
+    }
+    return canvas.toDataURL('image/png');
+  }
+
+  /* ─── Utilities ───────────────────────────── */
+  function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+  /* ─── Init ────────────────────────────────── */
+  restoreSession();
+})();
+</script>
+</body>
+</html>
