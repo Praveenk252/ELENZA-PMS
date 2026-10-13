@@ -382,6 +382,9 @@ case "packing-boxes-set":
                 case "remarks-reply-reassign":
                     HandleRemarksReplyReassign(context);
                     break;
+                case "remarks-wipe":
+                    HandleRemarksWipe(context);
+                    break;
                 case "remarks-report-export":
                     HandleRemarksReportExport(context);
                     break;
@@ -7455,6 +7458,24 @@ TryExecute(conn, "ALTER TABLE tbl_orders ADD COLUMN packing_balance_box_qty DOUB
             Execute(conn, "UPDATE tbl_remarks_replies SET replied_by = ? WHERE request_id = ?", repliedBy, requestId);
             Execute(conn, "UPDATE tbl_remarks_requests SET replied_by = ? WHERE request_id = ?", repliedBy, requestId);
             WriteJson(context, Obj("ok", true, "request_id", requestId, "replied_by", repliedBy, "replied_by_name", S(target, "full_name")));
+        }
+    }
+
+    private void HandleRemarksWipe(HttpContext context)
+    {
+        using (var conn = OpenConnection(context))
+        {
+            EnsureSchema(conn);
+            var user = RequireLogin(context, conn);
+            if (S(user, "role_name") != "Admin")
+                throw new ApiFailure(403, "Only admins can wipe remarks data.");
+            var replyCount = QueryOne(conn, "SELECT COUNT(*) AS c FROM tbl_remarks_replies");
+            var requestCount = QueryOne(conn, "SELECT COUNT(*) AS c FROM tbl_remarks_requests");
+            var replies = I(replyCount, "c");
+            var requests = I(requestCount, "c");
+            Execute(conn, "DELETE FROM tbl_remarks_replies");
+            Execute(conn, "DELETE FROM tbl_remarks_requests");
+            WriteJson(context, Obj("ok", true, "deleted_requests", requests, "deleted_replies", replies));
         }
     }
 
